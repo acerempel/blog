@@ -11,12 +11,12 @@ import qualified Templates.Home as Templates
 import qualified Templates.Post as Templates
 import Types
 
-pageToHtml :: [Post] -> Page -> Html
-pageToHtml posts page =
+pageToHtml :: Page -> Html
+pageToHtml page =
     case page of
-        Home ->
+        Home posts ->
             Templates.home pageMeta posts
-        Archive ->
+        Archive posts ->
             Templates.archive pageMeta posts
         Post post ->
             Templates.post pageMeta post

@@ -18,7 +18,7 @@ post Page.M{url} P{content, date, postTitle} =
             $ time
                 ! datetime ((toValue . showGregorian) date)
                 $ (toHtml . showGregorian) date
-        whenMaybe postTitle $ \t ->
+        guardJust postTitle $ \t ->
             h1 $ a
                 ! href (toValue url)
                 $ toHtml t

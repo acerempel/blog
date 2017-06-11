@@ -6,8 +6,8 @@ import Text.Blaze.Html ( Html )
 import Text.Pandoc ()
 
 
-data Page = Home
-          | Archive
+data Page = Home [Post]
+          | Archive [Post]
           | Post Post
 
 data Meta = M

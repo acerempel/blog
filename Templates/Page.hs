@@ -12,8 +12,8 @@ import Site
 import Types
 import Utils
 
-page :: [Post] -> Page -> Html
-page posts here =
+page :: Page -> Html
+page here =
     docTypeHtml
         ! lang "en"
         $ do
@@ -36,12 +36,12 @@ page posts here =
                         $ a ! href "/"
                             $ toHtml siteTitle
                     nav $ do
-                        a ! href ((toValue.url.meta) Home)
-                          $ (toHtml.linkTitle.meta) Home
-                        a ! href ((toValue.url.meta) Archive)
-                          $ (toHtml.linkTitle.meta) Archive
+                        a ! href ((toValue.url.meta) (Home []))
+                          $ (toHtml.linkTitle.meta) (Home [])
+                        a ! href ((toValue.url.meta) (Archive []))
+                          $ (toHtml.linkTitle.meta) (Archive [])
                 main $ do
-                    pageToHtml posts here
+                    pageToHtml here
                 footer $ do
                     toHtml copyrightNotice
                     a ! href (toValue sourceUrl)

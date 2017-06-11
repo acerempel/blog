@@ -8,12 +8,12 @@ import Types
 import Utils
 
 meta :: Page -> Meta
-meta Home = M
+meta (Home _) = M
     { url = "/"
     , pageTitle = Nothing
     , linkTitle = "Recent"
     }
-meta Archive = M
+meta (Archive _) = M
     { url = "/archive"
     , pageTitle = Just "Posts"
     , linkTitle = "Archive"

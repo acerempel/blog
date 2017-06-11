@@ -1,10 +1,12 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Main where
 
+import Control.Monad ( (=<<) )
 import Data.Bifunctor
-import Data.Either ( partitionEithers )
+import Data.Either ( either )
 import Data.Foldable ( for_, msum )
 import Data.List ( intercalate )
+import Data.Maybe ( catMaybes )
 
 import Data.Time.Calendar ( Day )
 import Data.Time.Format
@@ -34,26 +36,61 @@ htmlOptions =
     def { writerHtml5 = True
         , writerSectionDivs = True }
 
+out :: FilePath -> FilePath
+out src =
+    "_site" </> dropExtension src </> "index.html"
+
 main :: IO ()
 main = shakeArgs options $ do
+
+    getPost <- newCache $ \src -> do
+        postOrError <- readPostFromFile src
+        case postOrError of
+            Left message -> do
+                putQuiet ("Error: " <> show message)
+                return Nothing
+            Right post ->
+                return (Just post)
+
+    getAllPostSourceFiles <- newCache $ \() ->
+        map ("posts" </>) <$> getDirectoryFiles "posts" ["*.md"]
+
+    getAllPosts <- newCache $ \() ->
+        traverse getPost =<< getAllPostSourceFiles ()
+
     action $ do
-        postsOrErrors <-
-            getDirectoryFiles "posts" ["*.md"]
-            >>= traverse readPostFromFile
-        let (errors, posts) = partitionEithers postsOrErrors
-        for_ errors $ \message ->
-            putQuiet ("Error: " <> show message)
-        let pages = [Home, Archive] <> (Post <$> posts)
-        siteDir <- (</> "_site") <$> liftIO getCurrentDirectory
-        for_ pages $ \thisPage -> liftIO $ do
-            let path = siteDir </> ((tail.Text.unpack.url.meta) thisPage)
-            createDirectoryIfMissing True path
-            writeFile (path </> "index.html") $ (renderHtml . page posts) thisPage
+        posts <- getAllPostSourceFiles ()
+        let pages = ["archive", "."]
+        need $ map out $ pages <> posts
+
+    out "posts/*" %> \out -> do
+        let src =
+                tail . dropWhile (not . isPathSeparator)
+                $ takeDirectory out <.> "md"
+        mPost <- getPost src
+        whenJust mPost $ \post -> do
+            let html = (renderHtml . page) (Post post)
+            liftIO $ createDirectoryIfMissing True (takeDirectory out)
+            liftIO $ writeFile out html
+
+    out "." %> \out -> do
+        posts <- catMaybes <$> getAllPosts ()
+        let html = (renderHtml . page) (Home posts)
+        liftIO $ createDirectoryIfMissing True (takeDirectory out)
+        liftIO $ writeFile out html
+
+
+    out "archive" %> \out -> do
+        posts <- catMaybes <$> getAllPosts ()
+        let html = (renderHtml . page) (Archive posts)
+        liftIO $ createDirectoryIfMissing True (takeDirectory out)
+        liftIO $ writeFile out html
+
 
   where
     readPostFromFile :: FilePath -> Action (Either Error Post)
     readPostFromFile filepath = do
-        contents <- (liftIO . readFile) ("posts" </> filepath)
+        contents <- readFile' filepath
         return (readPost filepath contents)
 
     readPost :: FilePath -> String -> Either Error Post
@@ -66,21 +103,23 @@ main = shakeArgs options $ do
                   | Just dateString <-
                         extractStringFromMetaValue =<< Pandoc.lookupMeta "date" meta
                   , Just parsedDate <-
-                        msum $ parseTimeWithFormat dateString <$> formats
+                        msum $ map (parseTimeWithFormat dateString) formats
                     = Right parsedDate
                   | otherwise
                     = Left (Error $ "No date could be parsed from metadata block of file " <> filepath)
-            draft | Just (Pandoc.MetaBool isDraft) <- Pandoc.lookupMeta "draft" meta
-                    = isDraft
+            isDraft
+                  | Just (Pandoc.MetaBool draft) <-
+                        Pandoc.lookupMeta "draft" meta
+                    = draft
                   | otherwise
                     = False
         date <- dateOrErr
         return $ P
             { content = Pandoc.writeHtml htmlOptions md
-            , identifier = Text.pack filepath
+            , identifier = Text.pack (takeBaseName filepath)
             , date = date
             , postTitle = title
-            , isDraft = draft
+            , isDraft = isDraft
             }
 
     parseTimeWithFormat dateString format =

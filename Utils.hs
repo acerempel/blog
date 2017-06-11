@@ -1,10 +1,11 @@
 {-# LANGUAGE ViewPatterns #-}
 module Utils
     ( fromMaybe
+    , guardJust
     , maybe
     , showGregorian
     , showText
-    , whenMaybe
+    , whenJust
     , year
     , (<>)
     ) where
@@ -17,9 +18,13 @@ import Data.Time.Calendar ( Day, showGregorian, toGregorian )
 showText :: Show a => a -> Text
 showText = Text.pack . show
 
-whenMaybe :: Monoid m => Maybe a -> (a -> m) -> m
-whenMaybe =
+guardJust :: Monoid m => Maybe a -> (a -> m) -> m
+guardJust =
     flip (maybe mempty)
+
+whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
+whenJust =
+    flip (maybe (return ()))
 
 year :: Day -> Integer
 year (toGregorian -> (y, _, _)) = y
