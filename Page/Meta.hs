@@ -14,12 +14,12 @@ meta (Home _) = M
     , linkTitle = "Recent"
     }
 meta (Archive _) = M
-    { url = "/archive"
+    { url = "/archive.html"
     , pageTitle = Just "Posts"
     , linkTitle = "Archive"
     }
 meta (Post P{date, identifier, postTitle}) = M
-    { url = "/posts/" <> showText (year date) <> "/" <> identifier
+    { url = "/posts/" <> identifier <> ".html"
     , pageTitle = postTitle
     , linkTitle = fromMaybe identifier postTitle
     }
