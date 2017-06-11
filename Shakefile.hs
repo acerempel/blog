@@ -40,9 +40,8 @@ htmlOptions =
         { Pandoc.writerHtml5 = True
         , Pandoc.writerSectionDivs = True }
 
-out :: FilePath -> FilePath
-out src =
-    "_site" </> src
+buildDir :: FilePath
+buildDir = "_site"
 
 main :: IO ()
 main = shakeArgs options $ do
@@ -71,36 +70,31 @@ main = shakeArgs options $ do
             <$> getDirectoryFiles "styles" ["*.scss"]
         let pages =
                 ["archive.html", "index.html"]
-        need $ map out
-             $ styles <> pages <> posts
+        need $ map (buildDir </>) (styles <> pages <> posts)
 
-    out "posts/*.html" %> \out -> do
-        let src =
-                tail . dropWhile (not . isPathSeparator)
-                $ out -<.> "md"
+    (buildDir </> "posts/*.html") %> \out -> do
+        let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "md"
         mPost <- getPost src
         whenJust mPost $ \post -> do
             let html = (Blaze.renderHtml . page) (Post post)
             liftIO $ createDirectoryIfMissing True (takeDirectory out)
             liftIO $ writeFile out html
 
-    out "index.html" %> \out -> do
+    (buildDir </> "index.html") %> \out -> do
         posts <- catMaybes <$> getAllPosts ()
         let html = (Blaze.renderHtml . page) (Home posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
 
-    out "archive.html" %> \out -> do
+    (buildDir </> "archive.html") %> \out -> do
         posts <- catMaybes <$> getAllPosts ()
         let html = (Blaze.renderHtml . page) (Archive posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
-    out "styles/*.css" %> \out -> do
-        let src =
-                tail . dropWhile (not . isPathSeparator)
-                $ out -<.> "scss"
+    (buildDir </> "styles/*.css") %> \out -> do
+        let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "scss"
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
         case scssOrError of
