@@ -14,12 +14,14 @@ import qualified Data.Text as Text
 import Development.Shake
 import System.Directory ( createDirectoryIfMissing, getCurrentDirectory )
 import System.FilePath
-import Text.Pandoc as Pandoc
-import Text.Pandoc.Walk as Pandoc
+import Text.Pandoc ( Pandoc(..) )
+import qualified Text.Pandoc as Pandoc
+import qualified Text.Pandoc.Walk as Pandoc
 import qualified Text.Pandoc.Options as Pandoc
 import qualified Text.Pandoc.Readers.Markdown as Pandoc
 import qualified Text.Pandoc.Writers.HTML as Pandoc
-import Text.Blaze.Html.Renderer.String
+import qualified Text.Blaze.Html.Renderer.String as Blaze
+import qualified Text.Sass as Sass
 
 import Page.Meta
 import Templates.Page
@@ -27,18 +29,20 @@ import Types
 import Utils
 
 options =
-    shakeOptions{ shakeVersion="1.1" }
+    shakeOptions{ shakeVersion="1.2" }
 
 mdOptions =
-    def { readerSmart = True }
+    Pandoc.def
+        { Pandoc.readerSmart = True }
 
 htmlOptions =
-    def { writerHtml5 = True
-        , writerSectionDivs = True }
+    Pandoc.def
+        { Pandoc.writerHtml5 = True
+        , Pandoc.writerSectionDivs = True }
 
 out :: FilePath -> FilePath
 out src =
-    "_site" </> dropExtension src </> "index.html"
+    "_site" </> src
 
 main :: IO ()
 main = shakeArgs options $ do
@@ -59,33 +63,53 @@ main = shakeArgs options $ do
         traverse getPost =<< getAllPostSourceFiles ()
 
     action $ do
-        posts <- getAllPostSourceFiles ()
-        let pages = ["archive", "."]
-        need $ map out $ pages <> posts
+        posts <-
+            map (-<.> "html")
+            <$> getAllPostSourceFiles ()
+        styles <-
+            map (("styles" </>) . (-<.> "css"))
+            <$> getDirectoryFiles "styles" ["*.scss"]
+        let pages =
+                ["archive.html", "index.html"]
+        need $ map out
+             $ styles <> pages <> posts
 
-    out "posts/*" %> \out -> do
+    out "posts/*.html" %> \out -> do
         let src =
                 tail . dropWhile (not . isPathSeparator)
-                $ takeDirectory out <.> "md"
+                $ out -<.> "md"
         mPost <- getPost src
         whenJust mPost $ \post -> do
-            let html = (renderHtml . page) (Post post)
+            let html = (Blaze.renderHtml . page) (Post post)
             liftIO $ createDirectoryIfMissing True (takeDirectory out)
             liftIO $ writeFile out html
 
-    out "." %> \out -> do
+    out "index.html" %> \out -> do
         posts <- catMaybes <$> getAllPosts ()
-        let html = (renderHtml . page) (Home posts)
+        let html = (Blaze.renderHtml . page) (Home posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
 
-    out "archive" %> \out -> do
+    out "archive.html" %> \out -> do
         posts <- catMaybes <$> getAllPosts ()
-        let html = (renderHtml . page) (Archive posts)
+        let html = (Blaze.renderHtml . page) (Archive posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
+    out "styles/*.css" %> \out -> do
+        let src =
+                tail . dropWhile (not . isPathSeparator)
+                $ out -<.> "scss"
+        need [src]
+        scssOrError <- liftIO $ Sass.compileFile src Sass.def
+        case scssOrError of
+            Left error -> do
+                message <- liftIO $ Sass.errorMessage error
+                putQuiet ("Error: " <> show message)
+            Right scss -> do
+                liftIO $ createDirectoryIfMissing True (takeDirectory out)
+                liftIO $ writeFile out scss
 
   where
     readPostFromFile :: FilePath -> Action (Either Error Post)
@@ -130,7 +154,7 @@ main = shakeArgs options $ do
         ,"%d %B %Y", "%b. %d, %Y", "%B %d, %Y"
         ,"%Y%m%d", "%Y%m", "%Y"]
 
-    extractStringFromMetaValue :: MetaValue -> Maybe String
+    extractStringFromMetaValue :: Pandoc.MetaValue -> Maybe String
     extractStringFromMetaValue metaValue =
         intercalate " " <$> Pandoc.query extractString metaValue
       where

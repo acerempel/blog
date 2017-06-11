@@ -28,7 +28,7 @@ page here =
                 link
                     ! rel "stylesheet"
                     ! type_ "text/css"
-                    ! href "/css/styles.css"
+                    ! href "/styles/magenta.css"
             body $ do
                 header $ do
                     H.div
