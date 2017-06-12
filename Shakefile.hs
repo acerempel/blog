@@ -105,41 +105,42 @@ main = shakeArgs options $ do
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
                 liftIO $ writeFile out scss
 
+
+readPostFromFile :: FilePath -> Action (Either Error Post)
+readPostFromFile filepath = do
+    contents <- readFile' filepath
+    return (readPost filepath contents)
+
+readPost :: FilePath -> String -> Either Error Post
+readPost filepath contents = do
+    md@(Pandoc meta doc) <- first Error $ Pandoc.readMarkdown mdOptions contents
+    let title =
+            Text.pack <$>
+            (extractStringFromMetaValue =<< Pandoc.lookupMeta "title" meta)
+        dateOrErr
+              | Just dateString <-
+                    extractStringFromMetaValue =<< Pandoc.lookupMeta "date" meta
+              , Just parsedDate <-
+                    msum $ map (parseTimeWithFormat dateString) formats
+                = Right parsedDate
+              | otherwise
+                = Left (Error $ "No date could be parsed from metadata block of file " <> filepath)
+        isDraft
+              | Just (Pandoc.MetaBool draft) <-
+                    Pandoc.lookupMeta "draft" meta
+                = draft
+              | otherwise
+                = False
+    date <- dateOrErr
+    return $ P
+        { content = Pandoc.writeHtml htmlOptions md
+        , identifier = Text.pack (takeBaseName filepath)
+        , date = date
+        , postTitle = title
+        , isDraft = isDraft
+        }
+
   where
-    readPostFromFile :: FilePath -> Action (Either Error Post)
-    readPostFromFile filepath = do
-        contents <- readFile' filepath
-        return (readPost filepath contents)
-
-    readPost :: FilePath -> String -> Either Error Post
-    readPost filepath contents = do
-        md@(Pandoc meta doc) <- first Error $ Pandoc.readMarkdown mdOptions contents
-        let title =
-                Text.pack <$>
-                (extractStringFromMetaValue =<< Pandoc.lookupMeta "title" meta)
-            dateOrErr
-                  | Just dateString <-
-                        extractStringFromMetaValue =<< Pandoc.lookupMeta "date" meta
-                  , Just parsedDate <-
-                        msum $ map (parseTimeWithFormat dateString) formats
-                    = Right parsedDate
-                  | otherwise
-                    = Left (Error $ "No date could be parsed from metadata block of file " <> filepath)
-            isDraft
-                  | Just (Pandoc.MetaBool draft) <-
-                        Pandoc.lookupMeta "draft" meta
-                    = draft
-                  | otherwise
-                    = False
-        date <- dateOrErr
-        return $ P
-            { content = Pandoc.writeHtml htmlOptions md
-            , identifier = Text.pack (takeBaseName filepath)
-            , date = date
-            , postTitle = title
-            , isDraft = isDraft
-            }
-
     parseTimeWithFormat dateString format =
         parseTimeM True defaultTimeLocale format dateString
 
