@@ -3,6 +3,7 @@
 module Templates.Post where
 
 import Data.Time.Calendar ( showGregorian )
+import Data.Time.Format
 import Text.Blaze.Html5 as Html
 import Text.Blaze.Html5.Attributes ( class_, datetime, href )
 
@@ -17,7 +18,7 @@ post Page.M{url} P{content, date, postTitle} =
             ! class_ "info"
             $ time
                 ! datetime ((toValue . showGregorian) date)
-                $ (toHtml . showGregorian) date
+                $ (toHtml . formatTime defaultTimeLocale "%d %B %Y") date
         guardJust postTitle $ \t ->
             h1 $ a
                 ! href (toValue url)
