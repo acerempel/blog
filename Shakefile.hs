@@ -5,8 +5,9 @@ import Control.Monad ( (=<<) )
 import Data.Bifunctor
 import Data.Either ( either )
 import Data.Foldable ( for_, msum )
-import Data.List ( intercalate )
+import Data.List ( intercalate, sortBy )
 import Data.Maybe ( catMaybes )
+import Data.Ord ( comparing, Down(..) )
 
 import Data.Time.Calendar ( Day )
 import Data.Time.Format
@@ -58,8 +59,11 @@ main = shakeArgs options $ do
     getAllPostSourceFiles <- newCache $ \() ->
         map ("posts" </>) <$> getDirectoryFiles "posts" ["*.md"]
 
-    getAllPosts <- newCache $ \() ->
-        traverse getPost =<< getAllPostSourceFiles ()
+    getAllPosts <- newCache $ \() -> do
+        posts <- traverse getPost =<< getAllPostSourceFiles ()
+        let dropDrafts = filter (not . isDraft)
+            sortByDate = sortBy (comparing (Down . date))
+        return $ (sortByDate . dropDrafts . catMaybes) posts
 
     action $ do
         posts <-
@@ -81,14 +85,14 @@ main = shakeArgs options $ do
             liftIO $ writeFile out html
 
     (buildDir </> "index.html") %> \out -> do
-        posts <- catMaybes <$> getAllPosts ()
+        posts <- getAllPosts ()
         let html = (Blaze.renderHtml . page) (Home posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
 
     (buildDir </> "archive.html") %> \out -> do
-        posts <- catMaybes <$> getAllPosts ()
+        posts <- getAllPosts ()
         let html = (Blaze.renderHtml . page) (Archive posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
