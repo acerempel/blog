@@ -1,8 +1,18 @@
 resolver: lts-8.17
 packages:
 - '.'
-extra-deps: []
-flags: {}
+
+# lts-8.17 has this version of hlibsass, the extra-dep entry
+# is just a hack to get the flag setting to apply to it.
+extra-deps:
+- hlibsass-0.1.5.2
+
+# ghci complains with linking errors and segfaults otherwise
+flags:
+    hlibsass:
+        externallibsass: true
+
+rebuild-ghc-options: true
 extra-package-dbs: []
 system-ghc: false
 compiler-check: newer-minor
