@@ -2,13 +2,6 @@ module Templates.Home where
 
 import Text.Blaze.Html ( Html )
 
-import Page.Meta as Page
-import Templates.Post
-import Types
+import qualified Content
+import qualified Page
 
-home :: Page.Meta -> [Post] -> Html
-home _ posts =
-    foldMap recentItem posts
-  where
-    recentItem p =
-        post ((meta.Post) p) p

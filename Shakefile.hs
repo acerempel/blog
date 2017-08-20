@@ -24,9 +24,7 @@ import qualified Text.Pandoc.Writers.HTML as Pandoc
 import qualified Text.Blaze.Html.Renderer.String as Blaze
 import qualified Text.Sass as Sass
 
-import Page.Meta
-import Templates.Page
-import Types
+import Page
 import Utils
 
 options =
@@ -80,20 +78,20 @@ main = shakeArgs options $ do
         let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "md"
         mPost <- getPost src
         whenJust mPost $ \post -> do
-            let html = (Blaze.renderHtml . page) (Post post)
+            let html = Blaze.renderHtml (page (ThisPost (identifier post)) post)
             liftIO $ createDirectoryIfMissing True (takeDirectory out)
             liftIO $ writeFile out html
 
     (buildDir </> "index.html") %> \out -> do
-        posts <- getAllPosts ()
-        let html = (Blaze.renderHtml . page) (Home posts)
+        posts <- map (\p -> (ThisPost (identifier p), p)) <$> getAllPosts ()
+        let html = Blaze.renderHtml (page Home posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
 
     (buildDir </> "archive.html") %> \out -> do
-        posts <- getAllPosts ()
-        let html = (Blaze.renderHtml . page) (Archive posts)
+        posts <- map (\p -> (ThisPost (identifier p), p)) <$> getAllPosts ()
+        let html = Blaze.renderHtml (page Archive posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
@@ -136,7 +134,7 @@ readPost filepath contents = do
               | otherwise
                 = False
     date <- dateOrErr
-    return $ P
+    return $ Post
         { content = Pandoc.writeHtml htmlOptions md
         , identifier = Text.pack (takeBaseName filepath)
         , date = date
