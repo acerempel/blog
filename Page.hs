@@ -14,7 +14,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 import Site
 import Utils
 
-data WhichPost = ThisPost PostID
+newtype WhichPost = ThisPost PostID
 
 data Home = Home
 

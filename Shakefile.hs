@@ -153,7 +153,7 @@ readPost filepath contents = do
 
     extractStringFromMetaValue :: Pandoc.MetaValue -> Maybe String
     extractStringFromMetaValue metaValue =
-        intercalate " " <$> Pandoc.query extractString metaValue
+        unwords <$> Pandoc.query extractString metaValue
       where
         extractString (Pandoc.Str string) =
             Just [string]
