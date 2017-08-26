@@ -6,7 +6,6 @@ import Data.Bifunctor
 import Data.Either ( either )
 import Data.Foldable ( for_, msum )
 import Data.List ( intercalate, sortBy )
-import Data.Maybe ( catMaybes, maybe )
 import Data.Ord ( comparing, Down(..) )
 
 import qualified Data.ByteString.Char8 as Bytes
@@ -67,28 +66,18 @@ main = shakeArgs options $ do
         need $ map (buildDir </>) (styles <> pages <> posts)
 
     (buildDir </> "posts/*.html") %> \out -> do
-        let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "md"
-        mPost <- getPost src
-        whenJust mPost $ \(route, post) -> do
-            let html = Blaze.renderHtml (page route post)
-            liftIO $ createDirectoryIfMissing True (takeDirectory out)
-            liftIO $ writeFile out html
+        let src = dropFirstDirectory out -<.> "md"
+        getPost src >>= maybe (return ()) (uncurry (renderPageToFile out))
 
     (buildDir </> "index.html") %> \out -> do
-        posts <- getAllPosts ()
-        let html = Blaze.renderHtml (page Home posts)
-        liftIO $ createDirectoryIfMissing True (takeDirectory out)
-        liftIO $ writeFile out html
+        getAllPosts () >>= renderPageToFile out Home
 
 
     (buildDir </> "archive.html") %> \out -> do
-        posts <- getAllPosts ()
-        let html = Blaze.renderHtml (page Archive posts)
-        liftIO $ createDirectoryIfMissing True (takeDirectory out)
-        liftIO $ writeFile out html
+        getAllPosts () >>= renderPageToFile out Archive
 
     (buildDir </> "styles/*.css") %> \out -> do
-        let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "scss"
+        let src = dropFirstDirectory out -<.> "scss"
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
         case scssOrError of
@@ -99,6 +88,14 @@ main = shakeArgs options $ do
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
                 liftIO $ writeFile out scss
 
+dropFirstDirectory :: FilePath -> FilePath
+dropFirstDirectory = tail . dropWhile (not . isPathSeparator)
+
+renderPageToFile :: Page route content => FilePath -> route -> content -> Action ()
+renderPageToFile out route content = do
+    let html = Blaze.renderHtml (page route content)
+    liftIO $ createDirectoryIfMissing True (takeDirectory out)
+    liftIO $ writeFile out html
 
 readPostFromFile :: FilePath -> Action (Either Error (WhichPost, Post))
 readPostFromFile filepath = do

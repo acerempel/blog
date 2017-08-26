@@ -4,9 +4,7 @@
            , FunctionalDependencies #-}
 module Page where
 
-import Data.Monoid ( (<>) )
 import Data.Text ( Text )
-import Data.Time.Calendar ( Day )
 import Data.Time.Format
 import Text.Blaze.Html5 ( (!), Html, toHtml, toValue )
 import qualified Text.Blaze.Html5 as H
