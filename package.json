@@ -1,0 +1,26 @@
+{
+  "name": "blog-shake",
+  "version": "1.0.0",
+  "description": "My blog! It's mostly nonsense.",
+  "main": "browsersync.js",
+  "scripts": {
+    "start": "node browsersync.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/parsonyorick/blog.git"
+  },
+  "keywords": [
+    "blog"
+  ],
+  "author": "Alan Rempel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/parsonyorick/blog/issues"
+  },
+  "homepage": "https://github.com/parsonyorick/blog#readme",
+  "devDependencies": {
+    "browser-sync": "^2.18.13",
+    "bs-html-injector": "^3.0.3"
+  }
+}
