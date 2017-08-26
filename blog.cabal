@@ -21,14 +21,14 @@ executable blog
   other-extensions:    ExistentialQuantification, OverloadedStrings, NamedFieldPuns, TypeFamilies
   build-depends:       base >= 4.8 && < 5
                      , blaze-html >= 0.8
+                     , cheapskate >= 0.1.0.5
                      , filepath >= 1.3
                      , directory >= 1.2.5
                      , hsass >= 0.4.1
-                     , pandoc == 1.19.*
-                     , pandoc-types
                      , shake >= 0.15
                      , time >= 1.5
                      , text
+                     , yaml >= 0.8
   hs-source-dirs:      .
   default-language:    Haskell2010
 
