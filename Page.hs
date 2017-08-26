@@ -4,6 +4,7 @@
            , FunctionalDependencies #-}
 module Page where
 
+import Data.Monoid ( (<>) )
 import Data.Text ( Text )
 import Data.Time.Calendar ( Day )
 import Data.Time.Format
@@ -23,35 +24,34 @@ data Archive = Archive
 instance Page Home [(WhichPost, Post)] where
     template Home = home
     url Home = "/"
-    title Home = Just "Home"
+    title Home _ = siteTitle
 
 instance Page Archive [(WhichPost, Post)] where
     template Archive = archive
     url Archive = "/archive"
-    title Archive = Just "Archive"
+    title Archive _ = "Archive | " <> siteTitle
 
 data Post = Post
     { content :: Html
     , date :: Day
-    , identifier :: PostID
     , postTitle :: Text
     , isDraft :: Bool
     }
 
 type PostID = Text
 
-class Page page content | page -> content where
-    template :: page -> content -> Html
-    url :: page -> Text
-    title :: page -> Maybe Text
+class Page route content | route -> content where
+    template :: route -> content -> Html
+    url :: route -> Text
+    title :: route -> content -> Text
 
 instance Page WhichPost Post where
     template =
         post
     url (ThisPost id) =
         "/posts/" <> id
-    title (ThisPost id) =
-        Just id
+    title _ Post{postTitle} =
+        postTitle
 
 post :: WhichPost -> Post -> Html
 post postPage Post{content, date, postTitle} =
@@ -98,7 +98,7 @@ page here content =
             H.meta
                 ! A.charset "UTF-8"
             H.title
-                $ toHtml $ fromMaybe siteTitle (title here)
+                $ toHtml (title here content)
             H.link
                 ! A.rel "stylesheet"
                 ! A.type_ "text/css"
@@ -107,7 +107,8 @@ page here content =
             H.header $ do
                 H.div
                     ! A.id "logo"
-                    $ H.a ! A.href "/"
+                    $ H.a
+                        ! A.href "/"
                         $ toHtml siteTitle
                 H.nav $ do
                     H.a ! A.href ((toValue . url) Home)

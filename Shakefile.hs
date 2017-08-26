@@ -51,8 +51,8 @@ main = shakeArgs options $ do
 
     getAllPosts <- newCache $ \() -> do
         posts <- traverse getPost =<< getAllPostSourceFiles ()
-        let dropDrafts = filter (not . isDraft)
-            sortByDate = sortBy (comparing (Down . date))
+        let dropDrafts = filter (not . isDraft . snd)
+            sortByDate = sortBy (comparing (Down . date . snd))
         return $ (sortByDate . dropDrafts . catMaybes) posts
 
     action $ do
@@ -69,20 +69,20 @@ main = shakeArgs options $ do
     (buildDir </> "posts/*.html") %> \out -> do
         let src = (tail . dropWhile (not . isPathSeparator)) out -<.> "md"
         mPost <- getPost src
-        whenJust mPost $ \post -> do
-            let html = Blaze.renderHtml (page (ThisPost (identifier post)) post)
+        whenJust mPost $ \(route, post) -> do
+            let html = Blaze.renderHtml (page route post)
             liftIO $ createDirectoryIfMissing True (takeDirectory out)
             liftIO $ writeFile out html
 
     (buildDir </> "index.html") %> \out -> do
-        posts <- map (\p -> (ThisPost (identifier p), p)) <$> getAllPosts ()
+        posts <- getAllPosts ()
         let html = Blaze.renderHtml (page Home posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
 
 
     (buildDir </> "archive.html") %> \out -> do
-        posts <- map (\p -> (ThisPost (identifier p), p)) <$> getAllPosts ()
+        posts <- getAllPosts ()
         let html = Blaze.renderHtml (page Archive posts)
         liftIO $ createDirectoryIfMissing True (takeDirectory out)
         liftIO $ writeFile out html
@@ -100,13 +100,13 @@ main = shakeArgs options $ do
                 liftIO $ writeFile out scss
 
 
-readPostFromFile :: FilePath -> Action (Either Error Post)
+readPostFromFile :: FilePath -> Action (Either Error (WhichPost, Post))
 readPostFromFile filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     return (readPost filepath contents)
 
-readPost :: FilePath -> Text -> Either Error Post
+readPost :: FilePath -> Text -> Either Error (WhichPost, Post)
 readPost filepath contents = do
     (yaml, md) <-
       maybe (Left noMetadataBlockError) Right
@@ -141,13 +141,16 @@ readPost filepath contents = do
             date    <- parseTime =<< v .: "date"
             title   <- v .: "title"
             isDraft <- v .:? "draft" .!= False
-            return $ Post
-                { content = Blaze.toHtml doc
-                , identifier = Text.takeWhile (/= '.') $ Text.pack filepath
-                , date = date
-                , postTitle = title
-                , isDraft = isDraft
-                }
+            let identifier = (Text.takeWhile (/= '.') . Text.pack) filepath
+            return
+                ( ThisPost identifier
+                , Post
+                    { content = Blaze.toHtml doc
+                    , date = date
+                    , postTitle = title
+                    , isDraft = isDraft
+                    }
+                )
 
 data Error = forall e. Show e => Error e
 
