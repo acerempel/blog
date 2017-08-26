@@ -84,8 +84,8 @@ archive items =
                 ! A.class_ "info"
                 ! A.datetime ((toValue . showGregorian) (date postContent))
                 $ (toHtml . showGregorian) (date postContent)
-            H.h1
-                $ H.a ! A.href ((toValue . url) postPage)
+            H.h1 $
+                H.a ! A.href ((toValue . url) postPage)
                     $ toHtml postID
 
 
@@ -95,7 +95,7 @@ page here content =
         H.head $ do
             H.meta
                 ! A.httpEquiv "ContentType"
-                ! A.content "text/html"
+                ! A.content "text/html; charset=utf-8"
             H.meta
                 ! A.charset "UTF-8"
             H.title
@@ -112,12 +112,12 @@ page here content =
                         $ toHtml siteTitle
                 H.nav $ do
                     H.a ! A.href ((toValue . url) Home)
-                      $ "Recent"
+                        $ "Recent"
                     H.a ! A.href ((toValue . url) Archive)
-                      $ "Archive"
+                        $ "Archive"
             H.main $
                 template here content
             H.footer $ do
                 toHtml copyrightNotice
                 H.a ! A.href (toValue sourceUrl)
-                  $ "Source"
+                    $ "Source"
