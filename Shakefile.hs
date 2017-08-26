@@ -27,14 +27,11 @@ import qualified Text.Sass as Sass
 import Page
 import Utils
 
-options =
-    shakeOptions{ shakeVersion="1.2" }
-
 buildDir :: FilePath
 buildDir = "_site"
 
 main :: IO ()
-main = shakeArgs options $ do
+main = shakeArgs shakeOptions $ do
 
     getPost <- newCache $ \src -> do
         postOrError <- readPostFromFile src
@@ -113,10 +110,34 @@ readPost filepath contents = do
       . Text.breakOn metadataBlockMarker)
       . (Text.stripPrefix metadataBlockMarker)
       $ contents
-    let doc = Cheapskate.markdown Cheapskate.def md
-    first Error $ Yaml.parseEither (postWithMetadata doc) =<< Yaml.decodeEither yaml
+    let doc = (Blaze.toHtml . Cheapskate.markdown Cheapskate.def) md
+        identifier = (Text.takeWhile (/= '.') . Text.pack) filepath
+    second ((,) (ThisPost identifier))
+      $ postWithMetadata doc yaml
 
   where
+    metadataBlockMarker = "---\n"
+
+    noMetadataBlockError =
+        Error $ "Could not distinguish YAML metadata block in file " <> filepath
+
+postWithMetadata :: Blaze.Html -> Bytes.ByteString -> Either Error Post
+postWithMetadata doc yaml =
+    first Error $
+      Yaml.parseEither metadata =<< Yaml.decodeEither yaml
+  where
+    metadata =
+        Yaml.withObject "metadata block" $ \v -> do
+            date    <- parseTime =<< v .: "date"
+            title   <- v .: "title"
+            isDraft <- v .:? "draft" .!= False
+            return Post
+                { content = Blaze.toHtml doc
+                , date = date
+                , postTitle = title
+                , isDraft = isDraft
+                }
+
     parseTime str =
         msum $ map (parseTimeWithFormat str) formats
 
@@ -127,27 +148,6 @@ readPost filepath contents = do
         ["%x","%m/%d/%Y", "%D","%F", "%d %b %Y"
         ,"%d %B %Y", "%b. %d, %Y", "%B %d, %Y"
         ,"%Y%m%d", "%Y%m", "%Y"]
-
-    metadataBlockMarker = "---\n"
-
-    noMetadataBlockError =
-        Error $ "Could not distinguish YAML metadata block in file " <> filepath
-
-    postWithMetadata doc =
-        Yaml.withObject "metadata block" $ \v -> do
-            date    <- parseTime =<< v .: "date"
-            title   <- v .: "title"
-            isDraft <- v .:? "draft" .!= False
-            let identifier = (Text.takeWhile (/= '.') . Text.pack) filepath
-            return
-                ( ThisPost identifier
-                , Post
-                    { content = Blaze.toHtml doc
-                    , date = date
-                    , postTitle = title
-                    , isDraft = isDraft
-                    }
-                )
 
 data Error = forall e. Show e => Error e
 
