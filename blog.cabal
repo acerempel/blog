@@ -18,7 +18,7 @@ executable blog
   other-modules:       Page
                      , Site
                      , Utils
-  other-extensions:    ExistentialQuantification, OverloadedStrings, NamedFieldPuns, TypeFamilies
+  other-extensions:    ExistentialQuantification, OverloadedStrings, NamedFieldPuns, FunctionalDependencies
   build-depends:       base >= 4.8 && < 5
                      , blaze-html >= 0.8
                      , bytestring

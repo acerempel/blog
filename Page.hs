@@ -52,7 +52,7 @@ instance Page WhichPost Post where
         postTitle
 
 post :: WhichPost -> Post -> Html
-post postPage Post{content, date, postTitle} =
+post route Post{content, date, postTitle} =
     H.article $ do
         H.div
             ! A.class_ "info"
@@ -60,30 +60,27 @@ post postPage Post{content, date, postTitle} =
                 ! A.datetime ((toValue . showGregorian) date)
                 $ (toHtml . formatTime defaultTimeLocale "%d %B %Y") date
         H.h1 $ H.a
-            ! A.href (toValue $ url postPage)
+            ! A.href (toValue $ url route)
             $ toHtml postTitle
         content
 
 home :: [(WhichPost, Post)] -> Html
 home posts =
-    foldMap recentItem posts
-  where
-    recentItem (postPage, postContent) =
-        post postPage postContent
+    foldMap (uncurry post) posts
 
 archive :: [(WhichPost, Post)] -> Html
 archive items =
     foldMap archiveEntry items
   where
-    archiveEntry (postPage@(ThisPost postID), postContent) =
+    archiveEntry (postRoute, Post{date, postTitle}) =
         H.div ! A.class_ "entry" $ do
             H.time
                 ! A.class_ "info"
-                ! A.datetime ((toValue . showGregorian) (date postContent))
-                $ (toHtml . showGregorian) (date postContent)
+                ! A.datetime ((toValue . showGregorian) date)
+                $ (toHtml . showGregorian) date
             H.h1 $
-                H.a ! A.href ((toValue . url) postPage)
-                    $ toHtml postID
+                H.a ! A.href ((toValue . url) postRoute)
+                    $ toHtml postTitle
 
 
 page :: Page page content => page -> content -> Html
