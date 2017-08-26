@@ -9,11 +9,14 @@ import Data.List ( intercalate, sortBy )
 import Data.Maybe ( catMaybes, maybe )
 import Data.Ord ( comparing, Down(..) )
 
+import qualified Data.ByteString.Char8 as Bytes
 import Data.Time.Calendar ( Day )
-import Data.Time.Format
+import Data.Time.Format ( defaultTimeLocale, parseTimeM )
 import Data.Text ( Text )
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
+import Data.Yaml ( (.:), (.:?), (.!=) )
+import qualified Data.Yaml as Yaml
 import Development.Shake
 import System.Directory ( createDirectoryIfMissing, getCurrentDirectory )
 import System.FilePath
@@ -105,20 +108,21 @@ readPostFromFile filepath = do
 
 readPost :: FilePath -> Text -> Either Error Post
 readPost filepath contents = do
-    let doc = Cheapskate.markdown Cheapskate.def contents
-    let title = Just "ALAN_BLOG_NO_TITLE"
-        isDraft = False
-        dateError = Error $ "No date could be parsed from metadata block of file " <> filepath
-    date <- maybe (Left dateError) Right $ msum $ map (parseTimeWithFormat "Jan 5 2017") formats
-    return $ Post
-        { content = Blaze.toHtml doc
-        , identifier = Text.takeWhile (/= '.') $ Text.pack filepath
-        , date = date
-        , postTitle = title
-        , isDraft = isDraft
-        }
+    (yaml, md) <-
+      maybe (Left noMetadataBlockError) Right
+      . fmap
+        ( first (Bytes.pack . Text.unpack)
+        . second (Text.drop (Text.length metadataBlockMarker) )
+      . Text.breakOn metadataBlockMarker)
+      . (Text.stripPrefix metadataBlockMarker)
+      $ contents
+    let doc = Cheapskate.markdown Cheapskate.def md
+    first Error $ Yaml.parseEither (postWithMetadata doc) =<< Yaml.decodeEither yaml
 
   where
+    parseTime str =
+        msum $ map (parseTimeWithFormat str) formats
+
     parseTimeWithFormat dateString format =
         parseTimeM True defaultTimeLocale format dateString
 
@@ -126,6 +130,24 @@ readPost filepath contents = do
         ["%x","%m/%d/%Y", "%D","%F", "%d %b %Y"
         ,"%d %B %Y", "%b. %d, %Y", "%B %d, %Y"
         ,"%Y%m%d", "%Y%m", "%Y"]
+
+    metadataBlockMarker = "---\n"
+
+    noMetadataBlockError =
+        Error $ "Could not distinguish YAML metadata block in file " <> filepath
+
+    postWithMetadata doc =
+        Yaml.withObject "metadata block" $ \v -> do
+            date    <- parseTime =<< v .: "date"
+            title   <- v .:? "title"
+            isDraft <- v .:? "draft" .!= False
+            return $ Post
+                { content = Blaze.toHtml doc
+                , identifier = Text.takeWhile (/= '.') $ Text.pack filepath
+                , date = date
+                , postTitle = title
+                , isDraft = isDraft
+                }
 
 data Error = forall e. Show e => Error e
 
