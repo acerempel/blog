@@ -4,5 +4,6 @@
   command: cabal new-run blog
 - pattern:
   - blog.cabal
+  - cabal.project
   - .+\.hs
-  command: cabal new-build
+  command: cabal new-run blog -- -B

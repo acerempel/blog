@@ -34,7 +34,7 @@ data Post = Post
     { content :: Html
     , date :: Day
     , identifier :: PostID
-    , postTitle :: Maybe Text
+    , postTitle :: Text
     , isDraft :: Bool
     }
 
@@ -61,10 +61,9 @@ post postPage Post{content, date, postTitle} =
             $ H.time
                 ! A.datetime ((toValue . showGregorian) date)
                 $ (toHtml . formatTime defaultTimeLocale "%d %B %Y") date
-        guardJust postTitle $ \t ->
-            H.h1 $ H.a
-                ! A.href (toValue $ url postPage)
-                $ toHtml t
+        H.h1 $ H.a
+            ! A.href (toValue $ url postPage)
+            $ toHtml postTitle
         content
 
 home :: [(WhichPost, Post)] -> Html

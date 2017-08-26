@@ -139,7 +139,7 @@ readPost filepath contents = do
     postWithMetadata doc =
         Yaml.withObject "metadata block" $ \v -> do
             date    <- parseTime =<< v .: "date"
-            title   <- v .:? "title"
+            title   <- v .: "title"
             isDraft <- v .:? "draft" .!= False
             return $ Post
                 { content = Blaze.toHtml doc

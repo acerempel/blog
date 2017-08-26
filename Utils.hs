@@ -1,7 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 module Utils
     ( fromMaybe
-    , guardJust
     , maybe
     , showGregorian
     , showText
@@ -17,10 +16,6 @@ import Data.Time.Calendar ( Day, showGregorian, toGregorian )
 
 showText :: Show a => a -> Text
 showText = Text.pack . show
-
-guardJust :: Monoid m => Maybe a -> (a -> m) -> m
-guardJust =
-    flip (maybe mempty)
 
 whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
 whenJust =
