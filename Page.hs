@@ -5,8 +5,9 @@
 module Page where
 
 import Data.Text ( Text )
+import qualified Data.Text as Text
 import Data.Time.Format
-import Text.Blaze.Html5 ( (!), Html, toHtml, toValue )
+import Text.Blaze.Html5 ( (!), Html, toValue )
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
 
@@ -58,10 +59,10 @@ post route Post{content, date, postTitle} =
             ! A.class_ "info"
             $ H.time
                 ! A.datetime ((toValue . showGregorian) date)
-                $ (toHtml . formatTime defaultTimeLocale "%d %B %Y") date
+                $ H.toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
         H.h1 $ H.a
             ! A.href (toValue $ url route)
-            $ toHtml postTitle
+            $ H.toHtml postTitle
         content
 
 home :: [(WhichPost, Post)] -> Html
@@ -77,10 +78,10 @@ archive items =
             H.time
                 ! A.class_ "info"
                 ! A.datetime ((toValue . showGregorian) date)
-                $ (toHtml . showGregorian) date
+                $ H.toHtml (showGregorian date)
             H.h1 $
                 H.a ! A.href ((toValue . url) postRoute)
-                    $ toHtml postTitle
+                    $ H.toHtml postTitle
 
 
 page :: Page page content => page -> content -> Html
@@ -93,7 +94,7 @@ page here content =
             H.meta
                 ! A.charset "UTF-8"
             H.title
-                $ toHtml (title here content)
+                $ H.toHtml (title here content)
             H.link
                 ! A.rel "stylesheet"
                 ! A.type_ "text/css"
@@ -104,7 +105,7 @@ page here content =
                     ! A.id "logo"
                     $ H.a
                         ! A.href "/"
-                        $ toHtml siteTitle
+                        $ H.toHtml siteTitle
                 H.nav $ do
                     H.a ! A.href ((toValue . url) Home)
                         $ "Recent"
@@ -113,6 +114,16 @@ page here content =
             H.main $
                 template here content
             H.footer $ do
-                toHtml copyrightNotice
+                H.toHtml copyrightNotice
                 H.a ! A.href (toValue sourceUrl)
                     $ "Source"
+            H.script
+                ! A.id "__bs_script__"
+                $ H.preEscapedText bsInjectionScript
+  where
+    bsInjectionScript =
+        Text.unlines
+            [ "//<![CDATA["
+            , "    document.write(\"<script async src='http://HOST:8001/browser-sync/browser-sync-client.js?v=2.18.13'><\\/script>\".replace(\"HOST\", location.hostname));"
+            , "//]]>"
+            ]
