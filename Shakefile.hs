@@ -106,7 +106,7 @@ readPost filepath contents = do
         ( first (Bytes.pack . Text.unpack)
         . second (Text.drop (Text.length metadataBlockMarker) )
       . Text.breakOn metadataBlockMarker)
-      . (Text.stripPrefix metadataBlockMarker)
+      . Text.stripPrefix metadataBlockMarker
       $ contents
     let doc = (Blaze.toHtml . Cheapskate.markdown Cheapskate.def) md
         identifier = (Text.takeWhile (/= '.') . Text.pack) filepath
