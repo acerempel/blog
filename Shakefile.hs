@@ -3,13 +3,11 @@ module Main where
 
 import Control.Monad ( (=<<) )
 import Data.Bifunctor
-import Data.Either ( either )
-import Data.Foldable ( for_, msum )
-import Data.List ( intercalate, sortBy )
+import Data.Foldable ( msum )
+import Data.List ( sortBy )
 import Data.Ord ( comparing, Down(..) )
 
 import qualified Data.ByteString.Char8 as Bytes
-import Data.Time.Calendar ( Day )
 import Data.Time.Format ( defaultTimeLocale, parseTimeM )
 import Data.Text ( Text )
 import qualified Data.Text as Text
@@ -17,7 +15,7 @@ import qualified Data.Text.IO as Text
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
-import System.Directory ( createDirectoryIfMissing, getCurrentDirectory )
+import System.Directory ( createDirectoryIfMissing )
 import System.FilePath
 import qualified Cheapskate
 import qualified Text.Blaze.Html as Blaze
