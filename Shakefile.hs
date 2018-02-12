@@ -67,7 +67,6 @@ main = shakeArgs shakeOptions $ do
     (buildDir </> "index.html") %> \out -> do
         getAllPosts () >>= renderPageToFile out Home
 
-
     (buildDir </> "archive.html") %> \out -> do
         getAllPosts () >>= renderPageToFile out Archive
 
