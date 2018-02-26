@@ -16,9 +16,9 @@ data Configuration = Configuration
    , sourceUrl :: URI }
 
 copyrightNotice :: SiteM Text
-copyrightNotice Configuration{copyrightYear} =
-   " © " <> Text.pack (show copyrightYear)
+copyrightNotice Configuration{ author, copyrightYear } =
+   author <> " © " <> Text.pack (show copyrightYear)
 
 constructTitle :: Maybe Text -> SiteM Text
-constructTitle titleMb Configuration{siteTitle} =
+constructTitle titleMb Configuration{ siteTitle } =
    maybe siteTitle (<> " | " <> siteTitle) titleMb
