@@ -12,6 +12,7 @@ import Data.Text ( Text )
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
+import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
@@ -157,8 +158,9 @@ readPost filepath filecontents = do
    reconstructPost yaml content = first Whoops $ ($ yaml) $ Yaml.parseEither $
       Yaml.withObject "metadata" $ \metadata -> do
          title    <- metadata .: "title"
-         composed <- metadata .: "date"
+         date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
+         composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = (Text.pack . takeBaseName) filepath
          return Post{ title
                     , synopsis = Cheapskate.markdown Cheapskate.def synopsis
@@ -167,6 +169,8 @@ readPost filepath filecontents = do
                     -- TODO: Distinguish these --- maybe.
                     , published = composed
                     , content }
+
+   dateFormat = "%e %B %Y"
 
 newtype Whoops = Whoops { whatHappened :: String } deriving ( Typeable )
 
