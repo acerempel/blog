@@ -22,6 +22,7 @@ import Pages
 import Post
 import Site
 
+
 localConfigFile, productionConfigFile :: FilePath
 localConfigFile = "config.local"
 productionConfigFile = "config.live"
@@ -114,6 +115,7 @@ main = do
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
                 liftIO $ writeFile out scss
 
+
 renderHtmlToFile :: FilePath -> Html -> Action ()
 renderHtmlToFile out markup = do
     let html = Blaze.renderHtml markup
@@ -176,6 +178,7 @@ readPostFromFile filepath = do
                     , content }
 
    dateFormat = "%e %B %Y"
+
 
 newtype Whoops = Whoops { whatHappened :: String } deriving ( Typeable )
 

@@ -2,6 +2,8 @@
 module Main where
 
 import Data.Monoid ( (<>) )
+import Data.Text ( isSuffixOf )
+
 import Network.Wai
 import Network.Wai.Application.Static
 import Network.Wai.Handler.Warp
@@ -27,8 +29,12 @@ app htmlDir =
   where
     route (map fromPiece -> pieces) = map unsafeToPiece $
         case pieces of
-            [] -> [ "index.html" ]
-            [ "archive" ] -> [ "archive.html" ]
-            [ "posts" , post ] -> [ "posts", post <> ".html" ]
-            _ -> pieces
+            []
+               -> [ "index.html" ]
+            [ "archive" ]
+               -> [ "archive.html" ]
+            [ "posts" , post ]
+               | not (".html" `isSuffixOf` post)
+               -> [ "posts", post <> ".html" ]
+            _  -> pieces
 

@@ -16,7 +16,7 @@ executable blog
   main-is:             Shakefile.hs
   other-modules:       Pages
                      , Site
-                     , URLs
+                     , Routes
                      , Templates
                      , Post
                      , Introit
