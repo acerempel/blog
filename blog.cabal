@@ -28,7 +28,7 @@ executable blog
                      , directory >= 1.2.5
                      , hsass >= 0.4.1
                      , network-uri >= 2.6
-                     , shake >= 0.16
+                     , shake >= 0.16 && < 0.17
                      , time >= 1.5
                      , text
   hs-source-dirs:      .
