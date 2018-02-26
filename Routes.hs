@@ -2,7 +2,7 @@ module Routes where
 
 import Introit
 import qualified Text
-import Network.URI ( URI, parseRelativeReference, relativeTo )
+import Network.URI ( URI, parseRelativeReference )
 
 import Post ( Post(slug) )
 import Site
@@ -15,8 +15,8 @@ data Route
    | Stylesheet FilePath
 
 url :: Route -> SiteM URI
-url route Configuration{baseUrl} =
-   fromJust (parseRelativeReference ("/" <> finalPiece)) `relativeTo` baseUrl
+url route _config =
+   fromJust (parseRelativeReference ("/" <> finalPiece))
  where
    finalPiece =
       case route of

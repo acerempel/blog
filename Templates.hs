@@ -58,7 +58,7 @@ page :: Maybe Text -- ^ This page's title.
      -> Html -- ^ This page's content.
      -> SiteM Html
 page thisTitleMb content
-     conf@Configuration{styleSheets, siteTitle} =
+     conf@Configuration{ baseUrl, styleSheets, siteTitle } =
     H.docTypeHtml ! A.lang "en" $ do
         H.head $ do
             H.meta
@@ -68,6 +68,9 @@ page thisTitleMb content
                 ! A.charset "UTF-8"
             H.title
                 $ H.toHtml (constructTitle thisTitleMb conf)
+            H.link
+                ! A.rel "canonical"
+                ! A.href ((toValue . show) baseUrl)
             (flip foldMap) styleSheets $ \ss ->
               H.link
                 ! A.rel "stylesheet"
