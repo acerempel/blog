@@ -1,13 +1,10 @@
 module Templates where
 
-import qualified Cheapskate
-import Data.Maybe ( fromJust )
 import Data.Text ( Text )
 import qualified Data.Text as Text
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Network.URI
-import qualified Text.Blaze.Html as Blaze
 import Text.Blaze.Html5 ( (!), Html, toValue )
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A

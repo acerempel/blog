@@ -8,8 +8,6 @@ import Data.Maybe
 import Data.Monoid
 import Data.Typeable ( Typeable )
 
-import Data.Time.Calendar ( Day )
-import Data.Time.Format ( defaultTimeLocale, parseTimeM )
 import Data.Text ( Text )
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -178,7 +176,3 @@ instance Show Whoops where
    show = show . whatHappened
 
 instance Exception Whoops
-
-parseDate :: String -> Either Whoops Day
-parseDate =
-   first Whoops . parseTimeM True defaultTimeLocale "%Y.%-m.%-d"

@@ -1,8 +1,7 @@
 module Pages where
 
-import Control.Monad ( (=<<), liftM2 )
-import Data.Foldable ( foldrM )
-import Data.Monoid ( (<>) )
+import Data.Foldable
+import Data.Monoid
 import Text.Blaze.Html5 ( Html )
 
 import qualified Templates
