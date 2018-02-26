@@ -1,5 +1,7 @@
 module Templates where
 
+import Control.Applicative
+import Data.Monoid
 import Data.Text ( Text )
 import qualified Data.Text as Text
 import Data.Time.Calendar ( Day, showGregorian )
@@ -77,14 +79,14 @@ page thisTitleMb content
                 H.div
                     ! A.id "logo"
                     $ link homeUrl (H.toHtml siteTitle) conf
-                H.nav $ ($ conf) $ do
-                    link homeUrl "Recent"
-                    link archiveUrl "Archive"
+                H.nav $ ($ conf) $ liftA2 (<>)
+                    (link homeUrl "Recent")
+                    (link archiveUrl "Archive")
             H.main $
                 content
-            H.footer $ ($ conf) $ do
-                H.toHtml . copyrightNotice
-                link sourceUrl "Source"
+            H.footer $ ($ conf) $ liftA2 (<>)
+                (H.toHtml . copyrightNotice)
+                (link sourceUrl "Source")
             H.script
                 ! A.id "__bs_script__"
                 $ H.preEscapedText bsInjectionScript
