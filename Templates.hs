@@ -18,14 +18,14 @@ import URLs
 
 
 post :: Post -> SiteM Html
-post Post{ title = titleMb
+post Post{ title
          , content
          , composed = date
          , slug }
      configuration =
     H.article $ do
         displayDate date
-        displayPostHeading titleMb slug configuration
+        displayPostHeading title slug configuration
         H.toHtml content
 
 archiveEntry :: Post -> SiteM Html
@@ -48,13 +48,13 @@ displayDate date =
            ! A.datetime ((toValue . showGregorian) date)
            $ H.toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
 
-displayPostHeading :: Maybe Text
-                   -> Text
+displayPostHeading :: Text -- ^ Title
+                   -> Text -- ^ Slug
                    -> SiteM Html
-displayPostHeading titleMb slug configuration =
+displayPostHeading title slug configuration =
    H.h1 $ H.a
        ! A.href ((toValue . show) $ url slug configuration)
-       $ H.toHtml (fromJust titleMb) -- TODO: What if there is no title?
+       $ H.toHtml title
 
 
 page :: Maybe Text -- ^ This page's title.

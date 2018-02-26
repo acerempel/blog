@@ -164,7 +164,7 @@ readPost filepath filecontents = do
          composed <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
          let slug = (Text.pack . takeBaseName) filepath
-         return Post{ title = Just title
+         return Post{ title
                     , synopsis = Cheapskate.markdown Cheapskate.def synopsis
                     , slug
                     , composed

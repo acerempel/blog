@@ -6,7 +6,7 @@ import Data.Time.Calendar ( Day )
 
 data Post = Post
    { slug :: Text -- ^ Identifier to use for the slug in the url.
-   , title :: Maybe Text -- ^ Optional title.
+   , title :: Text -- ^ Title.
    , content :: Cheapskate.Doc -- ^ The post body.
    , synopsis :: Cheapskate.Doc -- ^ A little description or summary or teaser.
    , composed :: Day -- ^ Date of composition.
