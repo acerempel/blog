@@ -1,9 +1,7 @@
 module URLs where
 
-import Data.Maybe
-import Data.Monoid
-import Data.Text ( Text )
-import qualified Data.Text as Text
+import Introit
+import qualified Text
 import Network.URI ( URI, parseRelativeReference, relativeTo )
 
 import Post

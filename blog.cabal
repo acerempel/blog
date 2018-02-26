@@ -19,6 +19,8 @@ executable blog
                      , URLs
                      , Templates
                      , Post
+                     , Introit
+                     , Text
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
   build-depends:       base >= 4.8 && < 5

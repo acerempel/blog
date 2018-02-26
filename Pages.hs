@@ -1,7 +1,6 @@
 module Pages where
 
-import Data.Foldable
-import Data.Monoid
+import Introit
 import Text.Blaze.Html5 ( Html )
 
 import qualified Templates
@@ -20,7 +19,3 @@ home posts =
 archive :: [Post] -> SiteM Html
 archive posts =
    Templates.page (Just "Archive") =<< foldrMapM Templates.archiveEntry posts
-
-foldrMapM :: (Monoid z, Monad m) => (a -> m z) -> [a] -> m z
-foldrMapM f =
-   foldrM (\z1 z2 -> (<>) <$> f z1 <*> return z2) mempty

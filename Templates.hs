@@ -1,9 +1,8 @@
 module Templates where
 
-import Control.Applicative
-import Data.Monoid
-import Data.Text ( Text )
-import qualified Data.Text as Text
+import Introit
+import qualified Text
+
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Network.URI

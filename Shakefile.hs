@@ -1,17 +1,10 @@
 module Main where
 
+import Introit
+import qualified Text
 import Control.Exception
-import Data.Bifunctor
-import Data.Either
-import Data.Foldable
-import Data.Maybe
-import Data.Monoid
 import Data.Typeable ( Typeable )
 
-import Data.Text ( Text )
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
-import qualified Data.Text.IO as Text
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:) )
 import qualified Data.Yaml as Yaml
