@@ -139,17 +139,16 @@ readPost filepath filecontents = do
             Cheapskate.markdown Cheapskate.def body
       return (yaml, markdown)
 
-   metadataBlockMarker =
-      "---"
+   metadataBlockMarker = "---"
 
-   noMetadataBlockError =
-      Whoops $ "Expecting initial metadata block marker, namely \""
+   noMetadataBlockError = Whoops $
+      "Expecting initial metadata block marker, namely \""
       <> Text.unpack metadataBlockMarker
       <> "\", in " <> filepath
       <> ", but it wasn't there."
 
-   noBodyError =
-      Whoops $ "There is no text body following the metadata block in " <> filepath <> "."
+   noBodyError = Whoops $
+      "There is no text body following the metadata block in " <> filepath <> "."
 
    reconstructPost :: Yaml.Value -- ^ Markdown body.
                    -> Cheapskate.Doc -- ^ YAML metadata block.
