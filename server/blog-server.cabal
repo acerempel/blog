@@ -1,0 +1,17 @@
+name:                blog-server
+version:             0.1.0.0
+synopsis:            A simple server for my blog.
+license:             MIT
+license-file:        ../LICENSE
+author:              Alan Rempel
+maintainer:          alan.rempel+blog@gmail.com
+copyright:           Alan Rempel © 2018
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable server
+  main-is:              server.hs
+  other-extensions:     ViewPatterns, OverloadedStrings
+  build-depends:        warp, wai, wai-app-static, base >= 4.8 && < 5
+  default-language:     Haskell2010

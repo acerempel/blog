@@ -1,2 +1,2 @@
-packages: blog.cabal
+packages: blog.cabal server/blog-server.cabal
 library-profiling: False
