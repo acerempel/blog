@@ -61,8 +61,7 @@ main = do
     getAllPosts <- fmap ($ ()) $ newCache $ \() -> do
         posts <- traverse getPost =<< getAllPostSourceFiles
         let (errors, successes) = partitionEithers posts
-        -- Log the errors to the console.
-        for_ errors (putQuiet . (\err -> "Error: " <> show err))
+        -- We log the same errors individualy in getPost.
         return successes
 
     action $ do
