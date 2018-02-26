@@ -12,7 +12,7 @@ import Site
 
 post :: Post -> SiteM Html
 post thisPost@Post{title} =
-   Templates.page title =<< Templates.post thisPost
+   Templates.page (Just title) =<< Templates.post thisPost
 
 home :: [Post] -> SiteM Html
 home posts =
