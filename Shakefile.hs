@@ -9,6 +9,7 @@ import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
+import Development.Shake.Config
 import Development.Shake.FilePath
 import Network.URI ( parseAbsoluteURI )
 import System.Directory ( createDirectoryIfMissing )
@@ -21,25 +22,15 @@ import Pages
 import Post
 import Site
 
-buildDir :: FilePath
-buildDir = "_site"
+localConfigFile, productionConfigFile :: FilePath
+localConfigFile = "config.local"
+productionConfigFile = "config.live"
 
-postsDir :: FilePath
+stylesDir, buildDir, postsDir :: FilePath
+stylesDir = "styles"
+buildDir = "_site"
 postsDir = "posts"
 
-configuration :: Site.Configuration
-configuration = Configuration
-   { siteTitle = "Mostly nonsense."
-   -- TODO: This seems like a weird place to hardcode these urls.
-   , baseUrl =
-      fromJust (parseAbsoluteURI "https://parsonyorick.github.io/mostlynonsense/")
-   , copyrightYear = 2018
-   -- TODO this is dumb.
-   , styleSheet = "magenta.css"
-   -- TODO: See baseUrl above.
-   , sourceUrl =
-      fromJust (parseAbsoluteURI "https://github.com/parsonyorick/mostlynonsense/")
-   }
 
 main :: IO ()
 main = do
@@ -47,6 +38,8 @@ main = do
   shakeArgs shakeOptions{ shakeVersion
                         , shakeThreads = 3
                         , shakeColor = True } $ do
+
+    usingConfigFile localConfigFile
 
     getPost <- newCache readPostFromFile
 
@@ -59,35 +52,57 @@ main = do
         -- We log the same errors individualy in getPost.
         return successes
 
+    getStylesheets <- fmap ($ ()) $ newCache $ \() ->
+        map ((stylesDir </>) . (-<.> "css"))
+        <$> getDirectoryFiles stylesDir ["*.scss"]
+
+    let getSiteConfig = do
+         Just siteTitle <- fmap Text.pack
+            <$> getConfig "site_title"
+         Just baseUrl   <- (parseAbsoluteURI =<<)
+            <$> getConfig "base_url"
+         Just sourceUrl <- (parseAbsoluteURI =<<)
+            <$> getConfig "source_url"
+         copyrightYear  <- fromMaybe 2018 <$> fmap read
+            <$> getConfig "copyright"
+         author         <- Text.pack <$> fromMaybe "Anonymous"
+            <$> getConfig "author"
+         styleSheets    <- getStylesheets
+         return Site.Configuration
+            { siteTitle
+            , baseUrl
+            , sourceUrl
+            , copyrightYear
+            , author
+            , styleSheets }
+
     action $ do
-        posts <-
-            map (-<.> "html")
-            <$> getAllPostSourceFiles
-        styles <-
-            map (("styles" </>) . (-<.> "css"))
-            <$> getDirectoryFiles "styles" ["*.scss"]
-        let pages =
-                ["archive.html", "index.html"]
+        posts <- map (-<.> "html") <$> getAllPostSourceFiles
+        styles <- getStylesheets
+        let pages = ["archive.html", "index.html"]
         need $ map (buildDir </>) (styles <> pages <> posts)
 
-    (buildDir </> "posts/*.html") %> \out -> do
+    (buildDir </> postsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getPost src
+        siteConfig <- getSiteConfig
         ($ thisPostOrError)
          $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
          $ \thisPost -> do
-            let html = Pages.post thisPost configuration
+            let html = Pages.post thisPost siteConfig
             renderHtmlToFile out html
 
     (buildDir </> "index.html") %> \out -> do
         allPosts <- getAllPosts
-        renderHtmlToFile out (Pages.home allPosts configuration)
+        siteConfig <- getSiteConfig
+        renderHtmlToFile out (Pages.home allPosts siteConfig)
 
     (buildDir </> "archive.html") %> \out -> do
         allPosts <- getAllPosts
-        renderHtmlToFile out (Pages.archive allPosts configuration)
+        siteConfig <- getSiteConfig
+        renderHtmlToFile out (Pages.archive allPosts siteConfig)
 
-    (buildDir </> "styles/*.css") %> \out -> do
+    (buildDir </> stylesDir </> "*.css") %> \out -> do
         let src = dropDirectory1 out -<.> "scss"
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def

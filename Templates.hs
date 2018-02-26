@@ -6,6 +6,7 @@ import qualified Text
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Network.URI
+import System.FilePath ( (</>) )
 import Text.Blaze.Html5 ( (!), Html, toValue )
 import qualified Text.Blaze.Html5 as H
 import qualified Text.Blaze.Html5.Attributes as A
@@ -59,7 +60,7 @@ page :: Maybe Text -- ^ This page's title.
      -> Html -- ^ This page's content.
      -> SiteM Html
 page thisTitleMb content
-     conf@Configuration{styleSheet, siteTitle} =
+     conf@Configuration{styleSheets, siteTitle} =
     H.docTypeHtml ! A.lang "en" $ do
         H.head $ do
             H.meta
@@ -69,10 +70,11 @@ page thisTitleMb content
                 ! A.charset "UTF-8"
             H.title
                 $ H.toHtml (constructTitle thisTitleMb conf)
-            H.link
+            (flip foldMap) styleSheets $ \stylesheet ->
+              H.link
                 ! A.rel "stylesheet"
                 ! A.type_ "text/css"
-                ! A.href (toValue styleSheet)
+                ! A.href (toValue stylesheet)
         H.body $ do
             H.header $ do
                 H.div
