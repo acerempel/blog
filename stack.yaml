@@ -2,6 +2,6 @@ resolver: lts-8.17
 packages:
 - '.'
 extra-package-dbs: []
-system-ghc: false
+system-ghc: true
 compiler-check: newer-minor
 local-bin-path: .
