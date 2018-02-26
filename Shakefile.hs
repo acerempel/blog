@@ -114,12 +114,9 @@ readPostFromFile :: FilePath -> Action (Either Whoops Post)
 readPostFromFile filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
-    return (readPost filepath contents)
-
-readPost :: FilePath -> Text -> Either Whoops Post
-readPost filepath filecontents = do
-   (meta, body) <- extractMetadataBlockAndBody filecontents
-   reconstructPost meta body
+    return $ do
+      (meta, body) <- extractMetadataBlockAndBody contents
+      reconstructPost meta body
 
  where
    extractMetadataBlockAndBody :: Text -> Either Whoops (Yaml.Value, Cheapskate.Doc)
