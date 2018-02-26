@@ -1,9 +1,11 @@
 module Main where
 
 import Introit
-import qualified Text
 import Control.Exception
+import Data.List ( sortOn )
+import Data.Ord ( Down(..) )
 import Data.Typeable ( Typeable )
+import qualified Text
 
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:) )
@@ -52,7 +54,8 @@ main = do
         posts <- traverse getPost =<< getAllPostSourceFiles
         let (errors, successes) = partitionEithers posts
         -- We log the same errors individualy in getPost.
-        return successes
+        let sortByDate = sortOn (Down . composed)
+        return $ sortByDate successes
 
     getStylesheets <- fmap ($ ()) $ newCache $ \() ->
         map ((stylesDir </>) . (-<.> "css"))
