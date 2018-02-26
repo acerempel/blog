@@ -1,7 +1,10 @@
-resolver: lts-8.17
+resolver: lts-10.3
 packages:
 - '.'
-extra-package-dbs: []
+- server
 system-ghc: true
 compiler-check: newer-minor
 local-bin-path: .
+ghc-options:
+  blog: -Wall
+  blog-server: -Wall
