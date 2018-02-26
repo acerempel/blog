@@ -35,7 +35,8 @@ postsDir = "posts"
 
 main :: IO ()
 main = do
-  shakeVersion <- getHashedShakeVersion ["Shakefile.hs"]
+  hsSourceFiles <- getDirectoryFilesIO "" ["*.hs"]
+  shakeVersion <- getHashedShakeVersion hsSourceFiles
   shakeArgs shakeOptions{ shakeVersion
                         , shakeThreads = 3
                         , shakeColor = True } $ do
