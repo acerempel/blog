@@ -12,7 +12,10 @@ import Data.Time.Calendar ( Day )
 import Data.Time.Format ( defaultTimeLocale, parseTimeM )
 import Data.Text ( Text )
 import qualified Data.Text as Text
+import qualified Data.Text.Encoding as Text
 import qualified Data.Text.IO as Text
+import Data.Yaml ( (.:) )
+import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
 import Network.URI ( parseAbsoluteURI )
@@ -119,21 +122,55 @@ readPostFromFile filepath = do
 
 readPost :: FilePath -> Text -> Either Whoops Post
 readPost filepath filecontents = do
-   let content =
-          Cheapskate.markdown Cheapskate.def filecontents
-       synopsis =
-          Cheapskate.markdown Cheapskate.def $
-          -- TODO: Where do we get an actual synopsis from? What if there
-          -- really is none?
-          (mconcat . take 27 . Text.words) filecontents
-   date <- parseDate (takeBaseName filepath)
-   return Post{ title = Nothing
-              , composed = date
-              , published = date -- TODO: Distinguish these --- maybe.
-              , content
-              , synopsis -- TODO!
-              , slug = Text.pack (takeBaseName filepath) -- This is actually probably right.
-              }
+   (meta, body) <- extractMetadataBlockAndBody filecontents
+   reconstructPost meta body
+
+ where
+   extractMetadataBlockAndBody :: Text -> Either Whoops (Yaml.Value, Cheapskate.Doc)
+   extractMetadataBlockAndBody stuff = do
+      afterFirstMarker <-
+         maybe (Left noMetadataBlockError) Right
+         (Text.stripPrefix metadataBlockMarker stuff)
+      let (metadataBlock, rest) =
+            Text.breakOn metadataBlockMarker afterFirstMarker
+      body <-
+         maybe (Left noBodyError) Right
+         (Text.stripPrefix metadataBlockMarker rest)
+      yaml <-
+         (first Whoops . Yaml.decodeEither . Text.encodeUtf8)
+         metadataBlock
+      let markdown =
+            Cheapskate.markdown Cheapskate.def body
+      return (yaml, markdown)
+
+   metadataBlockMarker =
+      "---"
+
+   noMetadataBlockError =
+      Whoops $ "Expecting initial metadata block marker, namely \""
+      <> Text.unpack metadataBlockMarker
+      <> "\", in " <> filepath
+      <> ", but it wasn't there."
+
+   noBodyError =
+      Whoops $ "There is no text body following the metadata block in " <> filepath <> "."
+
+   reconstructPost :: Yaml.Value -- ^ Markdown body.
+                   -> Cheapskate.Doc -- ^ YAML metadata block.
+                   -> Either Whoops Post
+   reconstructPost yaml content = first Whoops $ ($ yaml) $ Yaml.parseEither $
+      Yaml.withObject "metadata" $ \metadata -> do
+         title    <- metadata .: "title"
+         composed <- metadata .: "date"
+         synopsis <- metadata .: "synopsis"
+         let slug = (Text.pack . takeBaseName) filepath
+         return Post{ title = Just title
+                    , synopsis = Cheapskate.markdown Cheapskate.def synopsis
+                    , slug
+                    , composed
+                    -- TODO: Distinguish these --- maybe.
+                    , published = composed
+                    , content }
 
 newtype Whoops = Whoops { whatHappened :: String } deriving ( Typeable )
 
