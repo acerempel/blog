@@ -1,24 +1,18 @@
 module Main where
 
 import Control.Exception
-import Control.Monad
 import Data.Bifunctor
 import Data.Either
 import Data.Foldable
-import Data.List ( sortBy )
 import Data.Maybe
 import Data.Monoid
-import Data.Ord ( comparing, Down(..) )
 import Data.Typeable ( Typeable )
 
-import qualified Data.ByteString.Char8 as Bytes
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( defaultTimeLocale, parseTimeM )
 import Data.Text ( Text )
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Data.Yaml ( (.:), (.:?), (.!=) )
-import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
 import Network.URI ( parseAbsoluteURI )
