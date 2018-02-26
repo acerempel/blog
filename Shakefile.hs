@@ -48,7 +48,9 @@ configuration = Configuration
    }
 
 main :: IO ()
-main = shakeArgs shakeOptions $ do
+main = do
+  shakeVersion <- getHashedShakeVersion ["Shakefile.hs"]
+  shakeArgs shakeOptions{shakeVersion} $ do
 
     getPost <- newCache readPostFromFile
 
