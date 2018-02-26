@@ -1,9 +1,7 @@
 - pattern:
   - ^posts/.+\.md
-  - ^styles/.+\.css
-  command: cabal new-run blog
-- pattern:
+  - ^styles/.+\.scss
   - blog.cabal
   - cabal.project
   - .+\.hs
-  command: cabal new-run blog -- -B
+  command: cabal new-run blog
