@@ -1,11 +1,15 @@
-{-# LANGUAGE ExistentialQuantification #-}
 module Main where
 
-import Control.Monad ( (=<<) )
+import Control.Exception
+import Control.Monad
 import Data.Bifunctor
-import Data.Foldable ( msum )
+import Data.Either
+import Data.Foldable
 import Data.List ( sortBy )
+import Data.Maybe
+import Data.Monoid
 import Data.Ord ( comparing, Down(..) )
+import Data.Typeable ( Typeable )
 
 import qualified Data.ByteString.Char8 as Bytes
 import Data.Time.Calendar ( Day )
@@ -17,14 +21,16 @@ import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
+import Network.URI ( parseAbsoluteURI )
 import System.Directory ( createDirectoryIfMissing )
 import qualified Cheapskate
 import Text.Blaze.Html ( Html )
-import qualified Text.Blaze.Html as Blaze
 import qualified Text.Blaze.Html.Renderer.String as Blaze
 import qualified Text.Sass as Sass
 
 import Pages
+import Post
+import Site
 
 buildDir :: FilePath
 buildDir = "_site"
@@ -32,31 +38,39 @@ buildDir = "_site"
 postsDir :: FilePath
 postsDir = "posts"
 
+configuration :: Site.Configuration
+configuration = Configuration
+   { siteTitle = "Mostly nonsense."
+   -- TODO: This seems like a weird place to hardcode these urls.
+   , baseUrl =
+      fromJust (parseAbsoluteURI "https://parsonyorick.github.io/mostlynonsense/")
+   , copyrightYear = 2018
+   -- TODO this is dumb.
+   , styleSheet = "magenta.css"
+   -- TODO: See baseUrl above.
+   , sourceUrl =
+      fromJust (parseAbsoluteURI "https://github.com/parsonyorick/mostlynonsense/")
+   }
+
 main :: IO ()
 main = shakeArgs shakeOptions $ do
 
-    getPost <- newCache $ \src -> do
-        postOrError <- readPostFromFile src
-        -- TODO: Throw an exception instead.
-        case postOrError of
-            Left message -> do
-                putQuiet ("Error: " <> show message)
-                return Nothing
-            Right post ->
-                return (Just post)
+    getPost <- newCache readPostFromFile
 
-    getAllPostSourceFiles <- newCache $ \() ->
+    getAllPostSourceFiles <- fmap ($ ()) $ newCache $ \() ->
         map (postsDir </>) <$> getDirectoryFiles postsDir ["*.md"]
 
-    getAllPosts <- newCache $ \() -> do
-        posts <- traverse getPost =<< getAllPostSourceFiles ()
-        let sortByDate = sortBy (comparing (Down . date))
-        return $ (sortByDate . catMaybes) posts
+    getAllPosts <- fmap ($ ()) $ newCache $ \() -> do
+        posts <- traverse getPost =<< getAllPostSourceFiles
+        let (errors, successes) = partitionEithers posts
+        -- Log the errors to the console.
+        for_ errors (putQuiet . (\err -> "Error: " <> show err))
+        return successes
 
     action $ do
         posts <-
             map (-<.> "html")
-            <$> getAllPostSourceFiles ()
+            <$> getAllPostSourceFiles
         styles <-
             map (("styles" </>) . (-<.> "css"))
             <$> getDirectoryFiles "styles" ["*.scss"]
@@ -66,13 +80,23 @@ main = shakeArgs shakeOptions $ do
 
     (buildDir </> "posts/*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
-        getPost src >>= maybe (return ()) (uncurry (renderPageToFile out))
+        thisPostOrError <- getPost src
+        ($ thisPostOrError)
+         -- If it's an error, do nothing. We already display the errors
+         -- above in getAllPosts. But this is actually weird, there must be
+         -- a less goofy way to deal with errors.
+         $ either (const (return ()))
+         $ \thisPost -> do
+            let html = Pages.post thisPost configuration
+            renderHtmlToFile out html
 
     (buildDir </> "index.html") %> \out -> do
-        getAllPosts () >>= renderPageToFile out Home
+        allPosts <- getAllPosts
+        renderHtmlToFile out (Pages.home allPosts configuration)
 
     (buildDir </> "archive.html") %> \out -> do
-        getAllPosts () >>= renderPageToFile out Archive
+        allPosts <- getAllPosts
+        renderHtmlToFile out (Pages.archive allPosts configuration)
 
     (buildDir </> "styles/*.css") %> \out -> do
         let src = dropDirectory1 out -<.> "scss"
@@ -80,8 +104,8 @@ main = shakeArgs shakeOptions $ do
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
         -- TODO: Do error handling differently, just throw an exception.
         case scssOrError of
-            Left error -> do
-                message <- liftIO $ Sass.errorMessage error
+            Left err -> do
+                message <- liftIO $ Sass.errorMessage err
                 putQuiet ("Error: " <> show message)
             Right scss -> do
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
@@ -93,32 +117,37 @@ renderHtmlToFile out markup = do
     liftIO $ createDirectoryIfMissing True (takeDirectory out)
     liftIO $ writeFile out html
 
-readPostFromFile :: FilePath -> Action Post
+readPostFromFile :: FilePath -> Action (Either Whoops Post)
 readPostFromFile filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     return (readPost filepath contents)
 
-readPost :: FilePath -> Text -> Post
-readPost filepath contents = do
-   let doc = Cheapskate.markdown Cheapskate.def contents
-       identifier = (mconcat . take 4 . Text.words) contents
+readPost :: FilePath -> Text -> Either Whoops Post
+readPost filepath filecontents = do
+   let content =
+          Cheapskate.markdown Cheapskate.def filecontents
+       synopsis =
+          Cheapskate.markdown Cheapskate.def $
+          -- TODO: Where do we get an actual synopsis from? What if there
+          -- really is none?
+          (mconcat . take 27 . Text.words) filecontents
    date <- parseDate (takeBaseName filepath)
-   return $ postWithMetadata doc identifier date
+   return Post{ title = Nothing
+              , composed = date
+              , published = date -- TODO: Distinguish these --- maybe.
+              , content
+              , synopsis -- TODO!
+              , slug = Text.pack (takeBaseName filepath) -- This is actually probably right.
+              }
 
-postWithMetadata :: Blaze.Html -> Text -> Day -> Post
-postWithMetadata doc title date =
-     Post
-       { content = Blaze.toHtml doc
-       , date = date
-       , postTitle = title
-       }
+newtype Whoops = Whoops { whatHappened :: String } deriving ( Typeable )
 
-data Error = forall e. Show e => Error e
+instance Show Whoops where
+   show = show . whatHappened
 
-instance Show Error where
-    showsPrec i (Error e) =
-        showsPrec i e
+instance Exception Whoops
 
-parseDate :: String -> Either Error Day
-parseDate = first Error . parseTimeM True defaultTimeLocale "%Y.%-m.%-d"
+parseDate :: String -> Either Whoops Day
+parseDate =
+   first Whoops . parseTimeM True defaultTimeLocale "%Y.%-m.%-d"
