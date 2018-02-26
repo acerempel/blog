@@ -79,10 +79,7 @@ main = do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getPost src
         ($ thisPostOrError)
-         -- If it's an error, do nothing. We already display the errors
-         -- above in getAllPosts. But this is actually weird, there must be
-         -- a less goofy way to deal with errors.
-         $ either (const (return ()))
+         $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
          $ \thisPost -> do
             let html = Pages.post thisPost configuration
             renderHtmlToFile out html
@@ -99,11 +96,10 @@ main = do
         let src = dropDirectory1 out -<.> "scss"
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
-        -- TODO: Do error handling differently, just throw an exception.
         case scssOrError of
             Left err -> do
                 message <- liftIO $ Sass.errorMessage err
-                putQuiet ("Error: " <> show message)
+                putQuiet ("Error in " <> src <> ", namely: " <> show message)
             Right scss -> do
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
                 liftIO $ writeFile out scss
