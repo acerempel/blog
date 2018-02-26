@@ -1,13 +1,17 @@
 module URLs where
 
+import Data.Maybe
+import Data.Monoid
 import Data.Text ( Text )
-import Network.URI ( URI )
+import qualified Data.Text as Text
+import Network.URI ( URI, parseRelativeReference, relativeTo )
 
 import Post
 import Site
 
 url :: Text -> SiteM URI
-url = undefined
+url slug Configuration{baseUrl} =
+   fromJust (parseRelativeReference (Text.unpack ("/" <> slug <> ".html"))) `relativeTo` baseUrl
 
 urlForPost :: Post -> SiteM URI
 urlForPost =
