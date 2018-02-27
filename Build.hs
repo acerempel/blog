@@ -49,7 +49,10 @@ build = do
         map ((stylesDir </>) . (-<.> "css"))
         <$> getDirectoryFiles stylesDir ["*.scss"]
 
+    -- Get the site configuration.
     let getSiteConfig = do
+         -- These are decidedly failable patterns --- how useful is the
+         -- error message if they do fail?
          Just siteTitle <- fmap Text.pack
             <$> getConfig "site_title"
          Just baseUrl   <- (parseAbsoluteURI =<<)
@@ -69,9 +72,12 @@ build = do
             , author
             , styleSheets }
 
+    -- Specify our build targets.
     action $ do
         posts <- map (-<.> "html") <$> getAllPostSourceFiles
         styles <- getStylesheets
+        -- TODO: Should these filenames really be hardcoded? It works fine
+        -- now of course, but is perhaps a little brittle.
         let pages = ["archive.html", "index.html"]
         need $ map (buildDir </>) (styles <> pages <> posts)
 

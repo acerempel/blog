@@ -25,6 +25,7 @@ main = do
 
 buildWithFlags :: [Flag] -> [String] -> IO (Maybe (Rules ()))
 buildWithFlags userFlags extraArgs = return $ Just $ do
+    -- We don't accept extra non-flag arguments.
     unless (null extraArgs) $ liftIO $
         throwIO extraneousArgumentsError
     processFlags userFlags
@@ -35,6 +36,8 @@ buildWithFlags userFlags extraArgs = return $ Just $ do
 
 
 data Flag
+   -- | Read this file for site configuration (see `getSiteConfig` in
+   -- Main.hs).
    = UseConfigFile FilePath
 
 extraOptions :: [OptDescr (Either String Flag)]
