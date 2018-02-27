@@ -5,9 +5,9 @@ import Control.Exception ( throwIO )
 import System.Console.GetOpt
 
 import Development.Shake
-import Development.Shake.Config
 
 import Build
+import Flags
 
 
 main :: IO ()
@@ -20,51 +20,16 @@ main = do
      shakeOptions{ shakeVersion
                  , shakeThreads = 3
                  , shakeColor = True }
-     extraOptions
+     Flags.options
      buildWithFlags
 
 buildWithFlags :: [Flag] -> [String] -> IO (Maybe (Rules ()))
-buildWithFlags userFlags extraArgs = return $ Just $ do
+buildWithFlags flags extraArgs = return $ Just $ do
     -- We don't accept extra non-flag arguments.
     unless (null extraArgs) $ liftIO $
         throwIO extraneousArgumentsError
-    processFlags userFlags
-    build
+    let configuration = Flags.handle flags
+    build configuration
   where
     extraneousArgumentsError =
       userError $ "Found extra arguments, don't know what to do with them: " <> unwords extraArgs
-
-
-data Flag
-   -- | Read this file for site configuration (see `getSiteConfig` in
-   -- Main.hs).
-   = UseConfigFile FilePath
-
-extraOptions :: [OptDescr (Either String Flag)]
-extraOptions =
-   [ Right <$> configFileOption ]
-
-configFileOption :: OptDescr Flag
-configFileOption =
-   Option []
-      ["config", "config-file"]
-      (ReqArg UseConfigFile "FILE")
-      "Get the site configuration from this file (relative to cwd)."
-
-processFlags :: [Flag] -> Rules ()
-processFlags cliFlags =
-   for_ flags processFlag
- where
-   flags =
-      nubBy areSameFlags (cliFlags <> defaultFlags)
-
-processFlag :: Flag -> Rules ()
-processFlag (UseConfigFile file) =
-   usingConfigFile file
-
-defaultFlags :: [Flag]
-defaultFlags =
-   [ UseConfigFile "config.local" ]
-
-areSameFlags :: Flag -> Flag -> Bool
-areSameFlags (UseConfigFile _) (UseConfigFile _) = True

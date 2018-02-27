@@ -25,14 +25,37 @@ import Post
 import Site
 
 
-stylesDir, buildDir, postsDir :: FilePath
-stylesDir = "styles"
-buildDir = "_site"
-postsDir = "posts"
+data Options = Options
+   { buildDir :: FilePath
+   , postsDir :: FilePath
+   , draftsDir :: FilePath
+   , stylesDir :: FilePath
+   -- | Read this file for site configuration (see `getSiteConfig`).
+   , siteConfigFile :: FilePath 
+   , includeDrafts :: Bool }
+
+defaultConfig :: Options
+defaultConfig = Options
+   { buildDir = "_site"
+   , postsDir = "posts"
+   , draftsDir = "drafts"
+   , stylesDir = "styles"
+   , siteConfigFile = "config"
+   , includeDrafts = False }
 
 
-build :: Rules ()
-build = do
+build :: Options -> Rules ()
+build Options
+         { buildDir
+         , postsDir
+         , draftsDir
+         , stylesDir
+         , siteConfigFile
+         , includeDrafts
+         } = do
+
+    usingConfigFile siteConfigFile
+
     getPost <- newCache readPostFromFile
 
     getAllPostSourceFiles <- fmap ($ ()) $ newCache $ \() ->
