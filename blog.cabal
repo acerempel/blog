@@ -13,8 +13,9 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable blog
-  main-is:             Shakefile.hs
-  other-modules:       Pages
+  main-is:             Main.hs
+  other-modules:       Build
+                     , Pages
                      , Site
                      , Routes
                      , Templates

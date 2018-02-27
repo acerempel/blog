@@ -1,4 +1,4 @@
-module Main where
+module Build where
 
 import Introit
 import Control.Exception
@@ -25,26 +25,14 @@ import Post
 import Site
 
 
-localConfigFile, productionConfigFile :: FilePath
-localConfigFile = "config.local"
-productionConfigFile = "config.live"
-
 stylesDir, buildDir, postsDir :: FilePath
 stylesDir = "styles"
 buildDir = "_site"
 postsDir = "posts"
 
 
-main :: IO ()
-main = do
-  hsSourceFiles <- getDirectoryFilesIO "" ["*.hs"]
-  shakeVersion <- getHashedShakeVersion hsSourceFiles
-  shakeArgs shakeOptions{ shakeVersion
-                        , shakeThreads = 3
-                        , shakeColor = True } $ do
-
-    usingConfigFile localConfigFile
-
+build :: Rules ()
+build = do
     getPost <- newCache readPostFromFile
 
     getAllPostSourceFiles <- fmap ($ ()) $ newCache $ \() ->
