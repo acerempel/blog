@@ -11,4 +11,5 @@ data Post = Post
    , synopsis :: Cheapskate.Doc -- ^ A little description or summary or teaser.
    , composed :: Day -- ^ Date of composition.
    , published :: Day -- ^ Date of publication.
+   , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    }

@@ -13,7 +13,7 @@ import qualified Text.Blaze.Html5.Attributes as A
 import Post
 import Site
 import qualified Routes
-import Routes ( url, homeUrl, archiveUrl )
+import Routes ( homeUrl, archiveUrl )
 
 
 post :: Post -> SiteM Html
@@ -46,12 +46,15 @@ displayDate date =
            $ H.toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
 
 displayPostHeading :: Post -> SiteM Html
-displayPostHeading Post{ title, slug } configuration =
+displayPostHeading post@Post{ title, slug, isDraft } configuration =
    H.h1 $ H.a
        ! A.href ((toValue . show) theUrl)
-       $ H.toHtml title
+       $ H.toHtml theTitle
   where
-   theUrl = url (Routes.Post slug) configuration
+   theUrl =
+      Routes.urlForPost post configuration
+   theTitle =
+      if isDraft then "[DRAFT] " <> title else title
 
 
 page :: Maybe Text -- ^ This page's title.
@@ -75,7 +78,7 @@ page thisTitleMb content
               H.link
                 ! A.rel "stylesheet"
                 ! A.type_ "text/css"
-                ! A.href ((toValue . show) (url (Routes.Stylesheet ss) conf))
+                ! A.href ((toValue . show) (Routes.urlForStylesheet ss conf))
         H.body $ do
             H.header $ do
                 H.div

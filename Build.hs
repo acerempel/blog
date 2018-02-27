@@ -34,16 +34,6 @@ data Options = Options
    , siteConfigFile :: FilePath 
    , includeDrafts :: Bool }
 
-defaultConfig :: Options
-defaultConfig = Options
-   { buildDir = "_site"
-   , postsDir = "posts"
-   , draftsDir = "drafts"
-   , stylesDir = "styles"
-   , siteConfigFile = "config"
-   , includeDrafts = False }
-
-
 build :: Options -> Rules ()
 build Options
          { buildDir
@@ -56,14 +46,20 @@ build Options
 
     usingConfigFile siteConfigFile
 
-    getPost <- newCache readPostFromFile
+    getPost <- newCache (readPostFromFile False)
+    getDraft <- newCache (readPostFromFile True)
 
-    getAllPostSourceFiles <- fmap ($ ()) $ newCache $ \() ->
-        map (postsDir </>) <$> getDirectoryFiles postsDir ["*.md"]
+    getAllPostSourceFiles <- newCache $ \dir ->
+        map (dir </>) <$> getDirectoryFiles dir ["*.md"]
 
     getAllPosts <- fmap ($ ()) $ newCache $ \() -> do
-        posts <- traverse getPost =<< getAllPostSourceFiles
-        let (errors, successes) = partitionEithers posts
+        posts <-
+              traverse getPost =<< getAllPostSourceFiles postsDir
+        drafts <-
+           if includeDrafts then
+              traverse getDraft =<< getAllPostSourceFiles draftsDir
+           else return []
+        let (errors, successes) = partitionEithers (posts <> drafts)
         -- We log the same errors individualy in getPost.
         let sortByDate = sortOn (Down . composed)
         return $ sortByDate successes
@@ -97,16 +93,30 @@ build Options
 
     -- Specify our build targets.
     action $ do
-        posts <- map (-<.> "html") <$> getAllPostSourceFiles
+        posts  <- map (-<.> "html") <$> getAllPostSourceFiles postsDir
+        drafts <-
+            if includeDrafts then
+                  map (-<.> "html") <$> getAllPostSourceFiles draftsDir
+            else return []
         styles <- getStylesheets
         -- TODO: Should these filenames really be hardcoded? It works fine
         -- now of course, but is perhaps a little brittle.
         let pages = ["archive.html", "index.html"]
-        need $ map (buildDir </>) (styles <> pages <> posts)
+        need $ map (buildDir </>) (styles <> pages <> posts <> drafts)
 
     (buildDir </> postsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getPost src
+        siteConfig <- getSiteConfig
+        ($ thisPostOrError)
+         $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
+         $ \thisPost -> do
+            let html = Pages.post thisPost siteConfig
+            renderHtmlToFile out html
+
+    (buildDir </> draftsDir </> "*.html") %> \out -> do
+        let src = dropDirectory1 out -<.> "md"
+        thisPostOrError <- getDraft src
         siteConfig <- getSiteConfig
         ($ thisPostOrError)
          $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
@@ -143,8 +153,10 @@ renderHtmlToFile out markup = do
     liftIO $ createDirectoryIfMissing True (takeDirectory out)
     liftIO $ writeFile out html
 
-readPostFromFile :: FilePath -> Action (Either Whoops Post)
-readPostFromFile filepath = do
+readPostFromFile :: Bool -- ^ Whether this post is a draft.
+                 -> FilePath -- ^ Path to the post (/including/ the postsDir).
+                 -> Action (Either Whoops Post)
+readPostFromFile isDraft filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     return $ do
@@ -196,6 +208,7 @@ readPostFromFile filepath = do
                     , composed
                     -- TODO: Distinguish these --- maybe.
                     , published = composed
+                    , isDraft
                     , content }
 
    dateFormat = "%e %B %Y"
