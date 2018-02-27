@@ -23,7 +23,10 @@ url route _config =
          Home      -> ""
          Archive   -> "archive.html"
          -- TODO: Use System.FilePath operators?
+         -- TODO: Should posts/ really be hardcoded here? The thing is it
+         -- has to be the same as postsDir in Shakefile.hs.
          Post slug -> "posts/" <> Text.unpack slug <> ".html"
+         -- These already have stylesDir prepended.
          Stylesheet filename
                    -> filename
 
