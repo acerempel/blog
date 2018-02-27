@@ -1,0 +1,4 @@
+- Split the local server into a separate package.
+- Handle metadata blocks again.
+- Handle post filenames which are not of the form YYYY.MM.DD.md.
+- Read configuration from a file or something similarly sensible.
