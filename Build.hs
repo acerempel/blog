@@ -60,7 +60,7 @@ build Options
            else return []
         let (errors, successes) = partitionEithers (posts <> drafts)
         -- We log the same errors individualy in getPost.
-        let sortByDate = sortOn (Down . composed)
+        let sortByDate = sortOn composed
         return $ sortByDate successes
 
     getStylesheets <- fmap ($ ()) $ newCache $ \() ->
