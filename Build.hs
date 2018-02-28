@@ -3,7 +3,6 @@ module Build where
 import Introit
 import Control.Exception
 import Data.List ( sortOn )
-import Data.Ord ( Down(..) )
 import Data.Typeable ( Typeable )
 import qualified Text
 
@@ -15,7 +14,6 @@ import Development.Shake.Config
 import Development.Shake.FilePath
 import Network.URI ( parseAbsoluteURI )
 import System.Directory ( createDirectoryIfMissing )
-import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
 import qualified Text.Sass as Sass
 
@@ -58,8 +56,9 @@ build Options
            if includeDrafts then
               traverse getDraft =<< getAllPostSourceFiles draftsDir
            else return []
-        let (errors, successes) = partitionEithers (posts <> drafts)
-        -- We log the same errors individualy in getPost.
+        -- We log the same errors individualy in getPost, so we can ignore
+        -- them here.
+        let (_errors, successes) = partitionEithers (posts <> drafts)
         let sortByDate = sortOn composed
         return $ sortByDate successes
 
@@ -106,7 +105,6 @@ build Options
     (buildDir </> postsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getPost src
-        siteConfig <- getSiteConfig
         ($ thisPostOrError)
          $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
          $ \thisPost -> do
@@ -116,7 +114,6 @@ build Options
     (buildDir </> draftsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getDraft src
-        siteConfig <- getSiteConfig
         ($ thisPostOrError)
          $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
          $ \thisPost ->

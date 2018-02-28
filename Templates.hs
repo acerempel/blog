@@ -43,8 +43,8 @@ displayDate date =
            $ toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
 
 displayPostHeading :: Post -> HtmlT SiteM ()
-displayPostHeading post@Post{ title, slug, isDraft } = do
-   theUrl <- urlForPost post
+displayPostHeading thePost@Post{ title, isDraft } = do
+   theUrl <- urlForPost thePost
    h1_ $ a_
        [ href_ ((Text.pack . show) theUrl) ]
        $ toHtml theTitle

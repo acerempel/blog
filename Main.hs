@@ -2,7 +2,6 @@ module Main where
 
 import Introit
 import Control.Exception ( throwIO )
-import System.Console.GetOpt
 
 import Development.Shake
 
