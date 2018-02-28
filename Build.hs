@@ -89,6 +89,11 @@ build Options
             , author
             , styleSheets }
 
+    let renderPostToFile :: FilePath -> Post -> Action ()
+        renderPostToFile out thisPost =
+           renderHtmlToFile out =<<
+              Site.withConfig (Pages.post thisPost) <$> getSiteConfig
+
     -- Specify our build targets.
     action $ do
         posts  <- map (-<.> "html") <$> getAllPostSourceFiles postsDir
@@ -105,20 +110,12 @@ build Options
     (buildDir </> postsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getPost src
-        ($ thisPostOrError)
-         $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
-         $ \thisPost -> do
-            renderHtmlToFile out =<<
-                Site.withConfig (Pages.post thisPost) <$> getSiteConfig
+        handleErrorOr src (renderPostToFile out) thisPostOrError
 
     (buildDir </> draftsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
         thisPostOrError <- getDraft src
-        ($ thisPostOrError)
-         $ either (putQuiet . (("Error in " <> src <> ", namely: ") <>) . whatHappened)
-         $ \thisPost ->
-            renderHtmlToFile out =<<
-                Site.withConfig (Pages.post thisPost) <$> getSiteConfig
+        handleErrorOr src (renderPostToFile out) thisPostOrError
 
     (buildDir </> "index.html") %> \out -> do
         allPosts <- getAllPosts
@@ -142,6 +139,11 @@ build Options
                 liftIO $ createDirectoryIfMissing True (takeDirectory out)
                 liftIO $ writeFile out scss
 
+handleErrorOr file ifSuccessful =
+   either whoopsyDaisy ifSuccessful
+ where
+   whoopsyDaisy =
+      putQuiet . (("Error in " <> file <> ", namely: ") <>) . whatHappened
 
 renderHtmlToFile :: FilePath -> Text -> Action ()
 renderHtmlToFile out html = liftIO $ do
