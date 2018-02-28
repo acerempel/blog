@@ -1,4 +1,4 @@
-module Post where
+module Post ( Post(..) ) where
 
 import Text.MMark ( MMark )
 import Data.Text ( Text )

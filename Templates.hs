@@ -1,4 +1,4 @@
-module Templates where
+module Templates ( post, archiveEntry, page ) where
 
 import Introit
 import qualified Text
@@ -20,8 +20,8 @@ post thePost@Post
       { content
       , composed } =
     article_ $ do
-        displayDate composed
-        displayPostHeading thePost
+        date composed
+        postHeading thePost
         relaxHtmlT $ render content
 
 archiveEntry :: Post -> HtmlT SiteM ()
@@ -29,21 +29,21 @@ archiveEntry thePost@Post
                { synopsis
                , composed } =
    div_ [ class_ "entry" ] $ do
-      displayDate composed
-      displayPostHeading thePost
+      date composed
+      postHeading thePost
       toHtml synopsis
 
 
-displayDate :: Day -> HtmlT SiteM ()
-displayDate date =
+date :: Day -> HtmlT SiteM ()
+date theDate =
    div_
        [ class_ "info" ]
        $ time_
-           [ datetime_ ((Text.pack . showGregorian) date) ]
-           $ toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
+           [ datetime_ ((Text.pack . showGregorian) theDate) ]
+           $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-displayPostHeading :: Post -> HtmlT SiteM ()
-displayPostHeading thePost@Post{ title, isDraft } = do
+postHeading :: Post -> HtmlT SiteM ()
+postHeading thePost@Post{ title, isDraft } = do
    theUrl <- urlForPost thePost
    h1_ $ a_
        [ href_ ((Text.pack . show) theUrl) ]
@@ -52,7 +52,6 @@ displayPostHeading thePost@Post{ title, isDraft } = do
    theTitle :: Text
    theTitle =
       if isDraft then "[DRAFT] " <> title else title
-
 
 page :: Maybe Text -- ^ This page's title.
      -> HtmlT SiteM () -- ^ This page's content.

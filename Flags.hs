@@ -1,4 +1,4 @@
-module Flags where
+module Flags ( Flag, handle, options, defaultOptions ) where
 
 import System.Console.GetOpt
 import Build
@@ -10,7 +10,7 @@ handle :: [Flag] -> Build.Options
 handle flags =
    -- We flip (.) in order to compose flags from left to right, so that ---
    -- as you would expect --- rightmore cli flags override leftmore ones.
-   foldr (flip (.)) id flags defaultConfig
+   foldr (flip (.)) id flags defaultOptions
 
 options :: [OptDescr (Either String Flag)]
 options = fmap Right <$>
@@ -24,8 +24,8 @@ options = fmap Right <$>
    , draftsOption
    , noDraftsOption ]
 
-defaultConfig :: Options
-defaultConfig = Options
+defaultOptions :: Options
+defaultOptions = Options
    { buildDir = "_site"
    , postsDir = "posts"
    , draftsDir = "drafts"

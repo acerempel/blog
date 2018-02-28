@@ -1,4 +1,4 @@
-module Build where
+module Build ( Options(..), build )where
 
 import Introit
 import Control.Exception

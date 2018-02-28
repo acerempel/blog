@@ -1,4 +1,7 @@
-module Routes ( urlForPost, urlForStylesheet, homeUrl, archiveUrl ) where
+module Routes ( urlForPost
+              , urlForStylesheet
+              , homeUrl
+              , archiveUrl ) where
 
 import Introit
 import qualified Text
