@@ -9,11 +9,11 @@ import qualified Post
 import Site
 
 
-url :: String -> SiteM URI
-url finalPiece _config =
+url :: MonadSite m => String -> m URI
+url finalPiece = return $
    fromJust (parseRelativeReference ("/" <> finalPiece))
 
-urlForPost :: Post -> SiteM URI
+urlForPost :: MonadSite m => Post -> m URI
 urlForPost Post.Post{ slug, isDraft } =
    url $ dir <> Text.unpack slug <> ".html"
  where
@@ -22,15 +22,15 @@ urlForPost Post.Post{ slug, isDraft } =
    -- has to be the same as postsDir in Shakefile.hs.
    dir = if isDraft then "drafts/" else "posts/"
 
-urlForStylesheet :: FilePath -> SiteM URI
+urlForStylesheet :: MonadSite m => FilePath -> m URI
 urlForStylesheet ss =
    -- These already have stylesDir prepended.
    url ss
 
-homeUrl :: SiteM URI
+homeUrl :: MonadSite m => m URI
 homeUrl =
    url ""
 
-archiveUrl :: SiteM URI
+archiveUrl :: MonadSite m => m URI
 archiveUrl =
    url "archive.html"

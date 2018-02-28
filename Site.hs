@@ -1,12 +1,12 @@
+{-# LANGUAGE ConstraintKinds #-}
 module Site where
 
 import Introit
+import Control.Monad.Reader
 import Data.Functor.Identity
 import qualified Text
 import Network.URI ( URI )
 import Numeric.Natural ( Natural )
-
-import Control.Monad.Trans.Reader
 
 type SiteT = ReaderT Configuration
 
@@ -20,16 +20,18 @@ data Configuration = Configuration
    , styleSheets :: [FilePath]
    , sourceUrl :: URI }
 
-withConfig :: (Configuration -> result) -> SiteM result
-withConfig = reader
+type MonadSite m = MonadReader Configuration m
 
-withConfigM :: Monad m => (Configuration -> m result) -> SiteT m result
-withConfigM = ReaderT
+get :: MonadSite m => (Configuration -> a) -> m a
+get = asks
 
-copyrightNotice :: SiteM Text
-copyrightNotice = withConfig $ \Configuration{ author, copyrightYear } ->
+withConfig :: SiteM a -> Configuration -> a
+withConfig = runReader
+
+copyrightNotice :: MonadSite m => m Text
+copyrightNotice = get $ \Configuration{ author, copyrightYear } ->
    author <> " © " <> Text.pack (show copyrightYear)
 
-constructTitle :: Maybe Text -> SiteM Text
-constructTitle titleMb = withConfig $ \Configuration{ siteTitle } ->
+constructTitle :: MonadSite m => Maybe Text -> m Text
+constructTitle titleMb = get $ \Configuration{ siteTitle } ->
    maybe siteTitle (<> " | " <> siteTitle) titleMb

@@ -1,21 +1,28 @@
 module Pages where
 
 import Introit
-import Text.Blaze.Html5 ( Html )
+
+import Lucid
+import qualified Data.Text.Lazy as Text
 
 import qualified Templates
 import Post
 import Site
 
 
-post :: Post -> SiteM Html
+post :: Post -> SiteM Text
 post thisPost@Post{title} =
-   Templates.page (Just title) =<< Templates.post thisPost
+   renderPage (Just title) (Templates.post thisPost)
 
-home :: [Post] -> SiteM Html
+home :: [Post] -> SiteM Text
 home posts =
-   Templates.page Nothing =<< foldrMapM Templates.post posts
+   renderPage Nothing (foldrMapM Templates.post posts)
 
-archive :: [Post] -> SiteM Html
+archive :: [Post] -> SiteM Text
 archive posts =
-   Templates.page (Just "Archive") =<< foldrMapM Templates.archiveEntry posts
+   renderPage (Just "Archive") (foldrMapM Templates.archiveEntry posts)
+
+renderPage :: Maybe Text -> HtmlT SiteM () -> SiteM Text
+renderPage titleMb html =
+   -- TODO: Possibly more suitable to use lazy text in any case?
+   Text.toStrict <$> renderTextT (Templates.page titleMb html)

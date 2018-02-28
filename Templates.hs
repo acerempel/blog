@@ -5,96 +5,97 @@ import qualified Text
 
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
+import Lucid
+import Lucid.Base ( relaxHtmlT )
+import Text.MMark ( render )
 import Network.URI
-import Text.Blaze.Html5 ( (!), Html, toValue )
-import qualified Text.Blaze.Html5 as H
-import qualified Text.Blaze.Html5.Attributes as A
 
 import Post
 import Site
-import qualified Routes
-import Routes ( homeUrl, archiveUrl )
+import Routes
 
 
-post :: Post -> SiteM Html
+post :: Post -> HtmlT SiteM ()
 post thePost@Post
       { content
-      , composed }
-     configuration =
-    H.article $ do
+      , composed } =
+    article_ $ do
         displayDate composed
-        displayPostHeading thePost configuration
-        H.toHtml content
+        displayPostHeading thePost
+        relaxHtmlT $ render content
 
-archiveEntry :: Post -> SiteM Html
+archiveEntry :: Post -> HtmlT SiteM ()
 archiveEntry thePost@Post
                { synopsis
-               , composed }
-             configuration =
-   H.div ! A.class_ "entry" $ do
+               , composed } =
+   div_ [ class_ "entry" ] $ do
       displayDate composed
-      displayPostHeading thePost configuration
-      H.toHtml synopsis
+      displayPostHeading thePost
+      toHtml synopsis
 
 
-displayDate :: Day -> Html
+displayDate :: Day -> HtmlT SiteM ()
 displayDate date =
-   H.div
-       ! A.class_ "info"
-       $ H.time
-           ! A.datetime ((toValue . showGregorian) date)
-           $ H.toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
+   div_
+       [ class_ "info" ]
+       $ time_
+           [ datetime_ ((Text.pack . showGregorian) date) ]
+           $ toHtml (formatTime defaultTimeLocale "%d %B %Y" date)
 
-displayPostHeading :: Post -> SiteM Html
-displayPostHeading post@Post{ title, slug, isDraft } configuration =
-   H.h1 $ H.a
-       ! A.href ((toValue . show) theUrl)
-       $ H.toHtml theTitle
+displayPostHeading :: Post -> HtmlT SiteM ()
+displayPostHeading post@Post{ title, slug, isDraft } = do
+   theUrl <- urlForPost post
+   h1_ $ a_
+       [ href_ ((Text.pack . show) theUrl) ]
+       $ toHtml theTitle
   where
-   theUrl =
-      Routes.urlForPost post configuration
+   theTitle :: Text
    theTitle =
       if isDraft then "[DRAFT] " <> title else title
 
 
 page :: Maybe Text -- ^ This page's title.
-     -> Html -- ^ This page's content.
-     -> SiteM Html
-page thisTitleMb content
-     conf@Configuration{ baseUrl, styleSheets, siteTitle } =
-    H.docTypeHtml ! A.lang "en" $ do
-        H.head $ do
-            H.meta
-                ! A.httpEquiv "ContentType"
-                ! A.content "text/html; charset=utf-8"
-            H.meta
-                ! A.charset "UTF-8"
-            H.title
-                $ H.toHtml (constructTitle thisTitleMb conf)
-            H.link
-                ! A.rel "canonical"
-                ! A.href ((toValue . show) baseUrl)
-            (flip foldMap) styleSheets $ \ss ->
-              H.link
-                ! A.rel "stylesheet"
-                ! A.type_ "text/css"
-                ! A.href ((toValue . show) (Routes.urlForStylesheet ss conf))
-        H.body $ do
-            H.header $ do
-                H.div
-                    ! A.id "logo"
-                    $ link homeUrl (H.toHtml siteTitle) conf
-                H.nav $ ($ conf) $ liftA2 (<>)
-                    (link homeUrl "Recent")
-                    (link archiveUrl "Archive")
-            H.main $
+     -> HtmlT SiteM () -- ^ This page's content.
+     -> HtmlT SiteM ()
+page thisTitleMb content = do
+    baseURL <- get baseUrl
+    titleOfSite <- get siteTitle
+    stylesheetUrls <- traverse urlForStylesheet =<< get styleSheets
+
+    doctype_
+    html_ [ lang_ "en" ] $ do
+        head_ $ do
+            meta_
+                [ httpEquiv_ "ContentType"
+                , content_ "text/html; charset=utf-8" ]
+            meta_
+                [ charset_ "UTF-8" ]
+            title_
+                $ toHtml =<< constructTitle thisTitleMb
+            link_
+                [ rel_ "canonical"
+                , href_ ((Text.pack . show) baseURL) ]
+            (flip foldMap) stylesheetUrls $ \ssu ->
+              link_
+                [ rel_ "stylesheet"
+                , type_ "text/css"
+                , href_ ((Text.pack . show) ssu) ]
+        body_ $ do
+            header_ $ do
+                div_
+                    [ id_ "logo" ]
+                    $ link (toHtml titleOfSite) =<< homeUrl
+                nav_ $ do
+                    link "Recent" =<< homeUrl
+                    link "Archive" =<< archiveUrl
+            main_
                 content
-            H.footer $ ($ conf) $ liftA2 (<>)
-                (H.toHtml . copyrightNotice)
-                (link sourceUrl "Source")
-            H.script
-                ! A.id "__bs_script__"
-                $ H.preEscapedText bsInjectionScript
+            footer_ $ do
+                toHtml =<< copyrightNotice
+                link "Source" =<< get sourceUrl
+            script_
+                [ id_ "__bs_script__" ]
+                bsInjectionScript
   where
     bsInjectionScript =
         Text.unlines
@@ -103,7 +104,8 @@ page thisTitleMb content
             , "//]]>"
             ]
 
-link :: SiteM URI -> Html -> SiteM Html
-link getUrl linkText conf =
-   H.a ! A.href ((toValue . show) (getUrl conf))
-       $ linkText
+link :: HtmlT SiteM () -> URI -> HtmlT SiteM ()
+link linkText url =
+   a_
+      [ href_ ((Text.pack . show) url ) ]
+      linkText
