@@ -30,6 +30,7 @@ data Options = Options
    , postsDir :: FilePath
    , draftsDir :: FilePath
    , stylesDir :: FilePath
+   , imagesDir :: FilePath
    -- | Read this file for site configuration (see `getSiteConfig`).
    , siteConfigFile :: FilePath 
    , includeDrafts :: Bool }
@@ -40,6 +41,7 @@ build Options
          , postsDir
          , draftsDir
          , stylesDir
+         , imagesDir
          , siteConfigFile
          , includeDrafts
          } = do
@@ -105,10 +107,11 @@ build Options
                   map (-<.> "html") <$> getAllPostSourceFiles draftsDir
             else return []
         styles <- getStylesheets
+        images <- map (imagesDir </>) <$> getDirectoryContents imagesDir
         -- TODO: Should these filenames really be hardcoded? It works fine
         -- now of course, but is perhaps a little brittle.
         let pages = ["archive.html", "index.html"]
-        need $ map (buildDir </>) (styles <> pages <> posts <> drafts)
+        need $ map (buildDir </>) (styles <> pages <> posts <> drafts <> images)
 
     (buildDir </> postsDir </> "*.html") %> \out -> do
         let src = dropDirectory1 out -<.> "md"
@@ -139,6 +142,10 @@ build Options
                (return . Text.pack)
             =<< Sass.compileFile src Sass.def
         handleErrorOr out (writeFile out) scssOrError
+
+    (buildDir </> imagesDir </> "*") %> \out -> do
+        let src = dropDirectory1 out
+        copyFile' src out
 
 handleErrorOr file ifSuccessful =
    either whoopsyDaisy ifSuccessful

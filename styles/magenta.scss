@@ -39,6 +39,16 @@ p, dl {
     line-height: 130%;
 }
 
+p:first-of-type img {
+    margin-top: 16px;
+}
+
+p img {
+    width: 100%;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
 blockquote {
     p {
         line-height: 120%;

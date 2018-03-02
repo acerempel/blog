@@ -21,6 +21,7 @@ options = fmap Right <$>
    , postsDirOption
    , draftsDirOption
    , stylesDirOption
+   , imagesDirOption
    , draftsOption
    , noDraftsOption ]
 
@@ -30,6 +31,7 @@ defaultOptions = Options
    , postsDir = "posts"
    , draftsDir = "drafts"
    , stylesDir = "styles"
+   , imagesDir = "images"
    , siteConfigFile = "config"
    , includeDrafts = False }
 
@@ -72,6 +74,11 @@ stylesDirOption =
       (ReqArg useStylesDir "DIRECTORY")
       "Where to look for stylesheets. (Default: styles)"
 
+imagesDirOption =
+   Option [] ["imagesdir"]
+      (ReqArg useImagesDir "DIRECTORY")
+      "Where to look for images. (Default: images)"
+
 draftsOption =
    Option [] ["drafts"]
       (NoArg doIncludeDrafts)
@@ -86,7 +93,7 @@ useConfigFile :: FilePath -> Flag
 useConfigFile siteConfigFile configuration =
    configuration{ siteConfigFile }
 
-useBuildDir, usePostsDir, useDraftsDir, useStylesDir :: FilePath -> Flag
+useBuildDir, usePostsDir, useDraftsDir, useStylesDir, useImagesDir :: FilePath -> Flag
 
 useBuildDir buildDir configuration =
    configuration{ buildDir }
@@ -99,6 +106,9 @@ useDraftsDir draftsDir configuration =
 
 useStylesDir stylesDir configuration =
    configuration{ stylesDir }
+
+useImagesDir imagesDir configuration =
+   configuration{ imagesDir }
 
 doIncludeDrafts :: Flag
 doIncludeDrafts configuration =
