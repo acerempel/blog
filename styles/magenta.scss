@@ -22,11 +22,17 @@ body {
 // {{{1
 main {
     font-family: $serif-fonts;
-    padding: 30px 10%;
+    color: $deepgray;
     margin: 0px auto;
     position: relative;
-    width: 600px;
-    color: $deepgray;
+    @media screen and (min-width: 600px) {
+        width: 500px;
+        padding: 30px 10%;
+    }
+    @media screen and (max-width: 599px) {
+        width: 300px;
+        padding: 20px 10px;
+    }
 }
 
 p, dl {
