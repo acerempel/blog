@@ -1,7 +1,9 @@
 module Build ( Options(..), build )where
 
+import Prelude hiding ( writeFile )
 import Introit
 import Control.Exception
+import Data.Bitraversable
 import Data.List ( sortOn )
 import Data.Typeable ( Typeable )
 import qualified Text
@@ -92,7 +94,7 @@ build Options
 
     let renderPostToFile :: FilePath -> Post -> Action ()
         renderPostToFile out thisPost =
-           renderHtmlToFile out =<<
+           writeFile out =<<
               Site.withConfig (Pages.post thisPost) <$> getSiteConfig
 
     -- Specify our build targets.
@@ -120,25 +122,23 @@ build Options
 
     (buildDir </> "index.html") %> \out -> do
         allPosts <- getAllPosts
-        renderHtmlToFile out =<<
+        writeFile out =<<
             Site.withConfig (Pages.home allPosts) <$> getSiteConfig
 
     (buildDir </> "archive.html") %> \out -> do
         allPosts <- getAllPosts
-        renderHtmlToFile out =<<
+        writeFile out =<<
             Site.withConfig (Pages.archive allPosts) <$> getSiteConfig
 
     (buildDir </> stylesDir </> "*.css") %> \out -> do
         let src = dropDirectory1 out -<.> "scss"
         need [src]
-        scssOrError <- liftIO $ Sass.compileFile src Sass.def
-        case scssOrError of
-            Left err -> do
-                message <- liftIO $ Sass.errorMessage err
-                putQuiet ("Error in " <> src <> ", namely: " <> show message)
-            Right scss -> do
-                liftIO $ createDirectoryIfMissing True (takeDirectory out)
-                liftIO $ writeFile out scss
+        scssOrError <- liftIO $
+            bitraverse -- This is just massaging types.
+               (fmap Whoops . Sass.errorMessage)
+               (return . Text.pack)
+            =<< Sass.compileFile src Sass.def
+        handleErrorOr out (writeFile out) scssOrError
 
 handleErrorOr file ifSuccessful =
    either whoopsyDaisy ifSuccessful
@@ -146,8 +146,8 @@ handleErrorOr file ifSuccessful =
    whoopsyDaisy =
       putQuiet . (("Error in " <> file <> ", namely: ") <>) . whatHappened
 
-renderHtmlToFile :: FilePath -> Text -> Action ()
-renderHtmlToFile out html = liftIO $ do
+writeFile :: FilePath -> Text -> Action ()
+writeFile out html = liftIO $ do
     createDirectoryIfMissing True (takeDirectory out)
     Text.writeFile out html
 
