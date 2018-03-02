@@ -15,6 +15,7 @@ import Development.Shake.FilePath
 import Network.URI ( parseAbsoluteURI )
 import System.Directory ( createDirectoryIfMissing )
 import qualified Text.MMark as MMark
+import qualified Text.MMark.Extension as MMark
 import qualified Text.Sass as Sass
 
 import Pages
@@ -157,7 +158,9 @@ readPostFromFile isDraft filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     return $ do
-      body <- first (Whoops . MMark.parseErrorsPretty contents) $
+      body <-
+         first (Whoops . MMark.parseErrorsPretty contents) $
+         second (MMark.useExtension hyphensToDashes) $
          MMark.parse filepath contents
       yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
@@ -178,7 +181,14 @@ readPostFromFile isDraft filepath = do
                     , published = composed
                     , isDraft
                     , content }
-   
+
+   hyphensToDashes :: MMark.Extension
+   hyphensToDashes = MMark.inlineTrans $
+      MMark.mapInlineRecursively $
+      MMark.mapInlineText $
+      Text.replace "--" "–" .
+      Text.replace "---" "—"
+
    noMetadataError = Whoops $
       "Couldn't find a metadata block in file " <> filepath
 

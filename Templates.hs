@@ -68,6 +68,9 @@ page thisTitleMb content = do
                 [ httpEquiv_ "ContentType"
                 , content_ "text/html; charset=utf-8" ]
             meta_
+                [ name_ "viewport"
+                , content_ "width=device-width, initial-scale=1" ]
+            meta_
                 [ charset_ "UTF-8" ]
             title_
                 $ toHtml =<< constructTitle thisTitleMb

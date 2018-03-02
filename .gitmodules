@@ -1,0 +1,3 @@
+[submodule "mmark"]
+	path = mmark
+	url = https://github.com/zarvunk/mmark

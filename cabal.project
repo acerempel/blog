@@ -1,2 +1,5 @@
-packages: blog.cabal server/blog-server.cabal
+packages:
+    blog.cabal
+    server/blog-server.cabal
+    mmark/mmark.cabal
 library-profiling: False
