@@ -72,7 +72,7 @@ build Options
         <$> getDirectoryFiles stylesDir ["*.scss"]
 
     -- Get the site configuration.
-    let getSiteConfig = do
+    getSiteConfig <- fmap ($ ()) $ newCache $ \() -> do
          -- These are decidedly failable patterns --- how useful is the
          -- error message if they do fail?
          Just siteTitle <- fmap Text.pack
