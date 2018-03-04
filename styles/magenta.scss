@@ -54,14 +54,13 @@ main {
 
 .archive-entry {
     font-size: 15px;
-    display: contents;
-    & .date {
+    &.date {
         text-align: right;
     }
-    & .title h2 {
+    &.title h2 {
         margin: 0;
     }
-    & .synopsis {
+    &.synopsis {
         font-family: $sans-serif-fonts;
         grid-column: 2 / 3;
         & p {
