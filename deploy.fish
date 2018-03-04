@@ -1,5 +1,5 @@
 #! /usr/bin/env fish
-cabal new-run blog -- --production
+cabal new-run blog --disable-documentation --disable-tests --disable-benchmarks --disable-profiling -- --production
 pushd _site.production
 if count (git status --porcelain)
     git add .
