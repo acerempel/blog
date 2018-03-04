@@ -20,32 +20,33 @@ post thePost@Post
       { content
       , composed } =
     article_ $ do
-        date composed
-        postHeading thePost
+        div_ [ class_ "info" ] $ date composed
+        h1_ $ postLink thePost
         relaxHtmlT $ render content
 
 archiveEntry :: Post -> HtmlT SiteM ()
 archiveEntry thePost@Post
                { synopsis
                , composed } =
-   div_ [ class_ "entry" ] $ do
-      date composed
-      postHeading thePost
-      p_ (toHtml synopsis)
+   div_ [ class_ "archive-entry" ] $ do
+      div_ [ class_ "date" ] $
+         date composed
+      div_ [ class_ "title" ] $
+         h2_ $ postLink thePost
+      div_ [ class_ "synopsis" ] $
+         p_ $ toHtml synopsis
 
 
 date :: Day -> HtmlT SiteM ()
 date theDate =
-   div_
-       [ class_ "info" ]
-       $ time_
-           [ datetime_ ((Text.pack . showGregorian) theDate) ]
-           $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
+   time_
+       [ datetime_ ((Text.pack . showGregorian) theDate) ]
+       $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-postHeading :: Post -> HtmlT SiteM ()
-postHeading thePost@Post{ title, isDraft } = do
+postLink :: Post -> HtmlT SiteM ()
+postLink thePost@Post{ title, isDraft } = do
    theUrl <- urlForPost thePost
-   h1_ $ a_
+   a_
        [ href_ ((Text.pack . show) theUrl) ]
        $ toHtml theTitle
   where

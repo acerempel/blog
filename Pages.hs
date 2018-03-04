@@ -20,7 +20,10 @@ home posts =
 
 archive :: [Post] -> SiteM Text
 archive posts =
-   render (Just "Archive") (foldrMapM Templates.archiveEntry posts)
+   render
+      (Just "Archive")
+      (div_ [ class_ "archive-listing" ] $
+         foldrMapM Templates.archiveEntry posts)
 
 render :: Maybe Text -> HtmlT SiteM () -> SiteM Text
 render titleMb html =
