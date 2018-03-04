@@ -2,10 +2,8 @@ module Build ( Options(..), build )where
 
 import Prelude hiding ( writeFile )
 import Introit
-import Control.Exception
 import Data.Bitraversable
 import Data.List ( sortOn )
-import Data.Typeable ( Typeable )
 import qualified Text
 
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
@@ -138,7 +136,7 @@ build Options
         need [src]
         scssOrError <- liftIO $
             bitraverse -- This is just massaging types.
-               (fmap Whoops . Sass.errorMessage)
+               Sass.errorMessage
                (return . Text.pack)
             =<< Sass.compileFile src Sass.def
         handleErrorOr out (writeFile out) scssOrError
@@ -147,11 +145,13 @@ build Options
         let src = dropDirectory1 out
         copyFile' src out
 
+type Whoops = String
+
 handleErrorOr file ifSuccessful =
    either whoopsyDaisy ifSuccessful
  where
    whoopsyDaisy =
-      putQuiet . (("Error in " <> file <> ", namely: ") <>) . whatHappened
+      putQuiet . (("Error in " <> file <> ", namely: ") <>)
 
 writeFile :: FilePath -> Text -> Action ()
 writeFile out html = liftIO $ do
@@ -166,14 +166,14 @@ readPostFromFile isDraft filepath = do
     contents <- liftIO $ Text.readFile filepath
     return $ do
       body <-
-         first (Whoops . MMark.parseErrorsPretty contents) $
+         first (MMark.parseErrorsPretty contents) $
          second (MMark.useExtension hyphensToDashes) $
          MMark.parse filepath contents
       yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
       withMetadata body yaml
  where
-   withMetadata content = (first Whoops .) $ Yaml.parseEither $
+   withMetadata content = Yaml.parseEither $
       Yaml.withObject "metadata" $ \metadata -> do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
@@ -196,15 +196,7 @@ readPostFromFile isDraft filepath = do
       Text.replace "--" "–" .
       Text.replace "---" "—"
 
-   noMetadataError = Whoops $
+   noMetadataError =
       "Couldn't find a metadata block in file " <> filepath
 
    dateFormat = "%e %B %Y"
-
-
-newtype Whoops = Whoops { whatHappened :: String } deriving ( Typeable )
-
-instance Show Whoops where
-   show = show . whatHappened
-
-instance Exception Whoops
