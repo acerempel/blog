@@ -31,7 +31,7 @@ archiveEntry thePost@Post
    div_ [ class_ "entry" ] $ do
       date composed
       postHeading thePost
-      toHtml synopsis
+      p_ (toHtml synopsis)
 
 
 date :: Day -> HtmlT SiteM ()
