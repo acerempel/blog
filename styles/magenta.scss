@@ -151,7 +151,9 @@ footer a {
 // Within the header
 // {{{1
 nav {
-    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    flex-flow: row wrap;
 }
 
 nav a {
