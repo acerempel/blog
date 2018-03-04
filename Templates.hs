@@ -27,12 +27,13 @@ post thePost@Post
 archiveEntry :: Post -> HtmlT SiteM ()
 archiveEntry thePost@Post
                { synopsis
-               , composed } = do
-      div_ [ class_ "archive-entry date" ] $
+               , composed } =
+   div_ [ class_ "archive-entry" ] $ do
+      div_ [ class_ "date" ] $
          date composed
-      div_ [ class_ "archive-entry title" ] $
+      div_ [ class_ "title" ] $
          h2_ $ postLink thePost
-      div_ [ class_ "archive-entry synopsis" ] $
+      div_ [ class_ "synopsis" ] $
          p_ $ toHtml synopsis
 
 
