@@ -16,11 +16,12 @@ executable blog
   main-is:             Main.hs
   other-modules:       Build
                      , Flags
-                     , Pages
+                     , Actions
+                     , Render
                      , Site
-                     , Routes
+                     , Targets
                      , Templates
-                     , Post
+                     , Things
                      , Introit
                      , Text
   default-extensions:  OverloadedStrings
@@ -31,6 +32,7 @@ executable blog
   build-depends:       base >= 4.8 && < 5
                      , filepath >= 1.3
                      , directory >= 1.2.5
+                     , hashable
                      , hsass >= 0.4.1
                      , lucid >= 2.9.7
                      , mmark >= 0.0.4.2

@@ -1,4 +1,4 @@
-module Pages ( post, home, archive ) where
+module Render ( post, home, archive ) where
 
 import Introit
 
@@ -6,7 +6,7 @@ import Lucid
 import qualified Data.Text.Lazy as Text
 
 import qualified Templates
-import Post
+import Things
 import Site
 
 

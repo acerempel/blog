@@ -25,8 +25,9 @@ data Configuration = Configuration
    , baseUrl :: URI
    , author :: Text
    , copyrightYear :: Natural
-   , styleSheets :: [FilePath]
-   , sourceUrl :: URI }
+   , stylesheet :: FilePath
+   , sourceUrl :: URI
+   , includeDrafts :: Bool }
 
 type MonadSite m = MonadReader Configuration m
 

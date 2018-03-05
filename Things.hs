@@ -1,8 +1,13 @@
-module Post ( Post(..) ) where
+module Things ( Home, Archive, Post(..) ) where
 
 import Text.MMark ( MMark )
 import Data.Text ( Text )
 import Data.Time.Calendar ( Day )
+
+
+data Home
+      
+data Archive
 
 data Post = Post
    { slug :: Text -- ^ Identifier to use for the slug in the url.

@@ -2,6 +2,7 @@ module Build ( Options(..), build )where
 
 import Prelude hiding ( writeFile )
 import Introit
+import Control.Exception ( throwIO )
 import Data.Bitraversable
 import Data.List ( sortOn )
 import qualified Text
@@ -18,9 +19,11 @@ import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
 import qualified Text.Sass as Sass
 
-import Pages
-import Post
-import Site
+import Actions
+import Targets
+import Things
+import Site hiding ( includeDrafts )
+import qualified Site
 
 
 data Options = Options
@@ -33,37 +36,33 @@ data Options = Options
    , siteConfigFile :: FilePath 
    , includeDrafts :: Bool }
 
-build :: Options -> Rules ()
-build Options
+createContext :: Options -> Rules Context
+createContext Options
          { buildDir
          , postsDir
          , draftsDir
          , stylesDir
          , imagesDir
          , siteConfigFile
-         , includeDrafts
          } = do
 
     usingConfigFile siteConfigFile
 
-    getPost <- newCache (readPostFromFile False)
-    getDraft <- newCache (readPostFromFile True)
+    getPost <- newCache (readPostFromFile False . Targets.postSourceFile postsDir)
+    getDraft <- newCache (readPostFromFile True . Targets.postSourceFile draftsDir)
 
-    getAllPostSourceFiles <- newCache $ \dir ->
-        map (dir </>) <$> getDirectoryFiles dir ["*.md"]
+    getAllPostTargets <- newCache $ \dir ->
+        map (Targets.Post . takeBaseName) <$> getDirectoryFiles dir ["*.md"]
 
-    getAllPosts <- fmap ($ ()) $ newCache $ \() -> do
+    getAllPosts <- newCache $ \includeDrafts -> do
         posts <-
-              traverse getPost =<< getAllPostSourceFiles postsDir
+              traverse getPost =<< getAllPostTargets postsDir
         drafts <-
            if includeDrafts then
-              traverse getDraft =<< getAllPostSourceFiles draftsDir
+              traverse getDraft =<< getAllPostTargets draftsDir
            else return []
-        -- We log the same errors individualy in getPost, so we can ignore
-        -- them here.
-        let (_errors, successes) = partitionEithers (posts <> drafts)
         let sortByDate = sortOn composed
-        return $ sortByDate successes
+        return $ sortByDate (posts <> drafts)
 
     getStylesheets <- fmap ($ ()) $ newCache $ \() ->
         map ((stylesDir </>) . (-<.> "css"))
@@ -79,57 +78,65 @@ build Options
             <$> getConfig "base_url"
          Just sourceUrl <- (parseAbsoluteURI =<<)
             <$> getConfig "source_url"
-         copyrightYear  <- fromMaybe 2018 <$> fmap read
+         copyrightYear  <- maybe 2018 read
             <$> getConfig "copyright"
-         author         <- Text.pack <$> fromMaybe "Anonymous"
+         author         <- maybe "Anonymous" Text.pack
             <$> getConfig "author"
-         styleSheets    <- getStylesheets
+         includeDrafts  <- maybe False read
+            <$> getConfig "include_drafts"
+         stylesheet     <- fromMaybe "main.css"
+            <$> getConfig "stylesheet"
          return Site.Configuration
             { siteTitle
             , baseUrl
             , sourceUrl
             , copyrightYear
             , author
-            , styleSheets }
+            , stylesheet
+            , Site.includeDrafts }
 
-    let renderPostToFile :: FilePath -> Post -> Action ()
-        renderPostToFile out thisPost =
-           writeFile out =<<
-              Site.withConfig (Pages.post thisPost) <$> getSiteConfig
+    let writeTarget :: Which thing => This thing -> Text -> Action ()
+        writeTarget thisOne text = liftIO $ do
+            let targetFile = buildDir </> Targets.file thisOne
+            createDirectoryIfMissing True (takeDirectory targetFile)
+            Text.writeFile targetFile text 
+
+    return Context{ getAllPostTargets
+                  , getAllPosts
+                  , getPost
+                  , getDraft
+                  , getSiteConfig
+                  , getStylesheets
+                  , writeTarget }
+
+build :: Options -> Rules ()
+build options@Options
+      { buildDir
+      , postsDir
+      , draftsDir
+      , stylesDir
+      , imagesDir
+      , siteConfigFile
+      } = do
+
+    context@Context{ getAllPostTargets } <-
+      createContext options
 
     -- Specify our build targets.
     action $ do
-        posts  <- map (-<.> "html") <$> getAllPostSourceFiles postsDir
-        drafts <-
-            if includeDrafts then
-                  map (-<.> "html") <$> getAllPostSourceFiles draftsDir
-            else return []
-        styles <- getStylesheets
+        posts  <- map Targets.file <$> getAllPostTargets postsDir
+        drafts <- map Targets.file <$> getAllPostTargets draftsDir
+        styles <- getStylesheets context
         images <- map (imagesDir </>) <$> getDirectoryContents imagesDir
-        -- TODO: Should these filenames really be hardcoded? It works fine
-        -- now of course, but is perhaps a little brittle.
-        let pages = ["archive.html", "index.html"]
+        let pages = [Targets.file Targets.Home, Targets.file Targets.Archive]
         need $ map (buildDir </>) (styles <> pages <> posts <> drafts <> images)
 
-    (buildDir </> postsDir </> "*.html") %> \out -> do
-        let src = dropDirectory1 out -<.> "md"
-        thisPostOrError <- getPost src
-        handleErrorOr src (renderPostToFile out) thisPostOrError
+    (buildDir </> Targets.file (Targets.Post "*")) %> \out ->
+        Actions.post context (Targets.Post (takeBaseName out))
 
-    (buildDir </> draftsDir </> "*.html") %> \out -> do
-        let src = dropDirectory1 out -<.> "md"
-        thisPostOrError <- getDraft src
-        handleErrorOr src (renderPostToFile out) thisPostOrError
+    (buildDir </> Targets.file Targets.Home) %> \_out -> Actions.home context
 
-    (buildDir </> "index.html") %> \out -> do
-        allPosts <- getAllPosts
-        writeFile out =<<
-            Site.withConfig (Pages.home allPosts) <$> getSiteConfig
-
-    (buildDir </> "archive.html") %> \out -> do
-        allPosts <- getAllPosts
-        writeFile out =<<
-            Site.withConfig (Pages.archive allPosts) <$> getSiteConfig
+    (buildDir </> Targets.file Targets.Archive) %> \_out -> Actions.archive context
 
     (buildDir </> stylesDir </> "*.css") %> \out -> do
         let src = dropDirectory1 out -<.> "scss"
@@ -139,19 +146,15 @@ build Options
                Sass.errorMessage
                (return . Text.pack)
             =<< Sass.compileFile src Sass.def
-        handleErrorOr out (writeFile out) scssOrError
+        either (throwError out) (writeFile out) scssOrError
 
     (buildDir </> imagesDir </> "*") %> \out -> do
         let src = dropDirectory1 out
         copyFile' src out
 
-type Whoops = String
-
-handleErrorOr file ifSuccessful =
-   either whoopsyDaisy ifSuccessful
- where
-   whoopsyDaisy =
-      putQuiet . (("Error in " <> file <> ", namely: ") <>)
+throwError :: FilePath -> String -> Action a
+throwError file problem = liftIO $ throwIO $ userError $
+   "Error in " <> file <> ", namely: " <> problem
 
 writeFile :: FilePath -> Text -> Action ()
 writeFile out html = liftIO $ do
@@ -160,11 +163,11 @@ writeFile out html = liftIO $ do
 
 readPostFromFile :: Bool -- ^ Whether this post is a draft.
                  -> FilePath -- ^ Path to the post (/including/ the postsDir).
-                 -> Action (Either Whoops Post)
+                 -> Action Post
 readPostFromFile isDraft filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
-    return $ do
+    either (throwError filepath) return $ do
       body <-
          first (MMark.parseErrorsPretty contents) $
          second (MMark.useExtension hyphensToDashes) $
@@ -180,7 +183,8 @@ readPostFromFile isDraft filepath = do
          synopsis <- metadata .: "synopsis"
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = (Text.pack . takeBaseName) filepath
-         return Post{ title
+         return Things.Post
+                    { title
                     , synopsis
                     , slug
                     , composed

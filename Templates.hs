@@ -10,9 +10,9 @@ import Lucid.Base ( relaxHtmlT )
 import Text.MMark ( render )
 import Network.URI
 
-import Post
+import Things
 import Site
-import Routes
+import qualified Targets
 
 
 post :: Post -> HtmlT SiteM ()
@@ -44,8 +44,8 @@ date theDate =
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
 postLink :: Post -> HtmlT SiteM ()
-postLink thePost@Post{ title, isDraft } = do
-   theUrl <- urlForPost thePost
+postLink thePost@Post{ title, isDraft, slug } = do
+   let theUrl = Targets.url (Targets.Post (Text.unpack slug))
    a_
        [ href_ ((Text.pack . show) theUrl) ]
        $ toHtml theTitle
@@ -60,7 +60,7 @@ page :: Maybe Text -- ^ This page's title.
 page thisTitleMb content = do
     baseURL <- get baseUrl
     titleOfSite <- get siteTitle
-    stylesheetUrls <- traverse urlForStylesheet =<< get styleSheets
+    stylesh <- get stylesheet
 
     doctype_
     html_ [ lang_ "en" ] $ do
@@ -78,19 +78,18 @@ page thisTitleMb content = do
             link_
                 [ rel_ "canonical"
                 , href_ ((Text.pack . show) baseURL) ]
-            (flip foldMap) stylesheetUrls $ \ssu ->
-              link_
+            link_
                 [ rel_ "stylesheet"
                 , type_ "text/css"
-                , href_ ((Text.pack . show) ssu) ]
+                , href_ (Text.pack stylesh) ]
         body_ $ do
             header_ $ do
                 div_
                     [ id_ "logo" ]
-                    $ link (toHtml titleOfSite) =<< homeUrl
+                    $ link (toHtml titleOfSite) $ Targets.url Targets.Home
                 nav_ $ do
-                    link "Recent" =<< homeUrl
-                    link "Archive" =<< archiveUrl
+                    link "Recent" $ Targets.url Targets.Home
+                    link "Archive" $ Targets.url Targets.Archive
             main_
                 content
             footer_ $ do
