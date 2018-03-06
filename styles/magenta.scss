@@ -4,6 +4,7 @@ $serif-fonts: Athelas, Marion, Baskerville, Garamond, Palatino, serif;
 $sans-serif-fonts: 'Avenir Next', 'Helvetica Neue', sans-serif;
 
 $magenta: #b725ad;
+$text-magenta: #783f75;
 $background-offwhite: #f8f8f8;
 $text-offwhite: #fcfcfc;
 $deepgray: #222;
@@ -68,6 +69,10 @@ main {
 p, dl {
     line-height: 130%;
     margin: 0.7rem 0;
+    a {
+        color: $text-magenta;
+        &:hover { text-decoration: underline; }
+    }
 }
 
 p img {
