@@ -3,3 +3,4 @@ copyright = 2018
 site_title = Mostly nonsense.
 base_url = http://localhost:8000
 source_url = file:///Users/alan/Documents/blog-shake
+stylesheet = /styles/magenta.css
