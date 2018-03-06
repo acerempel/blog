@@ -119,7 +119,7 @@ build options@Options
       , siteConfigFile
       } = do
 
-    context@Context{ getAllPostTargets } <-
+    context@Context{ getAllPostTargets, writeTarget } <-
       createContext options
 
     -- Specify our build targets.
@@ -138,15 +138,15 @@ build options@Options
 
     (buildDir </> Targets.file Targets.Archive) %> \_out -> Actions.archive context
 
-    (buildDir </> stylesDir </> "*.css") %> \out -> do
-        let src = dropDirectory1 out -<.> "scss"
+    (buildDir </> Targets.file (Targets.Stylesheet "*.css")) %> \out -> do
+        let src = stylesDir </> takeBaseName out -<.> "scss"
         need [src]
         scssOrError <- liftIO $
             bitraverse -- This is just massaging types.
                Sass.errorMessage
                (return . Text.pack)
             =<< Sass.compileFile src Sass.def
-        either (throwError out) (writeFile out) scssOrError
+        either (throwError out) (writeTarget (Targets.Stylesheet src)) scssOrError
 
     (buildDir </> imagesDir </> "*") %> \out -> do
         let src = dropDirectory1 out
@@ -155,11 +155,6 @@ build options@Options
 throwError :: FilePath -> String -> Action a
 throwError file problem = liftIO $ throwIO $ userError $
    "Error in " <> file <> ", namely: " <> problem
-
-writeFile :: FilePath -> Text -> Action ()
-writeFile out html = liftIO $ do
-    createDirectoryIfMissing True (takeDirectory out)
-    Text.writeFile out html
 
 readPostFromFile :: Bool -- ^ Whether this post is a draft.
                  -> FilePath -- ^ Path to the post (/including/ the postsDir).

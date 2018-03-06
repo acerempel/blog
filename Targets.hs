@@ -26,14 +26,18 @@ deriving instance Eq (This Things.Post)
 instance Hashable (This Things.Post) where
    hashWithSalt salt (Post slug) = hashWithSalt salt slug
    hash (Post slug) = hash slug
-   
+
 instance Which Things.Post where
    data This Things.Post = Post String
    file (Post s) = "posts" </> s <.> "html"
 
+instance Which Things.Stylesheet where
+   data This Things.Stylesheet = Stylesheet FilePath
+   file (Stylesheet ss) = "styles" </> ss -<.> "css"
+
 postSourceFile :: FilePath -> This Things.Post -> FilePath
 postSourceFile postsDir (Post slug) = postsDir </> slug <.> "md"
-   
+
 instance Which Things.Home where
    data This Things.Home = Home
    url Home = makeUrl ""

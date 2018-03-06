@@ -1,4 +1,4 @@
-module Things ( Home, Archive, Post(..) ) where
+module Things ( Home, Archive, Post(..), Stylesheet(..) ) where
 
 import Text.MMark ( MMark )
 import Data.Text ( Text )
@@ -6,7 +6,7 @@ import Data.Time.Calendar ( Day )
 
 
 data Home
-      
+
 data Archive
 
 data Post = Post
@@ -18,3 +18,5 @@ data Post = Post
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    }
+
+data Stylesheet = Stylesheet FilePath
