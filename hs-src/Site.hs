@@ -16,6 +16,9 @@ import qualified Text
 import Network.URI ( URI )
 import Numeric.Natural ( Natural )
 
+import qualified Targets
+import qualified Things
+
 type SiteT = ReaderT Configuration
 
 type SiteM = SiteT Identity
@@ -25,7 +28,7 @@ data Configuration = Configuration
    , baseUrl :: URI
    , author :: Text
    , copyrightYear :: Natural
-   , stylesheet :: FilePath
+   , stylesheet :: Targets.This Things.Stylesheet
    , sourceUrl :: URI
    , includeDrafts :: Bool }
 

@@ -20,7 +20,8 @@ import qualified Text.MMark.Extension as MMark
 import qualified Text.Sass as Sass
 
 import Actions
-import Targets
+import Targets ( Which, This )
+import qualified Targets
 import Things
 import Site hiding ( includeDrafts )
 import qualified Site
@@ -35,6 +36,7 @@ data Options = Options
    -- | Read this file for site configuration (see `getSiteConfig`).
    , siteConfigFile :: FilePath 
    , includeDrafts :: Bool }
+
 
 createContext :: Options -> Rules Context
 createContext Options
@@ -92,7 +94,7 @@ createContext Options
             , sourceUrl
             , copyrightYear
             , author
-            , stylesheet
+            , stylesheet = Targets.Stylesheet stylesheet
             , Site.includeDrafts }
 
     let writeTarget :: Which thing => This thing -> Text -> Action ()
@@ -109,6 +111,7 @@ createContext Options
                   , getStylesheets
                   , writeTarget }
 
+
 build :: Options -> Rules ()
 build options@Options
       { buildDir
@@ -119,17 +122,17 @@ build options@Options
       , siteConfigFile
       } = do
 
-    context@Context{ getAllPostTargets, writeTarget } <-
+    context@Context{ getAllPostTargets, writeTarget, getSiteConfig } <-
       createContext options
 
     -- Specify our build targets.
     action $ do
         posts  <- map Targets.file <$> getAllPostTargets postsDir
         drafts <- map Targets.file <$> getAllPostTargets draftsDir
-        styles <- getStylesheets context
+        style <- (Targets.file . stylesheet) <$> getSiteConfig
         images <- map (imagesDir </>) <$> getDirectoryContents imagesDir
         let pages = [Targets.file Targets.Home, Targets.file Targets.Archive]
-        need $ map (buildDir </>) (styles <> pages <> posts <> drafts <> images)
+        need $ map (buildDir </>) ([style] <> pages <> posts <> drafts <> images)
 
     let buildThus target recipe =
            (buildDir </> Targets.file target) %> recipe
@@ -155,9 +158,11 @@ build options@Options
         let src = dropDirectory1 out
         copyFile' src out
 
+
 throwError :: FilePath -> String -> Action a
 throwError file problem = liftIO $ throwIO $ userError $
    "Error in " <> file <> ", namely: " <> problem
+
 
 readPostFromFile :: Bool -- ^ Whether this post is a draft.
                  -> FilePath -- ^ Path to the post (/including/ the postsDir).

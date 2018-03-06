@@ -81,7 +81,7 @@ page thisTitleMb content = do
             link_
                 [ rel_ "stylesheet"
                 , type_ "text/css"
-                , href_ (Text.pack stylesh) ]
+                , href_ ((Text.pack . show) (Targets.url stylesh)) ]
         body_ $ do
             header_ $ do
                 div_
