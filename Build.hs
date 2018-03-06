@@ -131,16 +131,17 @@ build options@Options
         let pages = [Targets.file Targets.Home, Targets.file Targets.Archive]
         need $ map (buildDir </>) (styles <> pages <> posts <> drafts <> images)
 
-    (buildDir </> Targets.file (Targets.Post "*")) %> \out ->
+    let buildThus target recipe =
+           (buildDir </> Targets.file target) %> recipe
+
+    Targets.Post "*" `buildThus` \out ->
         Actions.post context (Targets.Post (takeBaseName out))
 
-    (buildDir </> Targets.file Targets.Home) %> \_out ->
-        Actions.home context
+    Targets.Home `buildThus` \_out -> Actions.home context
 
-    (buildDir </> Targets.file Targets.Archive) %> \_out ->
-        Actions.archive context
+    Targets.Archive `buildThus` \_out -> Actions.archive context
 
-    (buildDir </> Targets.file (Targets.Stylesheet "*.css")) %> \out -> do
+    Targets.Stylesheet "*.css" `buildThus` \out -> do
         let src = stylesDir </> takeBaseName out -<.> "scss"
         need [src]
         scssOrError <- liftIO $
