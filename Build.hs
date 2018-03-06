@@ -149,7 +149,7 @@ build options@Options
                Sass.errorMessage
                (return . Text.pack)
             =<< Sass.compileFile src Sass.def
-        either (throwError out) (writeTarget (Targets.Stylesheet src)) scssOrError
+        either (throwError out) (writeTarget (Targets.Stylesheet (takeBaseName out))) scssOrError
 
     (buildDir </> imagesDir </> "*") %> \out -> do
         let src = dropDirectory1 out
