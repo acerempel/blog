@@ -134,9 +134,11 @@ build options@Options
     (buildDir </> Targets.file (Targets.Post "*")) %> \out ->
         Actions.post context (Targets.Post (takeBaseName out))
 
-    (buildDir </> Targets.file Targets.Home) %> \_out -> Actions.home context
+    (buildDir </> Targets.file Targets.Home) %> \_out ->
+        Actions.home context
 
-    (buildDir </> Targets.file Targets.Archive) %> \_out -> Actions.archive context
+    (buildDir </> Targets.file Targets.Archive) %> \_out ->
+        Actions.archive context
 
     (buildDir </> Targets.file (Targets.Stylesheet "*.css")) %> \out -> do
         let src = stylesDir </> takeBaseName out -<.> "scss"
