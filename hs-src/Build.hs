@@ -130,7 +130,7 @@ build options@Options
         posts  <- map Targets.file <$> getAllPostTargets postsDir
         drafts <- map Targets.file <$> getAllPostTargets draftsDir
         style <- (Targets.file . stylesheet) <$> getSiteConfig
-        images <- map (imagesDir </>) <$> getDirectoryContents imagesDir
+        images <- map ("images" </>) <$> getDirectoryContents imagesDir
         let pages = [Targets.file Targets.Home, Targets.file Targets.Archive]
         need $ map (buildDir </>) ([style] <> pages <> posts <> drafts <> images)
 
@@ -154,8 +154,8 @@ build options@Options
             =<< Sass.compileFile src Sass.def
         either (throwError out) (writeTarget (Targets.Stylesheet (takeBaseName out))) scssOrError
 
-    (buildDir </> imagesDir </> "*") %> \out -> do
-        let src = dropDirectory1 out
+    (buildDir </> "images" </> "*") %> \out -> do
+        let src = imagesDir </> takeFileName out
         copyFile' src out
 
 
