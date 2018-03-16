@@ -1,30 +1,20 @@
 module Build ( Options(..), build )where
 
-import Prelude hiding ( writeFile )
 import Introit
-import Control.Exception ( throwIO )
 import Data.Bitraversable
 import Data.List ( sortOn )
 import qualified Text
 
-import Data.Time.Format ( parseTimeM, defaultTimeLocale )
-import Data.Yaml ( (.:) )
-import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.Config
 import Development.Shake.FilePath
-import Network.URI ( parseAbsoluteURI )
-import System.Directory ( createDirectoryIfMissing )
-import qualified Text.MMark as MMark
-import qualified Text.MMark.Extension as MMark
 import qualified Text.Sass as Sass
 
 import Actions
-import Targets ( Which, This )
-import qualified Targets
-import Things
-import Site hiding ( includeDrafts )
-import qualified Site
+import Post
+import Templates ( liftAction, getThisURL )
+import qualified Templates
+import Utilities
 
 
 data Options = Options
@@ -33,7 +23,6 @@ data Options = Options
    , draftsDir :: FilePath
    , stylesDir :: FilePath
    , imagesDir :: FilePath
-   -- | Read this file for site configuration (see `getSiteConfig`).
    , siteConfigFile :: FilePath 
    , includeDrafts :: Bool }
 
@@ -42,7 +31,6 @@ createContext :: Options -> Rules Context
 createContext Options
          { buildDir
          , postsDir
-         , draftsDir
          , stylesDir
          , imagesDir
          , siteConfigFile
@@ -50,69 +38,22 @@ createContext Options
 
     usingConfigFile siteConfigFile
 
-    getPost <- newCache (readPostFromFile False . Targets.postSourceFile postsDir)
-    getDraft <- newCache (readPostFromFile True . Targets.postSourceFile draftsDir)
+    getPost <- newCache readPostFromFile
 
-    getAllPostTargets <- newCache $ \dir ->
-        map (Targets.Post . takeBaseName) <$> getDirectoryFiles dir ["*.md"]
+    getAllMarkdownSourceFiles <- newCache $ \dir ->
+        map (dir </>) <$> getDirectoryFiles dir ["*.md"]
 
-    getAllPosts <- newCache $ \includeDrafts -> do
-        posts <-
-              traverse getPost =<< getAllPostTargets postsDir
-        drafts <-
-           if includeDrafts then
-              traverse getDraft =<< getAllPostTargets draftsDir
-           else return []
+    getAllPosts <- newCache $ \() -> do
+        posts <- traverse getPost =<< getAllMarkdownSourceFiles postsDir
         let sortByDate = sortOn composed
-        return $ sortByDate (posts <> drafts)
+        return $ sortByDate posts
 
-    getStylesheets <- fmap ($ ()) $ newCache $ \() ->
-        map ((stylesDir </>) . (-<.> "css"))
-        <$> getDirectoryFiles stylesDir ["*.scss"]
-
-    -- Get the site configuration.
-    getSiteConfig <- fmap ($ ()) $ newCache $ \() -> do
-         -- These are decidedly failable patterns --- how useful is the
-         -- error message if they do fail?
-         Just siteTitle <- fmap Text.pack
-            <$> getConfig "site_title"
-         Just baseUrl   <- (parseAbsoluteURI =<<)
-            <$> getConfig "base_url"
-         Just sourceUrl <- (parseAbsoluteURI =<<)
-            <$> getConfig "source_url"
-         copyrightYear  <- maybe 2018 read
-            <$> getConfig "copyright"
-         author         <- maybe "Anonymous" Text.pack
-            <$> getConfig "author"
-         includeDrafts  <- maybe False read
-            <$> getConfig "include_drafts"
-         stylesheet     <- fromMaybe "main.css"
-            <$> getConfig "stylesheet"
-         return Site.Configuration
-            { siteTitle
-            , baseUrl
-            , sourceUrl
-            , copyrightYear
-            , author
-            , stylesheet = Targets.Stylesheet stylesheet
-            , Site.includeDrafts }
-
-    let writeTarget :: Which thing => This thing -> Text -> Action ()
-        writeTarget thisOne text = liftIO $ do
-            let targetFile = buildDir </> Targets.file thisOne
-            createDirectoryIfMissing True (takeDirectory targetFile)
-            Text.writeFile targetFile text 
-
-    return Context{ getAllPostTargets
+    return Context{ getAllMarkdownSourceFiles
                   , getAllPosts
-                  , getPost
-                  , getDraft
-                  , getSiteConfig
-                  , getStylesheets
-                  , writeTarget }
+                  , getPost }
 
 
-build :: Options -> Rules ()
+build :: Options -> [String] -> Rules ()
 build options@Options
       { buildDir
       , postsDir
@@ -120,90 +61,57 @@ build options@Options
       , stylesDir
       , imagesDir
       , siteConfigFile
-      } = do
+      } targets = do
 
-    context@Context{ getAllPostTargets, writeTarget, getSiteConfig } <-
+    context@Context{ getAllMarkdownSourceFiles
+                   , getAllPosts
+                   , getPost } <-
       createContext options
 
+    want targets
+
     -- Specify our build targets.
-    action $ do
-        posts  <- map Targets.file <$> getAllPostTargets postsDir
-        drafts <- map Targets.file <$> getAllPostTargets draftsDir
-        style <- (Targets.file . stylesheet) <$> getSiteConfig
-        images <- map ("images" </>) <$> getDirectoryContents imagesDir
-        let pages = [Targets.file Targets.Home, Targets.file Targets.Archive]
-        need $ map (buildDir </>) ([style] <> pages <> posts <> drafts <> images)
+    phony "build" $ do
+        let pages = ["/", "/archive"]
+        posts  <- map (Text.pack . ("/" <>) . dropExtension) <$>
+            getAllMarkdownSourceFiles postsDir
+        images <- map (Text.pack . ("/images" </>)) <$>
+            getDirectoryContents imagesDir
+        let styles = ["/styles/magenta.css"]
+        let allTargets = pages <> posts <> images <> styles
+        need $ map (urlToFile buildDir) allTargets
 
-    let buildThus target recipe =
-           (buildDir </> Targets.file target) %> recipe
+    -- phony "deploy" $ do
+    --    (StdOut status) <- cmd "git status --porcelain" [CurDir buildDir]
+    --    if not (null status) then do
+    --       cmd_ "git add ."
+    --       cmd_ "git commit"
+    --       cmd_ "git push"
+    --    else
+    --       putQuiet "Nothing new to deploy!"
 
-    Targets.Post "*" `buildThus` \out ->
-        Actions.post context (Targets.Post (takeBaseName out))
+    templateRule buildDir "/posts/*" $ do
+        thisOne <- getThisURL
+        thePost <- liftAction (getPost (tail (Text.unpack thisOne) <.> "md"))
+        Templates.page (Just (title thePost)) (Templates.post thePost)
 
-    Targets.Home `buildThus` \_out -> Actions.home context
+    templateRule buildDir "/" $ do
+       allPosts <- liftAction (getAllPosts ())
+       Templates.page Nothing (Templates.home allPosts)
 
-    Targets.Archive `buildThus` \_out -> Actions.archive context
+    templateRule buildDir "/archive" $ do
+       allPosts <- liftAction (getAllPosts ())
+       Templates.page (Just "Archive") (Templates.archive allPosts)
 
-    Targets.Stylesheet "*.css" `buildThus` \out -> do
-        let src = stylesDir </> takeBaseName out -<.> "scss"
+    urlRule buildDir "/styles/*.css" $ \url file -> do
+        let src = dropDirectory1 $ file -<.> "scss"
         need [src]
-        scssOrError <- liftIO $
-            bitraverse -- This is just massaging types.
-               Sass.errorMessage
-               (return . Text.pack)
-            =<< Sass.compileFile src Sass.def
-        either (throwError out) (writeTarget (Targets.Stylesheet (takeBaseName out))) scssOrError
+        scssOrError <- liftIO $ Sass.compileFile src Sass.def
+        either
+          (throwFileError file <=< (liftIO . Sass.errorMessage))
+          (liftIO . writeFile file)
+          scssOrError
 
-    (buildDir </> "images" </> "*") %> \out -> do
-        let src = imagesDir </> takeFileName out
-        copyFile' src out
-
-
-throwError :: FilePath -> String -> Action a
-throwError file problem = liftIO $ throwIO $ userError $
-   "Error in " <> file <> ", namely: " <> problem
-
-
-readPostFromFile :: Bool -- ^ Whether this post is a draft.
-                 -> FilePath -- ^ Path to the post (/including/ the postsDir).
-                 -> Action Post
-readPostFromFile isDraft filepath = do
-    need [filepath]
-    contents <- liftIO $ Text.readFile filepath
-    either (throwError filepath) return $ do
-      body <-
-         first (MMark.parseErrorsPretty contents) $
-         second (MMark.useExtension hyphensToDashes) $
-         MMark.parse filepath contents
-      yaml <- maybe (Left noMetadataError) Right $
-         MMark.projectYaml body
-      withMetadata body yaml
- where
-   withMetadata content = Yaml.parseEither $
-      Yaml.withObject "metadata" $ \metadata -> do
-         title    <- metadata .: "title"
-         date     <- metadata .: "date"
-         synopsis <- metadata .: "synopsis"
-         composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = (Text.pack . takeBaseName) filepath
-         return Things.Post
-                    { title
-                    , synopsis
-                    , slug
-                    , composed
-                    -- TODO: Distinguish these --- maybe.
-                    , published = composed
-                    , isDraft
-                    , content }
-
-   hyphensToDashes :: MMark.Extension
-   hyphensToDashes = MMark.inlineTrans $
-      MMark.mapInlineRecursively $
-      MMark.mapInlineText $
-      Text.replace "--" "–" .
-      Text.replace "---" "—"
-
-   noMetadataError =
-      "Couldn't find a metadata block in file " <> filepath
-
-   dateFormat = "%e %B %Y"
+    urlRule buildDir "/images/*.jpg" $ \url file -> do
+        let src = imagesDir </> takeFileName file
+        copyFile' src file

@@ -1,45 +1,59 @@
-{-# LANGUAGE RankNTypes #-}
-module Actions ( Context(..), post, home, archive ) where
-   
+module Actions ( Context(..)
+               , templateRule, urlRule
+               , urlToFile, fileToUrl
+               ) where
+
 import Introit
 
+import Data.ByteString.Builder ( hPutBuilder )
 import Development.Shake
+import Development.Shake.FilePath
+import System.Directory ( createDirectoryIfMissing )
+import qualified System.IO as IO
+import qualified Text
 
-import qualified Render
-import Things
-import Site
-import Targets
+import Templates
+import Post
 
 
 data Context = Context
-   { getAllPostTargets :: FilePath -- ^ Directory in which to find post sources
-                       -> Action [This Post]
-   , getAllPosts :: Bool -- ^ Include drafts?
-                 -> Action [Post]
-   , getPost :: This Post -> Action Post
-   , getDraft :: This Post -> Action Post
-   , getSiteConfig :: Action Configuration
-   , getStylesheets :: Action [FilePath]
-   , writeTarget :: forall thing. Which thing => This thing -> Text -> Action ()
-   }
+   { getAllMarkdownSourceFiles :: FilePath -- ^ Directory in which to find post sources
+                               -> Action [FilePath]
+   , getAllPosts :: () -> Action [Post]
+   , getPost :: FilePath -> Action Post }
 
-post :: Context -> This Post -> Action ()
-post Context{ getPost, getSiteConfig, writeTarget } thisOne = do
-   thePost <- getPost thisOne
-   config <- getSiteConfig
-   let html = Render.post thePost `withConfig` config
-   writeTarget thisOne html
+templateRule :: FilePath -> URLPattern -> Template () -> Rules ()
+templateRule buildDir pattern template =
+   urlRule buildDir pattern $ \url targetFile -> do
+      putLoud $ "templateRule " <> show pattern <> " called for url " <> show url
+      htmlBytes <- render template url
+      putLoud $ "Writing url " <> Text.unpack url <> " to file " <> targetFile
+      liftIO $ createDirectoryIfMissing True (takeDirectory targetFile)
+      liftIO $ IO.withFile targetFile IO.WriteMode $ \targetHandle ->
+         hPutBuilder targetHandle htmlBytes
 
-home :: Context -> Action ()
-home Context{ getAllPosts, getSiteConfig, writeTarget } = do
-   config <- getSiteConfig
-   allPosts <- getAllPosts (includeDrafts config)
-   let html = Render.home allPosts `withConfig` config
-   writeTarget Targets.Home html
+urlRule :: FilePath -> URLPattern -> (URL -> FilePath -> Action ()) -> Rules ()
+urlRule buildDir pattern action = do
+   let targetFilePattern = urlToFile buildDir pattern
+   targetFilePattern %> \targetFile -> do
+      let targetURL = fileToUrl buildDir targetFile
+      action targetURL targetFile
 
-archive :: Context -> Action ()
-archive Context{ getAllPosts, getSiteConfig, writeTarget } = do
-   config <- getSiteConfig
-   allPosts <- getAllPosts (includeDrafts config)
-   let html = Render.archive allPosts `withConfig` config
-   writeTarget Targets.Archive html
+urlToTargetFile :: FilePath  -- ^ Build directory
+          -> URL -> FilePath
+urlToTargetFile buildDir url =
+   let base = tail (Text.unpack url) -- Drop the leading path separator.
+   in (if hasExtension base
+         then id
+         else (</> "index.html")) -- For "clean urls".
+      $ buildDir </> base
+
+fileToUrl :: FilePath -- ^ Build directory
+          -> FilePath -> URL
+fileToUrl buildDir path =
+   let base = fromMaybe (error "Path does not begin with build directory!") $
+               stripPrefix buildDir path
+   in Text.pack $
+      if takeFileName base == "index.html"
+         then takeDirectory base
+         else base

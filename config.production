@@ -3,4 +3,4 @@ copyright = 2018
 site_title = Alan Rempel
 base_url = https://parsonyorick.github.io/
 source_url = https://github.com/parsonyorick/blog
-stylesheet = magenta.css
+browsersync = false
