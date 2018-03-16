@@ -79,7 +79,7 @@ build options@Options
             getDirectoryContents imagesDir
         let styles = ["/styles/magenta.css"]
         let allTargets = pages <> posts <> images <> styles
-        need $ map (urlToFile buildDir) allTargets
+        need $ map (urlToTargetFile buildDir) allTargets
 
     -- phony "deploy" $ do
     --    (StdOut status) <- cmd "git status --porcelain" [CurDir buildDir]

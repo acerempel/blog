@@ -1,6 +1,6 @@
 module Actions ( Context(..)
                , templateRule, urlRule
-               , urlToFile, fileToUrl
+               , urlToTargetFile, targetFileToUrl
                ) where
 
 import Introit
@@ -24,9 +24,13 @@ data Context = Context
 
 templateRule :: FilePath -> URLPattern -> Template () -> Rules ()
 templateRule buildDir pattern template =
-   urlRule buildDir pattern $ \url targetFile -> do
+   urlRule buildDir pattern $ \url apparentTargetFile -> do
       putLoud $ "templateRule " <> show pattern <> " called for url " <> show url
       htmlBytes <- render template url
+      let targetFile =
+             if hasExtension apparentTargetFile
+                then apparentTargetFile
+                else apparentTargetFile </> "index.html" -- For "clean urls".
       putLoud $ "Writing url " <> Text.unpack url <> " to file " <> targetFile
       liftIO $ createDirectoryIfMissing True (takeDirectory targetFile)
       liftIO $ IO.withFile targetFile IO.WriteMode $ \targetHandle ->
@@ -34,23 +38,20 @@ templateRule buildDir pattern template =
 
 urlRule :: FilePath -> URLPattern -> (URL -> FilePath -> Action ()) -> Rules ()
 urlRule buildDir pattern action = do
-   let targetFilePattern = urlToFile buildDir pattern
+   let targetFilePattern = urlToTargetFile buildDir pattern
    targetFilePattern %> \targetFile -> do
-      let targetURL = fileToUrl buildDir targetFile
+      let targetURL = targetFileToUrl buildDir targetFile
       action targetURL targetFile
 
-urlToTargetFile :: FilePath  -- ^ Build directory
-          -> URL -> FilePath
+urlToTargetFile :: FilePath -- ^ Build directory
+                -> URL -> FilePath
 urlToTargetFile buildDir url =
    let base = tail (Text.unpack url) -- Drop the leading path separator.
-   in (if hasExtension base
-         then id
-         else (</> "index.html")) -- For "clean urls".
-      $ buildDir </> base
+   in buildDir </> base
 
-fileToUrl :: FilePath -- ^ Build directory
-          -> FilePath -> URL
-fileToUrl buildDir path =
+targetFileToUrl :: FilePath -- ^ Build directory
+                -> FilePath -> URL
+targetFileToUrl buildDir path =
    let base = fromMaybe (error "Path does not begin with build directory!") $
                stripPrefix buildDir path
    in Text.pack $
