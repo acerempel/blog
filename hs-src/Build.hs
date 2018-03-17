@@ -81,14 +81,14 @@ build options@Options
         let allTargets = pages <> posts <> images <> styles
         need $ map (urlToTargetFile buildDir) allTargets
 
-    -- phony "deploy" $ do
-    --    (StdOut status) <- cmd "git status --porcelain" [CurDir buildDir]
-    --    if not (null status) then do
-    --       cmd_ "git add ."
-    --       cmd_ "git commit"
-    --       cmd_ "git push"
-    --    else
-    --       putQuiet "Nothing new to deploy!"
+    phony "deploy" $ do
+       (Stdout status) <- command [Cwd buildDir] "git" ["status", "--porcelain"]
+       if length (lines status) > 0 then do
+          command_ [Cwd buildDir] "git" ["add", "."]
+          command_ [Cwd buildDir] "git" ["commit", "-a"]
+          command_ [Cwd buildDir] "git" ["push"]
+       else
+          putQuiet "Nothing new to deploy!"
 
     templateRule buildDir "/posts/*" $ do
         thisOne <- getThisURL
