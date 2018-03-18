@@ -25,6 +25,9 @@ executable blog
                      , Text
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
+  other-extensions:    GADTs, ViewPatterns
+                     , DeriveGeneric, DeriveAnyClass
+                     , GeneralizedNewtypeDeriving
   ghc-options:         -threaded -rtsopts "-with-rtsopts=-I0 -qg -qb"
   build-depends:       base >= 4.8 && < 5
                      , bytestring
