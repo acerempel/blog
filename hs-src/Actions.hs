@@ -3,8 +3,10 @@ module Actions ( templateRule, urlRule) where
 import Introit
 
 import Data.ByteString.Builder ( hPutBuilder )
+import Data.Functor.Identity ( runIdentity )
 import Development.Shake
 import Development.Shake.FilePath
+import qualified Lucid.Base as Lucid
 import System.Directory ( createDirectoryIfMissing )
 import qualified System.IO as IO
 
@@ -13,12 +15,12 @@ import Routes ( Route )
 import qualified Routes
 
 
-templateRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Template ()) -> Rules ()
+templateRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Action (Html ())) -> Rules ()
 templateRule buildDir routeBuilder template = do
    urlRule buildDir routeBuilder $ \route -> do
       let url = Routes.url route
           targetFile = buildDir </> Routes.targetFile route
-      htmlBytes <- render (template route) route
+      htmlBytes <- (runIdentity . Lucid.execHtmlT) <$> template route
       putLoud $ "Writing url " <> show url <> " to file " <> targetFile
       liftIO $ createDirectoryIfMissing True (takeDirectory targetFile)
       liftIO $ IO.withFile targetFile IO.WriteMode $ \targetHandle ->

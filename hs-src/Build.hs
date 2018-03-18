@@ -10,7 +10,6 @@ import qualified Text.Sass as Sass
 
 import Actions
 import Post
-import Templates ( liftAction )
 import qualified Templates
 import Routes ( SomeRoute(..) )
 import qualified Routes as R
@@ -70,15 +69,15 @@ build Options
 
     templateRule buildDir (\slug -> R.Post (postsDir </> slug <.> "md")) $
       \thisOne -> do
-        thePost <- liftAction (getPost thisOne)
+        thePost <- getPost thisOne
         Templates.page (Just (title thePost)) (Templates.post thePost)
 
     templateRule buildDir (const R.Home) $ \_homeRoute -> do
-       allPosts <- liftAction (getAllPosts ())
+       allPosts <- getAllPosts ()
        Templates.page Nothing (Templates.home allPosts)
 
     templateRule buildDir (const R.Archive) $ \_archiveRoute -> do
-       allPosts <- liftAction (getAllPosts ())
+       allPosts <- getAllPosts ()
        Templates.page (Just "Archive") (Templates.archive allPosts)
 
     urlRule buildDir (R.Stylesheet . (stylesDir </>)) $ \route -> do

@@ -36,7 +36,6 @@ executable blog
                      , hsass >= 0.4.1
                      , lucid >= 2.9.7 && < 3.0
                      , mmark >= 0.0.4.2 && < 0.1
-                     , mtl
                      , shake >= 0.16 && < 0.17
                      , time >= 1.5
                      , text

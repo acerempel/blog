@@ -1,24 +1,23 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Templates ( Template, render
-                 , liftAction, getThisRoute, getSiteConfig
+module Templates ( Template, Html
+                 , getSiteConfig
                  , home, archive, post
                  , page ) where
 
 import Introit
 import qualified Text
 
-import Control.Monad.Reader
-import Data.ByteString.Builder ( Builder )
+import qualified Control.Monad.Trans.Class as Trans
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Development.Shake ( Action )
 import Development.Shake.Config ( getConfig )
 import Lucid
-import Lucid.Base ( relaxHtmlT )
+import qualified Lucid.Base as Lucid
 import qualified Text.MMark as MMark
 
 import Post
-import Routes ( Route(..), SomeRoute(..) )
+import Routes ( Route(..) )
 import qualified Routes
 import Utilities
 
@@ -26,22 +25,11 @@ import Utilities
 type Template a = HtmlT TemplateM a
 
 newtype TemplateM a =
-   TemplateM { runTemplateM :: ReaderT SomeRoute Action a }
+   TemplateM { runTemplateM :: Action a }
    deriving ( Functor, Applicative, Monad )
 
-render :: Route route => Template a -> route -> Action Builder
-render template thisroute =
-   let action = runTemplateM $ execHtmlT template
-   in runReaderT action (Route thisroute)
-
-getThisRoute :: Template SomeRoute
-getThisRoute = lift $ TemplateM ask
-
-liftAction :: Action a -> Template a
-liftAction = lift . TemplateM . lift
-
 getSiteConfig :: String -> Template Text
-getSiteConfig key = liftAction $
+getSiteConfig key = Trans.lift $ TemplateM $
       maybe
          (throwError ("No such key in config file: " <> key))
          (return . Text.pack)
@@ -64,7 +52,7 @@ post thePost@Post
     article_ $ do
         div_ [ class_ "info" ] $ date composed
         h1_ $ postLink thePost
-        relaxHtmlT $ MMark.render content
+        Lucid.relaxHtmlT $ MMark.render content
 
 
 archiveEntry :: Post -> Template ()
@@ -96,8 +84,8 @@ postLink Post{ title, isDraft, slug } =
 
 page :: Maybe Text -- ^ This page's title.
      -> Template () -- ^ This page's content.
-     -> Template ()
-page thisTitleMb content = do
+     -> Action (Html ())
+page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
     baseURL <- getSiteConfig "base_url"
     titleOfSite <- getSiteConfig "site_title"
     useBrowserSync <- getSiteConfig "browsersync"
