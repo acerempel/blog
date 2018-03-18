@@ -1,4 +1,4 @@
-module Post ( Post(..), readPostFromFile ) where
+module Post ( Post(..), readPost ) where
 
 import Introit
 import qualified Text
@@ -14,9 +14,12 @@ import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
 
+import qualified Routes
+
 
 data Post = Post
    { slug :: Text -- ^ Identifier to use for the slug in the url.
+                  -- TODO: Should this really be the 'Routes.Post'?
    , title :: Text -- ^ Title.
    , content :: MMark -- ^ The post body.
    , synopsis :: Text -- ^ A little description or summary or teaser.
@@ -25,10 +28,10 @@ data Post = Post
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    }
 
-
-readPostFromFile :: FilePath -- ^ Path to the post (/including/ the postsDir).
-                 -> Action Post
-readPostFromFile filepath = do
+readPost :: Routes.Post
+         -> Action Post
+readPost route = do
+    let filepath = Routes.sourceFile route
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     either (throwFileError filepath) return $ do
@@ -36,11 +39,11 @@ readPostFromFile filepath = do
          first (MMark.parseErrorsPretty contents) $
          second (MMark.useExtension hyphensToDashes) $
          MMark.parse filepath contents
-      yaml <- maybe (Left noMetadataError) Right $
+      yaml <- maybe (Left (noMetadataError filepath)) Right $
          MMark.projectYaml body
-      withMetadata body yaml
+      withMetadata filepath body yaml
  where
-   withMetadata content = Yaml.parseEither $
+   withMetadata filepath content = Yaml.parseEither $
       Yaml.withObject "metadata" $ \metadata -> do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
@@ -64,7 +67,7 @@ readPostFromFile filepath = do
       Text.replace "--" "–" .
       Text.replace "---" "—"
 
-   noMetadataError =
+   noMetadataError filepath =
       "Couldn't find a metadata block in file " <> filepath
 
    dateFormat = "%e %B %Y"

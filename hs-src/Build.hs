@@ -12,8 +12,10 @@ import qualified Text.Sass as Sass
 
 import Actions
 import Post
-import Templates ( liftAction, getThisURL )
+import Templates ( liftAction, getThisRoute )
 import qualified Templates
+import Routes ( SomeRoute(..) )
+import qualified Routes as R
 import Utilities
 
 
@@ -38,17 +40,17 @@ createContext Options
 
     usingConfigFile siteConfigFile
 
-    getPost <- newCache readPostFromFile
+    getPost <- newCache readPost
 
-    getAllMarkdownSourceFiles <- newCache $ \dir ->
-        map (dir </>) <$> getDirectoryFiles dir ["*.md"]
+    getAllPostRoutes <- newCache $ \dir ->
+        map (R.Post . (dir </>)) <$> getDirectoryFiles dir ["*.md"]
 
     getAllPosts <- newCache $ \() -> do
-        posts <- traverse getPost =<< getAllMarkdownSourceFiles postsDir
+        posts <- traverse getPost =<< getAllPostRoutes postsDir
         let sortByDate = sortOn composed
         return $ sortByDate posts
 
-    return Context{ getAllMarkdownSourceFiles
+    return Context{ getAllPostRoutes
                   , getAllPosts
                   , getPost }
 
@@ -63,7 +65,7 @@ build options@Options
       , siteConfigFile
       } targets = do
 
-    context@Context{ getAllMarkdownSourceFiles
+    context@Context{ getAllPostRoutes
                    , getAllPosts
                    , getPost } <-
       createContext options
@@ -72,14 +74,13 @@ build options@Options
 
     -- Specify our build targets.
     phony "build" $ do
-        let pages = ["/", "/archive"]
-        posts  <- map (Text.pack . ("/" <>) . dropExtension) <$>
-            getAllMarkdownSourceFiles postsDir
-        images <- map (Text.pack . ("/images" </>)) <$>
+        let pages = [Route R.Home, Route R.Archive]
+        posts  <- map Route <$> getAllPostRoutes postsDir
+        images <- map (Route . R.Image . (imagesDir </>)) <$>
             getDirectoryContents imagesDir
-        let styles = ["/styles/magenta.css"]
+        let styles = [Route (R.Stylesheet (stylesDir </> "magenta.scss"))]
         let allTargets = pages <> posts <> images <> styles
-        need $ map (urlToTargetFile buildDir) allTargets
+        need $ map ((buildDir </>) . R.targetFile) allTargets
 
     phony "deploy" $ do
        (Stdout status) <- command [Cwd buildDir] "git" ["status", "--porcelain"]
@@ -90,21 +91,21 @@ build options@Options
        else
           putQuiet "Nothing new to deploy!"
 
-    templateRule buildDir "/posts/*" $ do
-        thisOne <- getThisURL
-        thePost <- liftAction (getPost (tail (Text.unpack thisOne) <.> "md"))
+    templateRule buildDir (R.Post . (postsDir </>) . (<.> "md")) $ \thisOne -> do
+        thePost <- liftAction (getPost thisOne)
         Templates.page (Just (title thePost)) (Templates.post thePost)
 
-    templateRule buildDir "/" $ do
+    templateRule buildDir (const R.Home) $ \_homeRoute -> do
        allPosts <- liftAction (getAllPosts ())
        Templates.page Nothing (Templates.home allPosts)
 
-    templateRule buildDir "/archive" $ do
+    templateRule buildDir (const R.Archive) $ \_archiveRoute -> do
        allPosts <- liftAction (getAllPosts ())
        Templates.page (Just "Archive") (Templates.archive allPosts)
 
-    urlRule buildDir "/styles/*.css" $ \url file -> do
-        let src = dropDirectory1 $ file -<.> "scss"
+    urlRule buildDir (R.Stylesheet . (stylesDir </>)) $ \route -> do
+        let src = R.sourceFile route
+            file = buildDir </> R.targetFile route
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
         either
@@ -112,6 +113,7 @@ build options@Options
           (liftIO . writeFile file)
           scssOrError
 
-    urlRule buildDir "/images/*.jpg" $ \url file -> do
-        let src = imagesDir </> takeFileName file
+    urlRule buildDir (R.Image . (imagesDir </>)) $ \route -> do
+        let src = R.sourceFile route
+            file = buildDir </> R.targetFile route
         copyFile' src file

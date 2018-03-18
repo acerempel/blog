@@ -1,7 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Templates ( URL, URLPattern
-                 , Template, render
-                 , liftAction, getThisURL, getSiteConfig
+module Templates ( Template, render
+                 , liftAction, getThisRoute, getSiteConfig
                  , home, archive, post
                  , page ) where
 
@@ -19,25 +18,24 @@ import Lucid.Base ( relaxHtmlT )
 import qualified Text.MMark as MMark
 
 import Post
+import Routes ( Route(..), SomeRoute(..) )
+import qualified Routes
 import Utilities
 
-
-type URL = Text
-type URLPattern = URL
 
 type Template a = HtmlT TemplateM a
 
 newtype TemplateM a =
-   TemplateM { runTemplateM :: ReaderT URL Action a }
+   TemplateM { runTemplateM :: ReaderT SomeRoute Action a }
    deriving ( Functor, Applicative, Monad )
 
-render :: Template a -> URL -> Action Builder
-render template thisURL =
+render :: Route route => Template a -> route -> Action Builder
+render template thisroute =
    let action = runTemplateM $ execHtmlT template
-   in runReaderT action thisURL
+   in runReaderT action (Route thisroute)
 
-getThisURL :: Template URL
-getThisURL = lift $ TemplateM ask
+getThisRoute :: Template SomeRoute
+getThisRoute = lift $ TemplateM ask
 
 liftAction :: Action a -> Template a
 liftAction = lift . TemplateM . lift
@@ -128,10 +126,10 @@ page thisTitleMb content = do
             header_ $ do
                 div_
                     [ id_ "logo" ] $
-                    link (toHtml titleOfSite) "/"
+                    link (toHtml titleOfSite) Routes.Home
                 nav_ $ do
-                    link "Recent" "/"
-                    link "Archive" "/archive"
+                    link "Recent" Routes.Home
+                    link "Archive" Routes.Archive
             main_
                 content
             footer_ $ do
@@ -149,8 +147,7 @@ page thisTitleMb content = do
             , "//]]>"
             ]
 
-link :: Template () -> URL -> Template ()
-link linkText url =
-   a_
-      [ href_ url ]
+link :: Route route => Template () -> route -> Template ()
+link linkText route =
+   a_ [ href_ (url route) ]
       linkText
