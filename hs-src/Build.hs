@@ -1,9 +1,7 @@
 module Build ( Options(..), build )where
 
 import Introit
-import Data.Bitraversable
 import Data.List ( sortOn )
-import qualified Text
 
 import Development.Shake
 import Development.Shake.Config
@@ -12,7 +10,7 @@ import qualified Text.Sass as Sass
 
 import Actions
 import Post
-import Templates ( liftAction, getThisRoute )
+import Templates ( liftAction )
 import qualified Templates
 import Routes ( SomeRoute(..) )
 import qualified Routes as R
@@ -29,14 +27,14 @@ data Options = Options
    , includeDrafts :: Bool }
 
 
-createContext :: Options -> Rules Context
-createContext Options
-         { buildDir
-         , postsDir
-         , stylesDir
-         , imagesDir
-         , siteConfigFile
-         } = do
+build :: Options -> [String] -> Rules ()
+build Options
+      { buildDir
+      , postsDir
+      , stylesDir
+      , imagesDir
+      , siteConfigFile
+      } targets = do
 
     usingConfigFile siteConfigFile
 
@@ -47,28 +45,7 @@ createContext Options
 
     getAllPosts <- newCache $ \() -> do
         posts <- traverse getPost =<< getAllPostRoutes postsDir
-        let sortByDate = sortOn composed
-        return $ sortByDate posts
-
-    return Context{ getAllPostRoutes
-                  , getAllPosts
-                  , getPost }
-
-
-build :: Options -> [String] -> Rules ()
-build options@Options
-      { buildDir
-      , postsDir
-      , draftsDir
-      , stylesDir
-      , imagesDir
-      , siteConfigFile
-      } targets = do
-
-    context@Context{ getAllPostRoutes
-                   , getAllPosts
-                   , getPost } <-
-      createContext options
+        return $ sortOn composed posts
 
     want targets
 
@@ -91,7 +68,8 @@ build options@Options
        else
           putQuiet "Nothing new to deploy!"
 
-    templateRule buildDir (R.Post . (postsDir </>) . (<.> "md")) $ \thisOne -> do
+    templateRule buildDir (\slug -> R.Post (postsDir </> slug <.> "md")) $
+      \thisOne -> do
         thePost <- liftAction (getPost thisOne)
         Templates.page (Just (title thePost)) (Templates.post thePost)
 

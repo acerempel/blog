@@ -1,6 +1,4 @@
-module Actions ( Context(..)
-               , templateRule, urlRule
-               ) where
+module Actions ( templateRule, urlRule) where
 
 import Introit
 
@@ -10,16 +8,10 @@ import Development.Shake.FilePath
 import System.Directory ( createDirectoryIfMissing )
 import qualified System.IO as IO
 
-import Post
 import Templates
 import Routes ( Route )
 import qualified Routes
 
-
-data Context = Context
-   { getAllPostRoutes :: FilePath -> Action [Routes.Post]
-   , getAllPosts :: () -> Action [Post]
-   , getPost :: Routes.Post -> Action Post }
 
 templateRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Template ()) -> Rules ()
 templateRule buildDir routeBuilder template = do
