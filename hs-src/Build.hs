@@ -67,7 +67,8 @@ build Options
        else
           putQuiet "Nothing new to deploy!"
 
-    templateRule buildDir (\slug -> R.Post (postsDir </> slug <.> "md")) $
+    templateRule buildDir
+      (\slug -> R.Post (postsDir </> slug <.> "md")) $
       \thisOne -> do
         thePost <- getPost thisOne
         Templates.page (Just (title thePost)) (Templates.post thePost)
@@ -80,7 +81,9 @@ build Options
        allPosts <- getAllPosts ()
        Templates.page (Just "Archive") (Templates.archive allPosts)
 
-    urlRule buildDir (R.Stylesheet . (stylesDir </>)) $ \route -> do
+    urlRule buildDir
+      (R.Stylesheet . (\basename -> stylesDir </> basename <.> "css")) $
+      \route -> do
         let src = R.sourceFile route
             file = buildDir </> R.targetFile route
         need [src]

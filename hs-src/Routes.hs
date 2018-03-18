@@ -62,7 +62,7 @@ instance Route Stylesheet where
    targetFile (Stylesheet (takeFileName -> filename)) =
       "styles" </> filename -<.> "css"
    sourceFile (Stylesheet source) =
-      source
+      source -<.> "scss"
 
 instance Route Image where
    url (Image (takeFileName -> filename)) =
