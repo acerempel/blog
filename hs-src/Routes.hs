@@ -37,6 +37,8 @@ data Image = Image
 
 class Route route where
    url :: route -> Text
+   url (targetFile -> file) =
+      Text.pack ('/' : file)
    targetFile :: route -> FilePath
    -- TODO: Separate typeclass for this! (See use of 'error' below.)
    sourceFile :: route -> FilePath
@@ -51,33 +53,34 @@ instance Route SomeRoute where
 
 instance Route Home where
    url Home = "/"
-   targetFile Home = "index.html"
-   sourceFile Home = error "Don't have a source file!"
+   targetFile = htmlTargetFile
+   sourceFile Home = noSourceFile
 
 instance Route Archive where
    url Archive = "/archive"
-   targetFile Archive = "archive/index.html"
-   sourceFile Archive = error "Don't have a source file!"
+   targetFile = htmlTargetFile
+   sourceFile Archive = noSourceFile
+
+noSourceFile = error "Don't have a source file!"
 
 instance Route Post where
    url Post{ slug } =
       "/posts/" <> Text.pack slug
-   targetFile Post{ slug } =
-      "posts" </> slug </> "index.html"
+   targetFile = htmlTargetFile
    sourceFile (Post sourceDir sourceExt baseName) =
       sourceDir </> baseName <.> sourceExt
 
+htmlTargetFile :: Route r => r -> FilePath
+htmlTargetFile route =
+   tail (Text.unpack (url route)) </> "index.html"
+
 instance Route Stylesheet where
-   url (Stylesheet{ baseName }) =
-      "/styles/" <> Text.pack (baseName <.> "css")
    targetFile Stylesheet{ baseName } =
       "styles" </> baseName <.> "css"
    sourceFile (Stylesheet sourceDir sourceExt baseName) =
       sourceDir </> baseName <.> sourceExt
 
 instance Route Image where
-   url (Image _sourceDir filename) =
-      "/images/" <> Text.pack filename
    targetFile (Image _sourceDir filename) =
       "images" </> filename
    sourceFile (Image sourceDir filename) =
