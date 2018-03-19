@@ -87,7 +87,7 @@ build Options
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
         either
-          (throwFileError file <=< (liftIO . Sass.errorMessage))
+          (throwFileError src <=< (liftIO . Sass.errorMessage))
           (liftIO . writeFile file)
           scssOrError
 
