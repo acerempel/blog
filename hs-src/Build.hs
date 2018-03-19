@@ -40,7 +40,7 @@ build Options
     getPost <- newCache readPost
 
     getAllPostRoutes <- newCache $ \dir ->
-        map (R.Post . (dir </>)) <$> getDirectoryFiles dir ["*.md"]
+        map (R.Post dir "md" . dropExtension) <$> getDirectoryFiles dir ["*.md"]
 
     getAllPosts <- newCache $ \() -> do
         posts <- traverse getPost =<< getAllPostRoutes postsDir
@@ -52,9 +52,9 @@ build Options
     phony "build" $ do
         let pages = [Route R.Home, Route R.Archive]
         posts  <- map Route <$> getAllPostRoutes postsDir
-        images <- map (Route . R.Image . (imagesDir </>)) <$>
+        images <- map (Route . R.Image imagesDir) <$>
             getDirectoryContents imagesDir
-        let styles = [Route (R.Stylesheet (stylesDir </> "magenta.scss"))]
+        let styles = [Route (R.Stylesheet stylesDir "scss" "magenta")]
         let allTargets = pages <> posts <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
 
@@ -68,8 +68,7 @@ build Options
           putQuiet "Nothing new to deploy!"
 
     templateRule buildDir
-      (\slug -> R.Post (postsDir </> slug <.> "md")) $
-      \thisOne -> do
+      (R.Post postsDir "md") $ \thisOne -> do
         thePost <- getPost thisOne
         Templates.page (Just (title thePost)) (Templates.post thePost)
 
@@ -82,8 +81,7 @@ build Options
        Templates.page (Just "Archive") (Templates.archive allPosts)
 
     urlRule buildDir
-      (R.Stylesheet . (\basename -> stylesDir </> basename <.> "css")) $
-      \route -> do
+      (R.Stylesheet stylesDir "scss") $ \route -> do
         let src = R.sourceFile route
             file = buildDir </> R.targetFile route
         need [src]
@@ -93,7 +91,7 @@ build Options
           (liftIO . writeFile file)
           scssOrError
 
-    urlRule buildDir (R.Image . (imagesDir </>)) $ \route -> do
+    urlRule buildDir (R.Image imagesDir) $ \route -> do
         let src = R.sourceFile route
             file = buildDir </> R.targetFile route
         copyFile' src file

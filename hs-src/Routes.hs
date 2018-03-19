@@ -1,5 +1,7 @@
 {-# LANGUAGE ViewPatterns, GADTs
-           , DeriveGeneric, DeriveAnyClass #-}
+           , DeriveGeneric, DeriveAnyClass
+           , DuplicateRecordFields
+#-}
 module Routes
    ( Route(..)
    , SomeRoute(..)
@@ -20,9 +22,18 @@ import GHC.Generics ( Generic )
 
 data Home = Home
 data Archive = Archive
-data Post = Post FilePath deriving ( Eq, Generic, Hashable )
-data Stylesheet = Stylesheet FilePath
-data Image = Image FilePath
+data Post = Post
+   { sourceDirectory :: FilePath
+   , sourceExtension :: String
+   , slug :: String }
+   deriving ( Eq, Generic, Hashable )
+data Stylesheet = Stylesheet
+   { sourceDirectory :: FilePath
+   , sourceExtension :: String
+   , baseName :: String }
+data Image = Image
+   { sourceDirectory :: FilePath
+   , sourceFileName :: String }
 
 class Route route where
    url :: route -> Text
@@ -49,25 +60,25 @@ instance Route Archive where
    sourceFile Archive = error "Don't have a source file!"
 
 instance Route Post where
-   url (Post (takeBaseName -> slug)) =
+   url Post{ slug } =
       "/posts/" <> Text.pack slug
-   targetFile (Post (takeBaseName -> slug)) =
+   targetFile Post{ slug } =
       "posts" </> slug </> "index.html"
-   sourceFile (Post source) =
-      source
+   sourceFile (Post sourceDir sourceExt baseName) =
+      sourceDir </> baseName <.> sourceExt
 
 instance Route Stylesheet where
-   url (Stylesheet (takeFileName -> filename)) =
-      "/styles/" <> Text.pack (filename -<.> "css")
-   targetFile (Stylesheet (takeFileName -> filename)) =
-      "styles" </> filename -<.> "css"
-   sourceFile (Stylesheet source) =
-      source -<.> "scss"
+   url (Stylesheet{ baseName }) =
+      "/styles/" <> Text.pack (baseName <.> "css")
+   targetFile Stylesheet{ baseName } =
+      "styles" </> baseName <.> "css"
+   sourceFile (Stylesheet sourceDir sourceExt baseName) =
+      sourceDir </> baseName <.> sourceExt
 
 instance Route Image where
-   url (Image (takeFileName -> filename)) =
+   url (Image _sourceDir filename) =
       "/images/" <> Text.pack filename
-   targetFile (Image (takeFileName -> filename)) =
+   targetFile (Image _sourceDir filename) =
       "images" </> filename
-   sourceFile (Image source) =
-      source
+   sourceFile (Image sourceDir filename) =
+      sourceDir </> filename

@@ -28,6 +28,7 @@ executable blog
   other-extensions:    GADTs, ViewPatterns
                      , DeriveGeneric, DeriveAnyClass
                      , GeneralizedNewtypeDeriving
+                     , DuplicateRecordFields
   ghc-options:         -threaded -rtsopts "-with-rtsopts=-I0 -qg -qb"
   build-depends:       base >= 4.8 && < 5
                      , bytestring
