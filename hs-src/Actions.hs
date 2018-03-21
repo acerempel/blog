@@ -18,10 +18,8 @@ import qualified Routes
 templateRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Action (Html ())) -> Rules ()
 templateRule buildDir routeBuilder template = do
    urlRule buildDir routeBuilder $ \route -> do
-      let url = Routes.url route
-          targetFile = buildDir </> Routes.targetFile route
+      let targetFile = buildDir </> Routes.targetFile route
       htmlBytes <- (runIdentity . Lucid.execHtmlT) <$> template route
-      putLoud $ "Writing url " <> show url <> " to file " <> targetFile
       liftIO $ createDirectoryIfMissing True (takeDirectory targetFile)
       liftIO $ IO.withFile targetFile IO.WriteMode $ \targetHandle ->
          hPutBuilder targetHandle htmlBytes
@@ -31,4 +29,6 @@ urlRule buildDir routeBuilder action = do
    let pattern = buildDir </> Routes.targetFile (routeBuilder "*")
    pattern %> \targetFile -> do
       let (Just [filename]) = filePattern pattern targetFile
-      action (routeBuilder filename)
+          route = routeBuilder filename
+      putLoud $ "Calling rule for url " <> show (Routes.url route) <> ", file " <> targetFile
+      action route
