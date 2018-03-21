@@ -32,10 +32,12 @@ build Options
       , postsDir
       , stylesDir
       , imagesDir
-      , siteConfigFile
-      } targets = do
+      , siteConfigFile }
+      targets = do
 
     usingConfigFile siteConfigFile
+
+    want targets
 
     getPost <- newCache readPost
 
@@ -45,8 +47,6 @@ build Options
     getAllPosts <- newCache $ \() -> do
         posts <- traverse getPost =<< getAllPostRoutes postsDir
         return $ sortOn composed posts
-
-    want targets
 
     -- Specify our build targets.
     phony "build" $ do
