@@ -15,7 +15,7 @@ import Routes ( Route )
 import qualified Routes
 
 
-templateRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Action (Html ())) -> Rules ()
+templateRule :: FilePath -> (FilePath -> Route) -> (Route -> Action (Html ())) -> Rules ()
 templateRule buildDir routeBuilder template = do
    urlRule buildDir routeBuilder $ \route -> do
       let targetFile = buildDir </> Routes.targetFile route
@@ -24,7 +24,7 @@ templateRule buildDir routeBuilder template = do
       liftIO $ IO.withFile targetFile IO.WriteMode $ \targetHandle ->
          hPutBuilder targetHandle htmlBytes
 
-urlRule :: Route route => FilePath -> (FilePath -> route) -> (route -> Action ()) -> Rules ()
+urlRule :: FilePath -> (FilePath -> Route) -> (Route -> Action ()) -> Rules ()
 urlRule buildDir routeBuilder action = do
    let pattern = buildDir </> Routes.targetFile (routeBuilder "*")
    pattern %> \targetFile -> do

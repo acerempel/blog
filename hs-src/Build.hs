@@ -11,7 +11,6 @@ import qualified Text.Sass as Sass
 import Actions
 import Post
 import qualified Templates
-import Routes ( SomeRoute(..) )
 import qualified Routes as R
 import Utilities
 
@@ -41,20 +40,21 @@ build Options
 
     getPost <- newCache readPost
 
-    getAllPostRoutes <- newCache $ \dir ->
-        map (R.Post dir "md" . dropExtension) <$> getDirectoryFiles dir ["*.md"]
+    getAllMarkdownSourceFiles <- newCache $ \dir ->
+        map (dir </>) <$> getDirectoryFiles dir ["*.md"]
 
     getAllPosts <- newCache $ \() -> do
-        posts <- traverse getPost =<< getAllPostRoutes postsDir
+        posts <- traverse getPost =<< getAllMarkdownSourceFiles postsDir
         return $ sortOn composed posts
 
     -- Specify our build targets.
     phony "build" $ do
-        let pages = [Route R.Home, Route R.Archive]
-        posts  <- map Route <$> getAllPostRoutes postsDir
-        images <- map (Route . R.Image imagesDir) <$>
+        let pages = [R.Home, R.Archive]
+        posts  <- map (R.Post . takeBaseName) <$>
+            getAllMarkdownSourceFiles postsDir
+        images <- map R.Image <$>
             getDirectoryContents imagesDir
-        let styles = [Route (R.Stylesheet stylesDir "scss" "magenta")]
+        let styles = [R.Stylesheet "magenta"]
         let allTargets = pages <> posts <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
 
@@ -67,22 +67,20 @@ build Options
        else
           putQuiet "Nothing new to deploy!"
 
-    templateRule buildDir
-      (R.Post postsDir "md") $ \thisOne -> do
-        thePost <- getPost thisOne
+    templateRule buildDir R.Post $ \(R.Post slug) -> do
+        thePost <- getPost (postsDir </> slug <.> "md")
         Templates.page (Just (title thePost)) (Templates.post thePost)
 
-    templateRule buildDir (const R.Home) $ \_homeRoute -> do
+    templateRule buildDir (const R.Home) $ \R.Home -> do
        allPosts <- getAllPosts ()
        Templates.page Nothing (Templates.home allPosts)
 
-    templateRule buildDir (const R.Archive) $ \_archiveRoute -> do
+    templateRule buildDir (const R.Archive) $ \R.Archive -> do
        allPosts <- getAllPosts ()
        Templates.page (Just "Archive") (Templates.archive allPosts)
 
-    urlRule buildDir
-      (R.Stylesheet stylesDir "scss") $ \route -> do
-        let src = R.sourceFile route
+    urlRule buildDir R.Stylesheet $ \route@(R.Stylesheet basename) -> do
+        let src = stylesDir </> basename <.> "scss"
             file = buildDir </> R.targetFile route
         need [src]
         scssOrError <- liftIO $ Sass.compileFile src Sass.def
@@ -91,7 +89,7 @@ build Options
           (liftIO . writeFile file)
           scssOrError
 
-    urlRule buildDir (R.Image imagesDir) $ \route -> do
-        let src = R.sourceFile route
+    urlRule buildDir R.Image $ \route@(R.Image filename) -> do
+        let src = imagesDir </> filename
             file = buildDir </> R.targetFile route
         copyFile' src file

@@ -17,7 +17,7 @@ import qualified Lucid.Base as Lucid
 import qualified Text.MMark as MMark
 
 import Post
-import Routes ( Route(..) )
+import Routes ( Route, url )
 import qualified Routes
 import Utilities
 
@@ -75,8 +75,7 @@ date theDate =
 
 postLink :: Post -> Template ()
 postLink Post{ title, isDraft, slug } =
-   a_ [ href_ ("/posts/" <> slug) ]
-      $ toHtml theTitle
+   link (toHtml theTitle) (Routes.Post slug)
   where
    theTitle :: Text
    theTitle =
@@ -109,7 +108,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
             link_
                 [ rel_ "stylesheet"
                 , type_ "text/css"
-                , href_ "/styles/magenta.css" ]
+                , href_ (url (Routes.Stylesheet "magenta")) ]
         body_ $ do
             header_ $ do
                 div_
@@ -135,7 +134,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
             , "//]]>"
             ]
 
-link :: Route route => Template () -> route -> Template ()
+link :: Template () -> Route -> Template ()
 link linkText route =
    a_ [ href_ (url route) ]
       linkText

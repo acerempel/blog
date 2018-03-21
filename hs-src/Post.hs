@@ -14,12 +14,10 @@ import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
 
-import qualified Routes
-
 
 data Post = Post
-   { slug :: Text -- ^ Identifier to use for the slug in the url.
-                  -- TODO: Should this really be the 'Routes.Post'?
+   { slug :: String -- ^ Identifier to use for the slug in the url.
+                    -- TODO: Should this really be the 'Routes.Post'?
    , title :: Text -- ^ Title.
    , content :: MMark -- ^ The post body.
    , synopsis :: Text -- ^ A little description or summary or teaser.
@@ -28,10 +26,9 @@ data Post = Post
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    }
 
-readPost :: Routes.Post
+readPost :: FilePath
          -> Action Post
-readPost route = do
-    let filepath = Routes.sourceFile route
+readPost filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     either (throwFileError filepath) return $ do
@@ -49,7 +46,7 @@ readPost route = do
          date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = (Text.pack . takeBaseName) filepath
+         let slug = takeBaseName filepath
          return Post
             { title
             , synopsis
