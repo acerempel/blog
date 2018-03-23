@@ -1,6 +1,8 @@
 author = Alan Rempel
-copyright = 2018
-site_title = Mostly nonsense.
+copyright_year = 2018
+site_title = THE GREATEST GOOF
 base_url = http://localhost:8000
-source_url = file:///Users/alan/Documents/blog-shake
+source_url = file:///Users/alan/Blogs/old-blog
 browsersync = true
+build_directory = ../blog/_site.local
+include_drafts = true

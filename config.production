@@ -1,6 +1,8 @@
 author = Alan Rempel
-copyright = 2018
+copyright_year = 2018
 site_title = Alan Rempel
 base_url = https://parsonyorick.github.io/
 source_url = https://github.com/parsonyorick/blog
 browsersync = false
+build_directory = ../blog/_site.production
+include_drafts = false
