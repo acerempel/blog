@@ -3,3 +3,6 @@ packages:
     server/blog-server.cabal
     mmark/mmark.cabal
 library-profiling: False
+
+package blog
+    ghc-options: -fhide-source-paths
