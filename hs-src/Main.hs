@@ -15,7 +15,7 @@ main = do
   shakeArgsWith
      shakeOptions{ shakeVersion
                  , shakeThreads = 3
-                 , shakeColor = True }
+                 , shakeColor = False }
      Flags.options
      buildWithFlags
 
