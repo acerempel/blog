@@ -36,8 +36,6 @@ build Options
 
     usingConfigFile siteConfigFile
 
-    want targets
-
     getPost <- newCache readPost
 
     getAllMarkdownSourceFiles <- newCache $ \dir ->
@@ -48,7 +46,7 @@ build Options
         return $ sortOn composed posts
 
     -- Specify our build targets.
-    phony "build" $ do
+    action $ do
         let pages = [R.Home, R.Archive]
         posts  <- map (R.Post . takeBaseName) <$>
             getAllMarkdownSourceFiles postsDir
