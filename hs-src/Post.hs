@@ -48,14 +48,9 @@ readPost filepath = do
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = takeBaseName filepath
          return Post
-            { title
-            , synopsis
-            , slug
-            , composed
-            -- TODO: Distinguish these --- maybe.
-            , published = composed
+            { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False
-            , content }
+            , .. }
 
    hyphensToDashes :: MMark.Extension
    hyphensToDashes = MMark.inlineTrans $

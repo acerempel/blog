@@ -25,6 +25,7 @@ executable blog
                      , Text
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
+                     , RecordWildCards
   other-extensions:    GADTs, ViewPatterns
                      , DeriveGeneric, DeriveAnyClass
                      , GeneralizedNewtypeDeriving

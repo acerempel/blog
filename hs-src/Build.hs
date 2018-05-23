@@ -29,13 +29,7 @@ data Options = Options
 
 
 build :: Options -> [String] -> Rules ()
-build Options
-      { buildDir
-      , postsDir
-      , stylesDir
-      , imagesDir
-      , siteConfigFile }
-      targets = do
+build Options { .. } targets = do
 
     usingConfigFile siteConfigFile
 
