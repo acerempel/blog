@@ -6,7 +6,7 @@ import Utilities
 
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
-import Data.Yaml ( (.:) )
+import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
@@ -24,7 +24,10 @@ data Post = Post
    , composed :: Day -- ^ Date of composition.
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
+   , tags :: [Tag] -- ^ Some tags.
    }
+
+type Tag = Text
 
 readPost :: FilePath
          -> Action Post
@@ -45,6 +48,7 @@ readPost filepath = do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
+         tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = takeBaseName filepath
          return Post
