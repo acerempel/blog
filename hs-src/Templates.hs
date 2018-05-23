@@ -48,9 +48,12 @@ archive posts =
 post :: Post -> Template ()
 post thePost@Post
       { content
-      , composed } =
+      , composed
+      , tags } =
     article_ $ do
-        div_ [ class_ "info" ] $ date composed
+        div_ [ class_ "info" ] $ do
+          date composed
+          tagLinks tags
         h1_ $ postLink thePost
         Lucid.relaxHtmlT $ MMark.render content
 
@@ -58,7 +61,8 @@ post thePost@Post
 archiveEntry :: Post -> Template ()
 archiveEntry thePost@Post
                { synopsis
-               , composed } =
+               , composed
+               , tags } =
    div_ [ class_ "archive-entry" ] $ do
       div_ [ class_ "date" ] $
          date composed
@@ -66,6 +70,7 @@ archiveEntry thePost@Post
          h2_ $ postLink thePost
       div_ [ class_ "synopsis" ] $
          p_ $ toHtml synopsis
+      tagLinks tags
 
 date :: Day -> Template ()
 date theDate =
@@ -80,6 +85,15 @@ postLink Post{ title, isDraft, slug } =
    theTitle :: Text
    theTitle =
       if isDraft then "[DRAFT] " <> title else title
+
+tagLinks :: [Tag] -> Template ()
+tagLinks [] = mempty
+tagLinks theTags =
+    div_ [] $
+      "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags)) 
+  where
+    tagLink tagName =
+      link (toHtml tagName) (Routes.Tag (Text.unpack tagName))
 
 page :: Maybe Text -- ^ This page's title.
      -> Template () -- ^ This page's content.

@@ -1,4 +1,4 @@
-module Post ( Post(..), readPost ) where
+module Post ( Post(..), Tag, readPost ) where
 
 import Introit
 import qualified Text
