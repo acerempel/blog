@@ -6,3 +6,6 @@ library-profiling: False
 
 package blog
     ghc-options: -fhide-source-paths
+
+package mmark
+    ghc-options: -fhide-source-paths
