@@ -61,19 +61,29 @@ build Options
 
     flip runReaderT buildDir $ do
 
-    templateRule R.Post $ \(R.Post slug) -> do
+    templateRule R.Post $
+      \(R.Post slug) -> do
         thePost <- getPost (postsDir </> slug <.> "md")
-        Templates.page (Just (title thePost)) (Templates.post thePost)
+        Templates.page
+          (Just (title thePost))
+          (Templates.post thePost)
 
-    templateRule (const R.Home) $ \R.Home -> do
+    templateRule (const R.Home) $
+      \R.Home -> do
        allPosts <- getAllPosts ()
-       Templates.page Nothing (Templates.home allPosts)
+       Templates.page
+        Nothing
+        (Templates.home allPosts)
 
-    templateRule (const R.Archive) $ \R.Archive -> do
+    templateRule (const R.Archive) $
+      \R.Archive -> do
        allPosts <- getAllPosts ()
-       Templates.page (Just "Archive") (Templates.archive allPosts)
+       Templates.page
+        (Just "Archive")
+        (Templates.archive allPosts)
 
-    urlRule R.Stylesheet $ \route@(R.Stylesheet basename) buildDir -> do
+    urlRule R.Stylesheet $
+      \route@(R.Stylesheet basename) buildDir -> do
         let src = stylesDir </> basename <.> "scss"
             file = buildDir </> R.targetFile route
         need [src]
@@ -83,7 +93,8 @@ build Options
           (liftIO . writeFile file)
           scssOrError
 
-    urlRule R.Image $ \route@(R.Image filename) buildDir -> do
+    urlRule R.Image $
+      \route@(R.Image filename) buildDir -> do
         let src = imagesDir </> filename
             file = buildDir </> R.targetFile route
         copyFile' src file
