@@ -7,9 +7,9 @@ build:
 	cabal new-run $(hs_target) $(hs_opts) -- $(site_opts)
 
 deploy: build
-	./deploy.fish $(site_build_dir)
+	./scripts/deploy.fish $(site_build_dir)
 
 new-post:
-	./new-post.fish "$(title)"
+	./scripts/new-post.fish "$(title)"
 
 .PHONY: deploy build new-post
