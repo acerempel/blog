@@ -10,6 +10,6 @@ deploy: build
 	./scripts/deploy.fish $(site_build_dir)
 
 new-post:
-	./scripts/new-post.fish "$(title)"
+	./scripts/new-post.fish -t "$(title)" -s $(slug) -d "$(date)"
 
 .PHONY: deploy build new-post
