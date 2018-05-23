@@ -58,15 +58,6 @@ build Options
         let allTargets = pages <> posts <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
 
-    phony "deploy" $ do
-       (Stdout status) <- command [Cwd buildDir] "git" ["status", "--porcelain"]
-       if length (lines status) > 0 then do
-          command_ [Cwd buildDir] "git" ["add", "."]
-          command_ [Cwd buildDir] "git" ["commit", "-a"]
-          command_ [Cwd buildDir] "git" ["push"]
-       else
-          putQuiet "Nothing new to deploy!"
-
     templateRule buildDir R.Post $ \(R.Post slug) -> do
         thePost <- getPost (postsDir </> slug <.> "md")
         Templates.page (Just (title thePost)) (Templates.post thePost)
