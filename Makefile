@@ -9,4 +9,7 @@ build:
 deploy: build
 	./deploy.fish $(site_build_dir)
 
-.PHONY: deploy build
+new-post:
+	./new-post.fish "$(title)"
+
+.PHONY: deploy build new-post
