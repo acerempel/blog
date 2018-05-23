@@ -18,6 +18,7 @@ data Route
    = Home
    | Archive
    | Post String
+   | Tag String
    | Stylesheet String
    | Image String
    deriving ( Eq, Generic, Hashable )
@@ -27,6 +28,7 @@ targetFile = \case
    Home             -> htmlTargetFile Home
    Archive          -> htmlTargetFile Archive
    p@(Post _)       -> htmlTargetFile p
+   t@(Tag _)        -> htmlTargetFile t
    s@(Stylesheet _) -> urlToTargetFile (url s)
    i@(Image _)      -> urlToTargetFile (url i)
  where
@@ -43,6 +45,8 @@ url = Text.pack . \case
       "/archive"
    Post slug ->
       "/posts" </> slug
+   Tag tag ->
+      "/tags" </> tag
    Stylesheet basename ->
       "/styles" </> basename <.> "css"
    Image filename ->
