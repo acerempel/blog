@@ -4,4 +4,4 @@
   - blog.cabal
   - cabal.project
   - .+\.hs
-  command: cabal new-run blog -- --local
+  command: make build
