@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Templates ( Template, Html
                  , getSiteConfig
-                 , home, archive, post
+                 , home, archive, post, tagsList
                  , page ) where
 
 import Introit
@@ -57,6 +57,17 @@ post thePost@Post
         h1_ $ postLink thePost
         Lucid.relaxHtmlT $ MMark.render content
 
+tagsList :: [(Tag, Int)] -> Template ()
+tagsList tagsWithCounts =
+    div_ $ ul_ $
+      foldMap tagWithCount tagsWithCounts
+  where
+    tagWithCount :: (Tag, Int) -> Template ()
+    tagWithCount (tag, count) =
+      li_ $ do
+        tagLink tag
+        small_ $ " (" <> toHtml (show count) <> " posts)"
+
 
 archiveEntry :: Post -> Template ()
 archiveEntry thePost@Post
@@ -91,9 +102,10 @@ tagLinks [] = mempty
 tagLinks theTags =
     div_ [] $
       "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags)) 
-  where
-    tagLink tagName =
-      link (toHtml tagName) (Routes.Tag (Text.unpack tagName))
+
+tagLink :: Tag -> Template ()
+tagLink tagName =
+  link (toHtml tagName) (Routes.Tag (Text.unpack tagName))
 
 page :: Maybe Text -- ^ This page's title.
      -> Template () -- ^ This page's content.
@@ -130,6 +142,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                     link (toHtml titleOfSite) Routes.Home
                 nav_ $ do
                     link "Recent" Routes.Home
+                    link "Tags" Routes.AllTags
                     link "Archive" Routes.Archive
             main_
                 content

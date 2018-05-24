@@ -57,7 +57,7 @@ build Options { .. } targets = do
 
     -- Specify our build targets.
     action $ do
-        let pages = [R.Home, R.Archive]
+        let pages = [R.Home, R.Archive, R.AllTags]
         posts  <- map (R.Post . takeBaseName) <$>
             getAllMarkdownSourceFiles postsDir
         images <- map R.Image <$>
@@ -98,6 +98,13 @@ build Options { .. } targets = do
        Templates.page
         (Just "Archive")
         (Templates.archive allPosts)
+
+    templateRule (const R.AllTags) $
+      \R.AllTags -> do
+        allTags <- Map.toList . fmap length <$> getAllPostsByTag ()
+        Templates.page
+          (Just "Tags")
+          (Templates.tagsList allTags)
 
     urlRule R.Stylesheet $
       \route@(R.Stylesheet basename) buildDir -> do
