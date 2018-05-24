@@ -5,7 +5,9 @@ packages:
 library-profiling: False
 
 package blog
-    ghc-options: -fhide-source-paths
+    ghc-options: -fhide-source-paths -Wall -Wincomplete-record-updates -Wmissing-exported-signatures
+    optimization: 2
 
 package mmark
     ghc-options: -fhide-source-paths
+    optimization: 2
