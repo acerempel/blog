@@ -50,20 +50,19 @@ build Options { .. } targets = do
     getAllPostsByTag <- newCache $ \() -> do
         allPosts <- getAllPosts ()
         let catalogPost post =
-              foldMap
-                (\tag -> Endo $ Map.insertWith (<>) tag [post])
-                (tags post)
+              foldMap (\tag -> Endo $ Map.insertWith (<>) tag [post])
+                      (tags post)
         return $ appEndo (foldMap catalogPost allPosts) Map.empty
 
     -- Specify our build targets.
     action $ do
         let pages = [R.Home, R.Archive, R.AllTags]
-        posts  <- map (R.Post . takeBaseName) <$>
-            getAllMarkdownSourceFiles postsDir
-        images <- map R.Image <$>
-            getDirectoryContents imagesDir
-        tags   <- map (R.Tag . Text.unpack) . Map.keys <$>
-            getAllPostsByTag ()
+        posts  <-
+          map (R.Post . takeBaseName) <$> getAllMarkdownSourceFiles postsDir
+        images <-
+          map R.Image <$> getDirectoryContents imagesDir
+        tags   <-
+          map (R.Tag . Text.unpack) . Map.keys <$> getAllPostsByTag ()
         let styles = [R.Stylesheet "magenta"]
         let allTargets = pages <> posts <> tags <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
