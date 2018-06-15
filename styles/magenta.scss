@@ -108,6 +108,12 @@ main > * {
     width: 86%;
 }
 
+main > div > h1 {
+    text-align: center;
+    margin-bottom: 0.7rem;
+    margin-top: 0;
+}
+
 article:first-child, .archive-entry:first-child {
     margin-top: 0;
 }

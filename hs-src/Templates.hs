@@ -40,9 +40,10 @@ home :: [Post] -> Template ()
 home posts =
    foldrMapM post posts
 
-archive :: [Post] -> Template ()
-archive posts =
-   div_ [ class_ "archive-listing" ] $
+archive :: [Post] -> Text -> Template ()
+archive posts heading =
+   div_ [ class_ "archive-listing" ] $ do
+      h1_ (toHtml heading)
       foldrMapM archiveEntry posts
 
 post :: Post -> Template ()

@@ -80,9 +80,10 @@ build Options { .. } _targets = do
       \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
+            title = "Tagged as “" <> tag <> "”"
         Templates.page
-          (Just ("Tagged as " <> tag))
-          (Templates.archive postsWithThisTag)
+          (Just title)
+          (Templates.archive postsWithThisTag title)
 
     templateRule (const R.Home) $
       \R.Home -> do
@@ -96,7 +97,7 @@ build Options { .. } _targets = do
        allPosts <- getAllPosts ()
        Templates.page
         (Just "Archive")
-        (Templates.archive allPosts)
+        (Templates.archive allPosts "All posts")
 
     templateRule (const R.AllTags) $
       \R.AllTags -> do
