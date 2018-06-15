@@ -34,7 +34,7 @@ data Options = Options
 
 
 build :: Options -> [String] -> Rules ()
-build Options { .. } targets = do
+build Options { .. } _targets = do
 
     usingConfigFile siteConfigFile
 
