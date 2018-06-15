@@ -58,7 +58,8 @@ post thePost@Post
         Lucid.relaxHtmlT $ MMark.render content
 
 tagsList :: [(Tag, Int)] -> Template ()
-tagsList tagsWithCounts =
+tagsList tagsWithCounts = do
+    h1_ "Tags"
     div_ $ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
