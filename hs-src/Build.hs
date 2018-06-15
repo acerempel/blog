@@ -62,7 +62,7 @@ build Options { .. } _targets = do
         images <-
           map R.Image <$> getDirectoryContents imagesDir
         tags   <-
-          map (R.Tag . Text.unpack) . Map.keys <$> getAllPostsByTag ()
+          map R.Tag . Map.keys <$> getAllPostsByTag ()
         let styles = [R.Stylesheet "magenta"]
         let allTargets = pages <> posts <> tags <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
@@ -76,8 +76,8 @@ build Options { .. } _targets = do
           (Just (title thePost))
           (Templates.post thePost)
 
-    templateRule R.Tag $
-      \(R.Tag (Text.pack -> tag)) -> do
+    templateRule (R.Tag . Text.pack) $
+      \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
         Templates.page

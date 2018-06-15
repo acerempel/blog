@@ -43,6 +43,7 @@ executable blog
                      , time >= 1.5
                      , text
                      , transformers
+                     , uri-encode
                      , yaml >= 0.8.23 && < 0.9
   hs-source-dirs:      hs-src
   default-language:    Haskell2010

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveAnyClass, DeriveGeneric #-}
 module Post ( Post(..), Tag, readPost ) where
 
 import Introit
@@ -10,6 +11,7 @@ import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
+import qualified Network.URI.Encode as URI
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
@@ -50,7 +52,7 @@ readPost filepath = do
          synopsis <- metadata .: "synopsis"
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = takeBaseName filepath
+         let slug = URI.encode $ takeBaseName filepath
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False

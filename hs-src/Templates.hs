@@ -53,14 +53,15 @@ post thePost@Post
     article_ $ do
         div_ [ class_ "info" ] $ do
           date composed
-          tagLinks tags
         h1_ $ postLink thePost
         Lucid.relaxHtmlT $ MMark.render content
+        p_ [ class_ "tags" ] $
+          tagLinks tags
 
 tagsList :: [(Tag, Int)] -> Template ()
 tagsList tagsWithCounts = do
     h1_ "Tags"
-    div_ $ ul_ $
+    div_ [ class_ "tags" ]$ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
     tagWithCount :: (Tag, Int) -> Template ()
@@ -82,7 +83,8 @@ archiveEntry thePost@Post
          h2_ $ postLink thePost
       div_ [ class_ "synopsis" ] $
          p_ $ toHtml synopsis
-      tagLinks tags
+      div_ [ class_ "tags" ] $
+         p_ $ tagLinks tags
 
 date :: Day -> Template ()
 date theDate =
@@ -101,12 +103,12 @@ postLink Post{ title, isDraft, slug } =
 tagLinks :: [Tag] -> Template ()
 tagLinks [] = mempty
 tagLinks theTags =
-    div_ [] $
+    small_ $
       "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags)) 
 
 tagLink :: Tag -> Template ()
 tagLink tagName =
-  link (toHtml tagName) (Routes.Tag (Text.unpack tagName))
+  link (toHtml tagName) (Routes.Tag tagName)
 
 page :: Maybe Text -- ^ This page's title.
      -> Template () -- ^ This page's content.

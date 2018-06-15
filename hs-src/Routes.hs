@@ -13,13 +13,14 @@ import qualified Text
 import Data.Hashable ( Hashable )
 import Development.Shake.FilePath
 import GHC.Generics ( Generic )
+import qualified Network.URI.Encode as URI
 
 data Route
    = Home
    | Archive
    | Post String
    | AllTags
-   | Tag String
+   | Tag Text
    | Stylesheet String
    | Image String
    deriving ( Eq, Generic, Hashable )
@@ -35,7 +36,8 @@ targetFile = \case
    i@(Image _)      -> urlToTargetFile (url i)
  where
    urlToTargetFile url =
-      tail (Text.unpack url)
+     -- This is dumb, see below
+      URI.decode $ tail (Text.unpack url)
    htmlTargetFile route =
       urlToTargetFile (url route) </> "index.html"
 
@@ -50,7 +52,7 @@ url = Text.pack . \case
    AllTags ->
       "/tags"
    Tag tag ->
-      "/tags" </> tag
+      "/tags" </> Text.unpack (URI.encodeText tag)
    Stylesheet basename ->
       "/styles" </> basename <.> "css"
    Image filename ->

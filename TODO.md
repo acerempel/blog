@@ -1,10 +1,10 @@
 # TODO
 - Change url to alanrempel.github.io --- i.e. new GH account.
-- Add category/tag system.
 - Make it easier to add pages.
 - Change "Recent" to "Home".
 
 # DONE
+- Add category/tag system.
 - Make structure of Build.hs less goofy.
 - Make archive listing more compact.
 - Fiddle with CSS a bunch.
