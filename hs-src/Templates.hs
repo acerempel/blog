@@ -143,7 +143,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
             header_ $ do
                 div_
                     [ id_ "logo" ] $
-                    link (toHtml titleOfSite) Routes.Home
+                    link "…" Routes.Home
                 nav_ $ do
                     link "Recent" Routes.Home
                     link "Tags" Routes.AllTags
