@@ -52,7 +52,7 @@ post thePost@Post
       , composed
       , tags } =
     article_ $ do
-        div_ [ class_ "info" ] $ do
+        div_ [ class_ "date" ] $ do
           date composed
         h1_ $ postLink thePost
         Lucid.relaxHtmlT $ MMark.render content
