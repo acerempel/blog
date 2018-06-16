@@ -5,6 +5,7 @@ site_opts = --builddir=$(site_build_dir) --config-file=config.production --no-co
 
 build:
 	cabal new-run $(hs_target) $(hs_opts) -- $(site_opts)
+	./scripts/typeset.fish $(site_build_dir)
 
 commit-built-site:
 	./scripts/commit.fish $(site_build_dir)
