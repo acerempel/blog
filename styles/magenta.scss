@@ -47,7 +47,12 @@ main {
 .archive-entry {
     font-size: 15px;
     display: grid;
-    grid-template-columns: 1fr 2fr;
+    @media screen and (min-width: 600px) {
+        grid-template-columns: 1fr 3.3fr;
+    }
+    @media screen and (max-width: 599px) {
+        grid-template-columns: 1fr 2.7fr;
+    }
     grid-auto-rows: auto;
     grid-column-gap: 1.2rem;
     grid-row-gap: 0.1em;
