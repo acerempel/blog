@@ -116,8 +116,7 @@ page :: Maybe Text -- ^ This page's title.
      -> Action (Html ())
 page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
     baseURL <- getSiteConfig "base_url"
-    titleOfSite <- getSiteConfig "site_title"
-    useBrowserSync <- getSiteConfig "browsersync"
+    let titleOfSite = "[three dots]"
 
     doctype_
     html_ [ lang_ "en" ] $ do
@@ -131,7 +130,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
             meta_
                 [ charset_ "UTF-8" ]
             title_ $ toHtml $
-                maybe titleOfSite (<> " | " <> titleOfSite) thisTitleMb
+                maybe titleOfSite (<> " " <> titleOfSite) thisTitleMb
             link_
                 [ rel_ "canonical"
                 , href_ baseURL ]
@@ -139,6 +138,9 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                 [ rel_ "stylesheet"
                 , type_ "text/css"
                 , href_ (url (Routes.Stylesheet "magenta")) ]
+            script_
+              [ defer_ ""
+              , src_ "index.js" ] ("" :: Text)
         body_ $ do
             header_ $ do
                 div_
@@ -148,22 +150,11 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                     link "Recent" Routes.Home
                     link "Tags" Routes.AllTags
                     link "Archive" Routes.Archive
-            main_
+            main_ $ do
+                div_ [ id_ "app" ] ("" :: Template ())
                 content
             footer_ $ do
-                author <- getSiteConfig "author"
-                toHtml $ author <> " © 2018"
-            when (useBrowserSync == "true") $
-              script_
-                [ id_ "__bs_script__" ]
-                bsInjectionScript
-  where
-    bsInjectionScript =
-        Text.unlines
-            [ "//<![CDATA["
-            , "    document.write(\"<script async src='http://HOST:8001/browser-sync/browser-sync-client.js?v=2.18.13'><\\/script>\".replace(\"HOST\", location.hostname));"
-            , "//]]>"
-            ]
+                toHtml $ ("Alan Rempel © 2018" :: Text)
 
 link :: Template () -> Route -> Template ()
 link linkText route =
