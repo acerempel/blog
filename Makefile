@@ -9,7 +9,7 @@ build: $(site_build_dir)/index.js
 	./scripts/typeset.fish $(site_build_dir)
 
 $(site_build_dir)/index.js: index.js
-	cp -f index.js $(site_build_dir)/
+	rollup -c
 
 commit:
 	./scripts/commit.fish $(site_build_dir) $(git_options)
