@@ -1,19 +1,20 @@
 #! /usr/bin/env fish
 
-argparse --name new-post t/title= s/slug= d/date= -- $argv
+argparse --name new-post t/title= 's/slug=?' d/date= -- $argv
 or exit
 
 set title $_flag_title
 
-if set -q _flag_s
+if set -q _flag_slug
+    and string match --regex --quiet '\w' $_flag_slug
     set slug $_flag_slug
 else
-    set -l sans_nonsense (string replace --all --regex \\W+ - $title)
+    set -l sans_nonsense (string replace --all --regex '\W+' - $title)
     set -l sans_nonsense (string lower $sans_nonsense)
     set slug (string escape --style=url $sans_nonsense)
 end
 
-set date_format "%e %b %Y"
+set date_format "%e %B %Y"
 if set -q _flag_date
     switch $_flag_date
         case today
@@ -26,6 +27,8 @@ if set -q _flag_date
             set date (date -v $_flag_date +"$date_format")
         case '-*'
             set date (date -v $_flag_date +"$date_format")
+        case ''
+            set date (date +"$date_format")
         case '*'
             set date $_flag_date
     end
@@ -43,5 +46,3 @@ echo "synopsis: $dummy_synopsis" >> $filename
 echo "---" >> $filename
 echo "" >> $filename
 echo "Good evening, internet!" >> $filename
-
-vimr $filename --nvim -c "setf pandoc"
