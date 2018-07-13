@@ -50,9 +50,12 @@ build Options { .. } _targets = do
     getAllPostsByTag <- newCache $ \() -> do
         allPosts <- getAllPosts ()
         let catalogPost post =
-              foldMap (\tag -> Endo $ Map.insertWith (<>) tag [post])
-                      (tags post)
-        return $ appEndo (foldMap catalogPost allPosts) Map.empty
+              foldMap
+                (\tag -> Endo $ Map.insertWith (<>) tag [post])
+                (tags post)
+        return $ appEndo
+          (foldMap catalogPost allPosts)
+          Map.empty
 
     -- Specify our build targets.
     action $ do
@@ -69,15 +72,13 @@ build Options { .. } _targets = do
 
     flip runReaderT buildDir $ do
 
-    templateRule R.Post $
-      \(R.Post slug) -> do
+    templateRule R.Post $ \(R.Post slug) -> do
         thePost <- getPost (postsDir </> slug <.> "md")
         Templates.page
           (Just (title thePost))
           (Templates.post thePost)
 
-    templateRule (R.Tag . Text.pack) $
-      \(R.Tag tag) -> do
+    templateRule (R.Tag . Text.pack) $ \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
             title = "Tagged as “" <> tag <> "”"
@@ -85,22 +86,19 @@ build Options { .. } _targets = do
           (Just title)
           (Templates.archive postsWithThisTag title)
 
-    templateRule (const R.Home) $
-      \R.Home -> do
+    templateRule (const R.Home) $ \_ -> do
        allPosts <- getAllPosts ()
        Templates.page
         Nothing
         (Templates.home allPosts)
 
-    templateRule (const R.Archive) $
-      \R.Archive -> do
+    templateRule (const R.Archive) $ \_ -> do
        allPosts <- getAllPosts ()
        Templates.page
         (Just "Archive")
         (Templates.archive allPosts "All posts")
 
-    templateRule (const R.AllTags) $
-      \R.AllTags -> do
+    templateRule (const R.AllTags) $ \_ -> do
         allTags <- Map.toList . fmap length <$> getAllPostsByTag ()
         Templates.page
           (Just "Tags")
@@ -111,7 +109,8 @@ build Options { .. } _targets = do
         let src = stylesDir </> basename <.> "scss"
             file = buildDir </> R.targetFile route
         need [src]
-        scssOrError <- liftIO $ Sass.compileFile src Sass.def
+        scssOrError <- liftIO $
+          Sass.compileFile src Sass.def
         either
           (throwFileError src <=< (liftIO . Sass.errorMessage))
           (liftIO . writeFile file)
