@@ -90,7 +90,7 @@ build Options { .. } _targets = do
        allPosts <- getAllPosts ()
        Templates.page
         Nothing
-        (Templates.home allPosts)
+        (foldrMapM Templates.post allPosts)
 
     templateRule (const R.Archive) $ \_ -> do
        allPosts <- getAllPosts ()

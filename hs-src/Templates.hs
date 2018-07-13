@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Templates ( Template, Html
                  , getSiteConfig
-                 , home, archive, post, tagsList
+                 , archive, post, tagsList
                  , page ) where
 
 import Introit
@@ -35,10 +35,6 @@ getSiteConfig key = Trans.lift $ TemplateM $
          (return . Text.pack)
       =<< getConfig key
 
-
-home :: [Post] -> Template ()
-home posts =
-   foldrMapM post posts
 
 archive :: [Post] -> Text -> Template ()
 archive posts heading =
