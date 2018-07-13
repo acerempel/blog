@@ -11,8 +11,11 @@ generate-site:
 site: generate-site $(site_build_dir)/index.js
 	./generate-site $(site_opts)
 
-$(site_build_dir)/index.js: index.js rollup.config.js
+$(site_build_dir)/index.js: index.js rollup.config.js yarn.lock
 	rollup -c
+
+yarn.lock: package.json
+	yarn install
 
 commit:
 	./scripts/commit.fish $(site_build_dir) $(git_options)
@@ -20,4 +23,4 @@ commit:
 new-post:
 	./scripts/new-post.fish -t "$(title)" -s $(slug) -d "$(date)"
 
-.PHONY: generate-site new-post commit yarn
+.PHONY: generate-site new-post commit
