@@ -24,6 +24,15 @@ body {
 
 $main-shadow-height: 0.7rem;
 
+@mixin main-content-responsive-width {
+    @media screen and (min-width: 600px) {
+        width: 560px;
+    }
+    @media screen and (max-width: 599px) {
+        width: 310px;
+    }
+}
+
 // Main content
 // {{{1
 main {
@@ -36,12 +45,7 @@ main {
     box-sizing: border-box;
     padding-top: 32px;
     padding-bottom: 18px;
-    @media screen and (min-width: 600px) {
-        width: 500px;
-    }
-    @media screen and (max-width: 599px) {
-        width: 300px;
-    }
+    @include main-content-responsive-width;
 }
 
 .archive-entry {
@@ -98,8 +102,8 @@ blockquote {
     p {
         line-height: 120%;
     }
-    margin-left: 7%;
-    margin-right: 7%;
+    margin-left: 4%;
+    margin-right: 4%;
     color: #474747;
 }
 
@@ -138,12 +142,7 @@ header, footer {
     background-color: $magenta;
     color: $text-offwhite;
     margin: 0px auto;
-    @media screen and (min-width: 600px) {
-        width: 500px;
-    }
-    @media screen and (max-width: 599px) {
-        width: 300px;
-    }
+    @include main-content-responsive-width;
 }
 
 header {
