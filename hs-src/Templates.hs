@@ -134,9 +134,6 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                 [ rel_ "stylesheet"
                 , type_ "text/css"
                 , href_ (url (Routes.Stylesheet "magenta")) ]
-            script_
-              [ defer_ ""
-              , src_ "index.js" ] ("" :: Text)
         body_ $ do
             header_ $ do
                 div_
@@ -147,7 +144,6 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                     link "Tags" Routes.AllTags
                     link "Archive" Routes.Archive
             main_ $ do
-                div_ [ id_ "app" ] ("" :: Template ())
                 content
             footer_ $ do
                 toHtml $ ("Alan Rempel © 2018" :: Text)

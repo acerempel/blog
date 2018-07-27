@@ -8,14 +8,8 @@ generate-site:
 	cabal new-build $(hs_target) $(hs_opts)
 	cp -f `find dist-newstyle -name $(hs_target) -perm +u+x -type f | head -n 1` ./generate-site
 
-site: generate-site $(site_build_dir)/index.js
+site: generate-site
 	./generate-site $(site_opts)
-
-$(site_build_dir)/index.js: index.js rollup.config.js yarn.lock
-	rollup -c
-
-yarn.lock: package.json
-	yarn install
 
 commit:
 	./scripts/commit.fish $(site_build_dir) $(git_options)
