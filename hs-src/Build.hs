@@ -1,7 +1,7 @@
 {-# LANGUAGE NondecreasingIndentation #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
-module Build ( Options(..), build )where
+module Build ( Options(..), build ) where
 
 import Introit
 import Data.List ( sortOn )
@@ -59,7 +59,7 @@ build Options { .. } _targets = do
 
     -- Specify our build targets.
     action $ do
-        let pages = [R.Home, R.Archive, R.AllTags]
+        let pages = [R.Home, R.AllTags]
         posts  <-
           map (R.Post . takeBaseName) <$> getAllMarkdownSourceFiles postsDir
         images <-
@@ -72,36 +72,31 @@ build Options { .. } _targets = do
 
     flip runReaderT buildDir $ do
 
+    let titleOfSite = "[three dots]"
+
     templateRule R.Post $ \(R.Post slug) -> do
         thePost <- getPost (postsDir </> slug <.> "md")
         Templates.page
-          (Just (title thePost))
+          (title thePost)
           (Templates.post thePost)
 
     templateRule (R.Tag . Text.pack) $ \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
-            title = "Tagged as “" <> tag <> "”"
         Templates.page
-          (Just title)
-          (Templates.archive postsWithThisTag title)
+          ("Tagged as “" <> tag <> "”")
+          (Templates.archive postsWithThisTag (Just tag))
 
     templateRule (const R.Home) $ \_ -> do
        allPosts <- getAllPosts ()
        Templates.page
-        Nothing
-        (foldrMapM Templates.post allPosts)
-
-    templateRule (const R.Archive) $ \_ -> do
-       allPosts <- getAllPosts ()
-       Templates.page
-        (Just "Archive")
-        (Templates.archive allPosts "All posts")
+        titleOfSite
+        (Templates.archive allPosts Nothing)
 
     templateRule (const R.AllTags) $ \_ -> do
         allTags <- Map.toList . fmap length <$> getAllPostsByTag ()
         Templates.page
-          (Just "Tags")
+          "Tags"
           (Templates.tagsList allTags)
 
     urlRule R.Stylesheet $

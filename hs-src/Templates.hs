@@ -36,10 +36,10 @@ getSiteConfig key = Trans.lift $ TemplateM $
       =<< getConfig key
 
 
-archive :: [Post] -> Text -> Template ()
+archive :: [Post] -> Maybe Text -> Template ()
 archive posts heading =
    div_ [ class_ "archive-listing" ] $ do
-      h1_ (toHtml heading)
+      maybe mempty (h1_ . toHtml) heading
       foldrMapM archiveEntry posts
 
 post :: Post -> Template ()
@@ -107,12 +107,11 @@ tagLink :: Tag -> Template ()
 tagLink tagName =
   link (toHtml tagName) (Routes.Tag tagName)
 
-page :: Maybe Text -- ^ This page's title.
+page :: Text -- ^ This page's title.
      -> Template () -- ^ This page's content.
      -> Action (Html ())
-page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
+page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
     baseURL <- getSiteConfig "base_url"
-    let titleOfSite = "[three dots]"
 
     doctype_
     html_ [ lang_ "en" ] $ do
@@ -125,8 +124,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
                 , content_ "width=device-width, initial-scale=1" ]
             meta_
                 [ charset_ "UTF-8" ]
-            title_ $ toHtml $
-                maybe titleOfSite (<> " " <> titleOfSite) thisTitleMb
+            title_ $ toHtml pageTitle
             link_
                 [ rel_ "canonical"
                 , href_ baseURL ]
@@ -137,12 +135,7 @@ page thisTitleMb content = runTemplateM $ Lucid.commuteHtmlT $ do
         body_ $ do
             header_ $ do
                 div_
-                    [ id_ "logo" ] $
-                    link "…" Routes.Home
-                nav_ $ do
-                    link "Recent" Routes.Home
-                    link "Tags" Routes.AllTags
-                    link "Archive" Routes.Archive
+                    [ id_ "logo" ] (mempty :: Template ())
             main_ $ do
                 content
             footer_ $ do
