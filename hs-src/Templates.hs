@@ -111,8 +111,6 @@ page :: Text -- ^ This page's title.
      -> Template () -- ^ This page's content.
      -> Action (Html ())
 page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
-    baseURL <- getSiteConfig "base_url"
-
     doctype_
     html_ [ lang_ "en" ] $ do
         head_ $ do
@@ -125,9 +123,6 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
             meta_
                 [ charset_ "UTF-8" ]
             title_ $ toHtml pageTitle
-            link_
-                [ rel_ "canonical"
-                , href_ baseURL ]
             link_
                 [ rel_ "stylesheet"
                 , type_ "text/css"
