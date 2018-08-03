@@ -4,4 +4,4 @@
   - blog.cabal
   - cabal.project
   - .+\.hs
-  command: make build
+  command: make site

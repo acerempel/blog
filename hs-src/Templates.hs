@@ -128,9 +128,6 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
                 , type_ "text/css"
                 , href_ (url (Routes.Stylesheet "magenta")) ]
         body_ $ do
-            header_ $ do
-                div_
-                    [ id_ "logo" ] (mempty :: Template ())
             main_ $ do
                 content
             footer_ $ do

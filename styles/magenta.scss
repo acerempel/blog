@@ -3,10 +3,8 @@
 $serif-fonts: Athelas, Marion, Baskerville, Garamond, Palatino, serif;
 $sans-serif-fonts: 'Avenir Next', 'Helvetica Neue', sans-serif;
 
-$magenta: #b725ad;
 $text-magenta: #783f75;
 $background-offwhite: #f8f8f8;
-$text-offwhite: #fcfcfc;
 $deepgray: #222;
 $mediumgray: #555;
 
@@ -18,8 +16,10 @@ body {
     font-kerning: normal;
     font-synthesis: none;
     text-rendering: optimizelegibility;
-    background-color: $magenta;
+    color: $deepgray;
+    background-color: $background-offwhite;
     margin: 0 0 0 0;
+    line-height: 140%;
 }
 
 $main-shadow-height: 0.7rem;
@@ -29,17 +29,14 @@ $main-shadow-height: 0.7rem;
         width: 560px;
     }
     @media screen and (max-width: 599px) {
-        width: 310px;
+        width: 93%;
     }
 }
 
 // Main content
 // {{{1
 main {
-    color: $deepgray;
-    background-color: $background-offwhite;
     border-radius: 0.5rem;
-    box-shadow: 0.2rem $main-shadow-height rgba(24, 6, 13, 0.25);
     margin: 0px auto;
     position: relative;
     box-sizing: border-box;
@@ -59,8 +56,7 @@ main {
     }
     grid-auto-rows: auto;
     grid-column-gap: 1.2rem;
-    grid-row-gap: 0.1em;
-    margin-bottom: 0.7rem;
+    margin-bottom: 1rem;
     .date {
         text-align: right;
         grid-row: 1 / 4;
@@ -84,7 +80,6 @@ main {
 }
 
 p, dl {
-    line-height: 130%;
     margin: 0.7rem 0;
     a {
         color: $text-magenta;
@@ -100,11 +95,11 @@ p img {
 
 blockquote {
     p {
-        line-height: 120%;
+        line-height: 124%;
     }
     margin-left: 4%;
     margin-right: 4%;
-    color: #474747;
+    color: #4c4c4c;
 }
 
 article {
@@ -136,11 +131,9 @@ header, footer, h1, h2 {
 }
 
 header, footer {
+    text-align: center;
     font-variant-caps: all-small-caps;
-    padding: 12px 0.6rem;
     box-sizing: border-box;
-    background-color: $magenta;
-    color: $text-offwhite;
     margin: 0px auto;
     @include main-content-responsive-width;
 }
@@ -153,13 +146,7 @@ header {
 footer {
     font-size: 16px;
     font-weight: 500;
-    text-align: left;
-    margin-top: $main-shadow-height;
-}
-
-footer a {
-    float: right;
-    text-align: right;
+    padding-bottom: 12px;
 }
 // }}}1
 
@@ -182,7 +169,7 @@ nav a {
 }
 
 .more a {
-     color: $magenta;
+     color: $mediumgray;
 }
 
 a {
