@@ -131,7 +131,7 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
             main_ $ do
                 content
             footer_ $ do
-                toHtml $ ("Alan Rempel © 2018" :: Text)
+                toHtml $ ("Composed with love in Halifax, Nova Scotia" :: Text)
 
 link :: Template () -> Route -> Template ()
 link linkText route =
