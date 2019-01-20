@@ -125,8 +125,10 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
             title_ $ toHtml pageTitle
             link_
                 [ rel_ "stylesheet"
-                , type_ "text/css"
                 , href_ (url (Routes.Stylesheet "magenta")) ]
+            link_
+                [ rel_ "stylesheet"
+                , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]
         body_ $ do
             main_ $ do
                 content
