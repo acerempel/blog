@@ -17,4 +17,4 @@ commit:
 new-post:
 	./scripts/new-post.fish -t "$(title)" -s $(slug) -d "$(date)"
 
-.PHONY: generate-site new-post commit
+.PHONY: new-post commit
