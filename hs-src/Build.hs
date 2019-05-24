@@ -30,7 +30,8 @@ data Options = Options
    , stylesDir :: FilePath
    , imagesDir :: FilePath
    , siteConfigFile :: FilePath 
-   , includeDrafts :: Bool }
+   , includeDrafts :: Bool
+   , includeTags :: Bool }
 
 
 build :: Options -> [String] -> Rules ()
@@ -59,7 +60,7 @@ build Options { .. } _targets = do
 
     -- Specify our build targets.
     action $ do
-        let pages = [R.Home, R.AllTags]
+        let pages = [R.Home] ++ [ R.AllTags | includeTags ]
         posts  <-
           map (R.Post . takeBaseName) <$> getAllMarkdownSourceFiles postsDir
         images <-
@@ -67,7 +68,8 @@ build Options { .. } _targets = do
         tags   <-
           map R.Tag . Map.keys <$> getAllPostsByTag ()
         let styles = [R.Stylesheet "magenta"]
-        let allTargets = pages <> posts <> tags <> images <> styles
+        let optionallyTags = if includeTags then tags else []
+        let allTargets = pages <> posts <> optionallyTags <> images <> styles
         need $ map ((buildDir </>) . R.targetFile) allTargets
 
     flip runReaderT buildDir $ do
@@ -78,20 +80,20 @@ build Options { .. } _targets = do
         thePost <- getPost (postsDir </> slug <.> "md")
         Templates.page
           (title thePost)
-          (Templates.post thePost)
+          (Templates.post thePost includeTags)
 
     templateRule (R.Tag . Text.pack) $ \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
         Templates.page
           ("Tagged as “" <> tag <> "”")
-          (Templates.archive postsWithThisTag (Just tag))
+          (Templates.archive postsWithThisTag (Just tag) includeTags)
 
     templateRule (const R.Home) $ \_ -> do
        allPosts <- getAllPosts ()
        Templates.page
         titleOfSite
-        (Templates.archive allPosts Nothing)
+        (Templates.archive allPosts Nothing includeTags)
 
     templateRule (const R.AllTags) $ \_ -> do
         allTags <- Map.toList . fmap length <$> getAllPostsByTag ()

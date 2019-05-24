@@ -7,6 +7,7 @@ module Templates ( Template, Html
 import Introit
 import qualified Text
 
+import Control.Monad ( when )
 import qualified Control.Monad.Trans.Class as Trans
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
@@ -28,6 +29,8 @@ newtype TemplateM a =
    TemplateM { runTemplateM :: Action a }
    deriving ( Functor, Applicative, Monad )
 
+type IncludeTags = Bool
+
 getSiteConfig :: String -> Template Text
 getSiteConfig key = Trans.lift $ TemplateM $
       maybe
@@ -36,24 +39,25 @@ getSiteConfig key = Trans.lift $ TemplateM $
       =<< getConfig key
 
 
-archive :: [Post] -> Maybe Text -> Template ()
-archive posts heading =
+archive :: [Post] -> Maybe Text -> IncludeTags -> Template ()
+archive posts heading includeTags =
    div_ [ class_ "archive-listing" ] $ do
       maybe mempty (h1_ . toHtml) heading
-      foldrMapM archiveEntry posts
+      foldrMapM (archiveEntry includeTags) posts
 
-post :: Post -> Template ()
+post :: Post -> IncludeTags -> Template ()
 post thePost@Post
       { content
       , composed
-      , tags } =
+      , tags } includeTags =
     article_ $ do
         div_ [ class_ "date" ] $ do
           date composed
         h1_ $ postLink thePost
         Lucid.relaxHtmlT $ MMark.render content
-        p_ [ class_ "tags" ] $
-          tagLinks tags
+        when includeTags $
+           p_ [ class_ "tags" ] $
+              tagLinks tags
 
 tagsList :: [(Tag, Int)] -> Template ()
 tagsList tagsWithCounts = do
@@ -68,8 +72,8 @@ tagsList tagsWithCounts = do
         small_ $ " (" <> toHtml (show count) <> " posts)"
 
 
-archiveEntry :: Post -> Template ()
-archiveEntry thePost@Post
+archiveEntry :: IncludeTags -> Post -> Template ()
+archiveEntry includeTags thePost@Post
                { synopsis
                , composed
                , tags } =
@@ -80,8 +84,9 @@ archiveEntry thePost@Post
          h2_ $ postLink thePost
       div_ [ class_ "synopsis" ] $
          p_ $ toHtml synopsis
-      div_ [ class_ "tags" ] $
-         p_ $ tagLinks tags
+      when includeTags $
+         div_ [ class_ "tags" ] $
+            p_ $ tagLinks tags
 
 date :: Day -> Template ()
 date theDate =
@@ -121,7 +126,7 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
                 [ name_ "viewport"
                 , content_ "width=device-width, initial-scale=1" ]
             meta_
-                [ charset_ "UTF-8" ]
+                [ charset_ "utf-8" ]
             title_ $ toHtml pageTitle
             link_
                 [ rel_ "stylesheet"
@@ -130,6 +135,8 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
                 [ rel_ "stylesheet"
                 , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]
         body_ $ do
+            header_ $ do
+                h1_ $ a_ [ href_ "/" ] "three dots …"
             main_ $ do
                 content
             footer_ $ do

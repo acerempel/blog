@@ -23,7 +23,9 @@ options = fmap Right <$>
    , stylesDirOption
    , imagesDirOption
    , draftsOption
-   , noDraftsOption ]
+   , noDraftsOption
+   , tagsOption
+   , noTagsOption ]
 
 defaultOptions :: Options
 defaultOptions = Options
@@ -33,7 +35,8 @@ defaultOptions = Options
    , stylesDir = "styles"
    , imagesDir = "images"
    , siteConfigFile = "config"
-   , includeDrafts = False }
+   , includeDrafts = False
+   , includeTags = False }
 
 
 liveModeOption =
@@ -89,6 +92,16 @@ noDraftsOption =
       (NoArg don'tIncludeDrafts)
       "Don't build drafts. (This is the default.)"
 
+tagsOption =
+   Option [] ["tags"]
+      (NoArg doIncludeTags)
+      "Build tags."
+
+noTagsOption =
+   Option [] ["no-tags"]
+      (NoArg don'tIncludeTags)
+      "Don't build tags. (This is the default.)"
+
 useConfigFile :: FilePath -> Flag
 useConfigFile siteConfigFile configuration =
    configuration{ siteConfigFile }
@@ -117,3 +130,11 @@ doIncludeDrafts configuration =
 don'tIncludeDrafts :: Flag
 don'tIncludeDrafts configuration =
    configuration{ includeDrafts = False }
+
+doIncludeTags :: Flag
+doIncludeTags configuration =
+   configuration{ includeTags = True }
+
+don'tIncludeTags :: Flag
+don'tIncludeTags configuration =
+   configuration{ includeTags = False }
