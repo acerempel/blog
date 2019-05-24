@@ -2,7 +2,7 @@
 module Main where
 
 import Data.Monoid ( (<>) )
-import Data.Text ( isSuffixOf )
+import qualified Data.Text as Text
 
 import Network.Wai
 import Network.Wai.Application.Static
@@ -10,6 +10,7 @@ import Network.Wai.Handler.Warp
 import WaiAppStatic.Types
 
 import System.Environment
+import System.FilePath ( hasExtension )
 
 main :: IO ()
 main = do
@@ -28,13 +29,8 @@ app htmlDir =
      in staticApp $ defaults { ssLookupFile = ssLookupFile defaults . route }
   where
     route (map fromPiece -> pieces) = map unsafeToPiece $
-        case pieces of
-            []
-               -> [ "index.html" ]
-            [ "archive" ]
-               -> [ "archive.html" ]
-            [ "posts" , post ]
-               | not (".html" `isSuffixOf` post)
-               -> [ "posts", post <> ".html" ]
-            _  -> pieces
+      if not (null pieces) && hasExtension (Text.unpack (last pieces)) then
+        pieces
+      else
+        pieces ++ [ "index.html" ]
 

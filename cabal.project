@@ -11,3 +11,6 @@ package blog
 package mmark
     ghc-options: -fhide-source-paths
     optimization: 2
+
+package blog-server
+    ghc-options: -fhide-source-paths -Wall
