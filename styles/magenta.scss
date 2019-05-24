@@ -257,7 +257,7 @@ p > cite:only-child {
 h1 {
     font-size: 22px;
     margin-top: 0.57rem;
-    margin-bottom: 0;
+    margin-bottom: 1.4rem;
 }
 
 h2 {
@@ -296,6 +296,8 @@ strong {
 
 ul, ol {
     padding-left: 18px;
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 // Description lists
