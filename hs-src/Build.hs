@@ -14,13 +14,11 @@ import Development.Shake
 import Development.Shake.Config
 import Development.Shake.FilePath
 import qualified Text
-import qualified Text.Sass as Sass
 
 import Actions
 import Post
 import qualified Templates
 import qualified Routes as R
-import Utilities
 
 
 data Options = Options
@@ -106,12 +104,7 @@ build Options { .. } _targets = do
         let src = stylesDir </> basename <.> "scss"
             file = buildDir </> R.targetFile route
         need [src]
-        scssOrError <- liftIO $
-          Sass.compileFile src Sass.def
-        either
-          (throwFileError src <=< (liftIO . Sass.errorMessage))
-          (liftIO . writeFile file)
-          scssOrError
+        cmd_ ("sass" :: String) ["--unicode", src, file]
 
     urlRule R.Image $
       \route@(R.Image filename) buildDir -> do
