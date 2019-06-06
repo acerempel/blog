@@ -27,7 +27,7 @@ data Options = Options
    , draftsDir :: FilePath
    , stylesDir :: FilePath
    , imagesDir :: FilePath
-   , siteConfigFile :: FilePath 
+   , siteConfigFile :: FilePath
    , includeDrafts :: Bool
    , includeTags :: Bool }
 
