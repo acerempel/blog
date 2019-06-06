@@ -76,26 +76,26 @@ build Options { .. } _targets = do
 
     templateRule R.Post $ \(R.Post slug) -> do
         thePost <- getPost (postsDir </> slug <.> "md")
-        Templates.page
+        return $ Templates.page
           (title thePost)
           (Templates.post thePost includeTags)
 
     templateRule (R.Tag . Text.pack) $ \(R.Tag tag) -> do
         postsByTag <- getAllPostsByTag ()
         let postsWithThisTag = postsByTag ! tag
-        Templates.page
+        return $ Templates.page
           ("Tagged as “" <> tag <> "”")
           (Templates.archive postsWithThisTag (Just tag) includeTags)
 
     templateRule (const R.Home) $ \_ -> do
        allPosts <- getAllPosts ()
-       Templates.page
+       return $ Templates.page
         titleOfSite
         (Templates.archive allPosts Nothing includeTags)
 
     templateRule (const R.AllTags) $ \_ -> do
         allTags <- Map.toList . fmap length <$> getAllPostsByTag ()
-        Templates.page
+        return $ Templates.page
           "Tags"
           (Templates.tagsList allTags)
 

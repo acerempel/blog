@@ -1,6 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Templates ( Template, Html
-                 , getSiteConfig
+module Templates ( Html
                  , archive, post, tagsList
                  , page ) where
 
@@ -8,11 +7,8 @@ import Introit
 import qualified Text
 
 import Control.Monad ( when )
-import qualified Control.Monad.Trans.Class as Trans
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
-import Development.Shake ( Action )
-import Development.Shake.Config ( getConfig )
 import Lucid
 import qualified Lucid.Base as Lucid
 import qualified Text.MMark as MMark
@@ -20,32 +16,17 @@ import qualified Text.MMark as MMark
 import Post
 import Routes ( Route, url )
 import qualified Routes
-import Utilities
 
-
-type Template a = HtmlT TemplateM a
-
-newtype TemplateM a =
-   TemplateM { runTemplateM :: Action a }
-   deriving ( Functor, Applicative, Monad )
 
 type IncludeTags = Bool
 
-getSiteConfig :: String -> Template Text
-getSiteConfig key = Trans.lift $ TemplateM $
-      maybe
-         (throwError ("No such key in config file: " <> key))
-         (return . Text.pack)
-      =<< getConfig key
-
-
-archive :: [Post] -> Maybe Text -> IncludeTags -> Template ()
+archive :: [Post] -> Maybe Text -> IncludeTags -> Html ()
 archive posts heading includeTags =
    div_ [ class_ "archive-listing" ] $ do
       maybe mempty (h1_ . toHtml) heading
       foldrMapM (archiveEntry includeTags) posts
 
-post :: Post -> IncludeTags -> Template ()
+post :: Post -> IncludeTags -> Html ()
 post thePost@Post
       { content
       , composed
@@ -59,20 +40,20 @@ post thePost@Post
            p_ [ class_ "tags" ] $
               tagLinks tags
 
-tagsList :: [(Tag, Int)] -> Template ()
+tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
     h1_ "Tags"
     div_ [ class_ "tags" ]$ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
-    tagWithCount :: (Tag, Int) -> Template ()
+    tagWithCount :: (Tag, Int) -> Html ()
     tagWithCount (tag, count) =
       li_ $ do
         tagLink tag
         small_ $ " (" <> toHtml (show count) <> " posts)"
 
 
-archiveEntry :: IncludeTags -> Post -> Template ()
+archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags thePost@Post
                { synopsis
                , composed
@@ -88,13 +69,13 @@ archiveEntry includeTags thePost@Post
          div_ [ class_ "tags" ] $
             p_ $ tagLinks tags
 
-date :: Day -> Template ()
+date :: Day -> Html ()
 date theDate =
    time_
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-postLink :: Post -> Template ()
+postLink :: Post -> Html ()
 postLink Post{ title, isDraft, slug } =
    link (toHtml theTitle) (Routes.Post slug)
   where
@@ -102,20 +83,20 @@ postLink Post{ title, isDraft, slug } =
    theTitle =
       if isDraft then "[DRAFT] " <> title else title
 
-tagLinks :: [Tag] -> Template ()
+tagLinks :: [Tag] -> Html ()
 tagLinks [] = mempty
 tagLinks theTags =
     small_ $
       "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags)) 
 
-tagLink :: Tag -> Template ()
+tagLink :: Tag -> Html ()
 tagLink tagName =
   link (toHtml tagName) (Routes.Tag tagName)
 
 page :: Text -- ^ This page's title.
-     -> Template () -- ^ This page's content.
-     -> Action (Html ())
-page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
+     -> Html () -- ^ This page's content.
+     -> Html ()
+page pageTitle content = do
     doctype_
     html_ [ lang_ "en" ] $ do
         head_ $ do
@@ -142,7 +123,7 @@ page pageTitle content = runTemplateM $ Lucid.commuteHtmlT $ do
             footer_ $ do
                 toHtml $ ("Composed with love in Halifax, Nova Scotia" :: Text)
 
-link :: Template () -> Route -> Template ()
+link :: Html () -> Route -> Html ()
 link linkText route =
    a_ [ href_ (url route) ]
       linkText
