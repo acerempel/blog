@@ -116,12 +116,8 @@ page pageTitle content = do
                 [ rel_ "stylesheet"
                 , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]
         body_ $ do
-            header_ $ do
-                h1_ $ a_ [ href_ "/" ] "three dots …"
             main_ $ do
                 content
-            footer_ $ do
-                toHtml $ ("Composed with love in Halifax, Nova Scotia" :: Text)
 
 link :: Html () -> Route -> Html ()
 link linkText route =
