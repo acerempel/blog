@@ -41,11 +41,11 @@ readPost filepath = do
          first (MMark.parseErrorsPretty contents) $
          second (MMark.useExtension hyphensToDashes) $
          MMark.parse filepath contents
-      yaml <- maybe (Left (noMetadataError filepath)) Right $
+      yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
-      withMetadata filepath body yaml
+      withMetadata body yaml
  where
-   withMetadata filepath content = Yaml.parseEither $
+   withMetadata content = Yaml.parseEither $
       Yaml.withObject "metadata" $ \metadata -> do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
@@ -65,7 +65,7 @@ readPost filepath = do
       Text.replace "--" "–" .
       Text.replace "---" "—"
 
-   noMetadataError filepath =
+   noMetadataError =
       "Couldn't find a metadata block in file " <> filepath
 
    dateFormat = "%e %B %Y"
