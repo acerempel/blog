@@ -103,7 +103,7 @@ build Options { .. } _targets = do
         let src = stylesDir </> basename <.> "scss"
             file = buildDir </> R.targetFile route
         need [src]
-        cmd_ ("sass" :: String) ["--unicode", src, file]
+        cmd_ ("sass" :: String) ["--unicode", "--no-source-map", src, file]
 
     urlRule R.Image $
       \route@(R.Image filename) buildDir -> do
