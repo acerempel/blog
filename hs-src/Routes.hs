@@ -1,6 +1,4 @@
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass
-           , LambdaCase
-#-}
+{-# LANGUAGE LambdaCase #-}
 module Routes
    ( Route(..)
    , targetFile
@@ -10,25 +8,27 @@ module Routes
 import Introit
 import qualified Text
 
-import System.FilePath
+import System.FilePath ( (</>) )
 import qualified Network.URI.Encode as URI
 
+type Path = String
+
 data Route
-   = Home
-   | Post String
-   | AllTags
-   | Tag Text
-   | Stylesheet String
-   | Image String
+   = HomeR
+   | PageR Path
+   | AllTagsR
+   | TagR Text
+   | StylesheetR Path
+   | ImageR Path
 
 targetFile :: Route -> FilePath
 targetFile = \case
-   Home             -> htmlTargetFile Home
-   p@(Post _)       -> htmlTargetFile p
-   AllTags          -> htmlTargetFile AllTags
-   t@(Tag _)        -> htmlTargetFile t
-   s@(Stylesheet _) -> urlToTargetFile (url s)
-   i@(Image _)      -> urlToTargetFile (url i)
+   HomeR             -> htmlTargetFile HomeR
+   p@(PageR _)       -> htmlTargetFile p
+   AllTagsR          -> htmlTargetFile AllTagsR
+   t@(TagR _)        -> htmlTargetFile t
+   s@(StylesheetR _) -> urlToTargetFile (url s)
+   i@(ImageR _)      -> urlToTargetFile (url i)
  where
    urlToTargetFile url =
      -- This is dumb, see below
@@ -38,15 +38,15 @@ targetFile = \case
 
 url :: Route -> Text
 url = Text.pack . \case
-   Home ->
+   HomeR ->
       "/"
-   Post slug ->
-      "/posts" </> slug
-   AllTags ->
+   PageR path ->
+      "/" </> path
+   AllTagsR ->
       "/tags"
-   Tag tag ->
+   TagR tag ->
       "/tags" </> Text.unpack (URI.encodeText tag)
-   Stylesheet basename ->
-      "/styles" </> basename <.> "css"
-   Image filename ->
-      "/images" </> filename
+   StylesheetR path ->
+      "/" </> path
+   ImageR path ->
+      "/" </> path

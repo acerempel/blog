@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Templates ( Html
                  , archive, post, tagsList
                  , postLink
@@ -47,7 +46,7 @@ post thePost@Post
                             p_ [ class_ "post-meta" ] $ "Preceding post"
                             p_ (link preceding)) mbPreceding
                 div_ [ class_ "footer-block" ] $
-                    link Link{ linkRoute = Routes.Home
+                    link Link{ linkRoute = Routes.HomeR
                              , linkAttributes = []
                              , linkText = "Home" }
                 maybe mempty (\following -> div_ [ class_ "footer-block" ] $ do
@@ -94,7 +93,7 @@ postLink :: Post -> Link
 postLink Post{ title, slug } =
    Link{ linkText = toHtml title
        , linkAttributes = [ class_ "post-title" ]
-       , linkRoute = Routes.Post slug }
+       , linkRoute = Routes.PageR slug }
 
 tagLinks :: [Tag] -> Html ()
 tagLinks [] = mempty
@@ -106,7 +105,7 @@ tagLink :: Tag -> Link
 tagLink tagName =
   Link{ linkText = toHtml tagName
       , linkAttributes = []
-      , linkRoute = Routes.Tag tagName }
+      , linkRoute = Routes.TagR tagName }
 
 data PageContent = PageContent
     { mainContent :: Html ()
@@ -136,7 +135,7 @@ page pageTitle PageContent{mainContent, footerContent} = do
             title_ $ toHtml pageTitle
             link_
                 [ rel_ "stylesheet"
-                , href_ (url (Routes.Stylesheet "magenta")) ]
+                , href_ (url (Routes.StylesheetR "magenta")) ]
             link_
                 [ rel_ "stylesheet"
                 , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]

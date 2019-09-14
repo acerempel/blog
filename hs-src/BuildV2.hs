@@ -1,23 +1,61 @@
 module BuildV2 where
 
-import System.Directory ( listDirectory )
-import System.FilePath ( (</>) )
+import Data.Traversable ( for )
+import System.Directory
+    ( listDirectory, doesDirectoryExist, doesFileExist )
+import System.FilePath
+    ( (</>), takeExtension, dropExtension, replaceExtension )
 
 import Lucid ( Html )
 import qualified Lucid as Html
 
 import Post ( Post(..), readPost )
-import Routes ( Route, targetFile )
-import qualified Routes
+import Routes ( Route(..), targetFile )
 import Templates ( postLink )
 import qualified Templates
 
 type DirectoryPath = FilePath
 
-getAllPosts :: DirectoryPath -> IO [Post]
-getAllPosts postSourceDirectory = do
-    postSourcePaths <- listDirectory postSourceDirectory
-    traverse readPost postSourcePaths
+listDirectoryRecursively :: DirectoryPath -> IO [FilePath]
+listDirectoryRecursively baseDirectory = do
+    go baseDirectory
+    where
+      go directory = do
+        directoryContents <- listDirectory directory
+        fmap concat $ for directoryContents $ \item -> do
+          let itemPath = directory </> item
+          isNormalFile <- doesFileExist itemPath
+          if isNormalFile then
+            return [itemPath]
+          else do
+            isDirectory <- doesDirectoryExist itemPath
+            if isDirectory then
+              go itemPath
+            else
+              return []
+
+analyzeSource :: FilePath -> BuildItem
+analyzeSource sourcePath =
+  let
+    buildSource = sourcePath
+    buildTarget =
+      case takeExtension sourcePath of
+      ".md" ->
+        PageR (dropExtension sourcePath)
+      ".scss" ->
+        StylesheetR (replaceExtension sourcePath ".css")
+      extension | extension `elem` imageExtensions ->
+        ImageR sourcePath
+      unknownExtension ->
+        error "Que faire??"
+   in
+    BuildItem{..}
+
+  where imageExtensions = [".jpg", ".png"]
+
+data BuildItem = BuildItem
+    { buildSource :: FilePath
+    , buildTarget :: Route }
 
 data Page = Page
     { pageHtml :: Html ()
@@ -44,7 +82,7 @@ renderPosts posts =
         renderPost post mbPreceding mbFollowing =
           let postContent = Templates.post post mbPreceding mbFollowing False
            in Page{ pageHtml = Templates.page (title post) postContent
-                  , pageRoute = Routes.Post (slug post) }
+                  , pageRoute = Routes.PageR (slug post) }
 
 writePage :: DirectoryPath -> Page -> IO ()
 writePage baseDirectory Page{pageHtml, pageRoute} =
