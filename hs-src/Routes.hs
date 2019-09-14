@@ -10,9 +10,7 @@ module Routes
 import Introit
 import qualified Text
 
-import Data.Hashable ( Hashable )
-import Development.Shake.FilePath
-import GHC.Generics ( Generic )
+import System.FilePath
 import qualified Network.URI.Encode as URI
 
 data Route
@@ -22,7 +20,6 @@ data Route
    | Tag Text
    | Stylesheet String
    | Image String
-   deriving ( Eq, Generic, Hashable )
 
 targetFile :: Route -> FilePath
 targetFile = \case

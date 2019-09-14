@@ -14,7 +14,7 @@ html,body,p,dl,dd,ul,ol,li,blockquote,div,main,article,aside,code,pre,header,foo
 }
 
 body {
-    font-family: $serif-fonts;
+    font-family: $sans-serif-fonts;
     font-size: 1.1278rem;
     line-height: 1.575rem;
     font-variant-ligatures: contextual;
@@ -52,19 +52,16 @@ main {
         grid-auto-rows: auto;
         grid-column-gap: 0.7875rem;
         .synopsis { grid-column: 2 / 3; }
-        .date {
+        .post-meta {
             text-align: right;
             grid-row: 1 / 4;
         }
-        .title {
+        div .post-title {
             align-self: end;
         }
     }
-    .date {
+    .post-meta {
         line-height: 1.575rem;
-    }
-    .synopsis {
-        font-family: $sans-serif-fonts;
     }
 }
 
@@ -89,14 +86,11 @@ blockquote {
 }
 
 article {
+    font-family: $serif-fonts;
 }
 
 article:first-child, .archive-entry:first-child {
     margin-top: 0;
-}
-
-header, footer, h1, h2, h3, {
-    font-family: $sans-serif-fonts;
 }
 
 a {
@@ -128,12 +122,12 @@ h1 {
     margin-bottom: 0.7rem;
 }
 
-h2 {
+.post-title {
     font-size: 1.1278rem;
+    font-weight: bold;
 }
 
-.date {
-    font-family: $sans-serif-fonts;
+.post-meta {
     font-style: italic;
     color: $mediumgray;
     font-size: 1.0619rem;
@@ -143,22 +137,3 @@ h2 {
 hr {
     width: 32%
 }
-
-
-// Description lists
-dt, dd {
-    display: inline;
-}
-
-dt {
-    font-family: $sans-serif-fonts;
-    font-weight: 600;
-}
-
-dt::after {
-    content: ":";
-    font-weight: 500;
-    position: relative;
-    right: 2.3px;
-}
-

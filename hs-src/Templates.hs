@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Templates ( Html
                  , archive, post, tagsList
+                 , postLink
                  , page ) where
 
 import Introit
@@ -26,19 +27,33 @@ archive posts heading includeTags =
       maybe mempty (h1_ . toHtml) heading
       foldrMapM (archiveEntry includeTags) posts
 
-post :: Post -> IncludeTags -> Html ()
+post :: Post -> Maybe Link -> Maybe Link -> IncludeTags -> PageContent
 post thePost@Post
       { content
       , composed
-      , tags } includeTags =
-    article_ $ do
-        div_ [ class_ "date" ] $ do
-          date composed
-        h1_ $ postLink thePost
-        Lucid.relaxHtmlT $ MMark.render content
-        when includeTags $
-           p_ [ class_ "tags" ] $
-              tagLinks tags
+      , tags } mbPreceding mbFollowing includeTags =
+    let
+        mainContent =
+            article_ $ do
+                div_ [ class_ "post-meta" ] $ do
+                    date composed
+                h1_ $ link $ postLink thePost
+                Lucid.relaxHtmlT $ MMark.render content
+                when includeTags $
+                    p_ [ class_ "tags" ] $
+                        tagLinks tags
+        footerContent = do
+                maybe mempty (\preceding -> div_ [ class_ "footer-block" ] $ do
+                            p_ [ class_ "post-meta" ] $ "Preceding post"
+                            p_ (link preceding)) mbPreceding
+                div_ [ class_ "footer-block" ] $
+                    link Link{ linkRoute = Routes.Home
+                             , linkAttributes = []
+                             , linkText = "Home" }
+                maybe mempty (\following -> div_ [ class_ "footer-block" ] $ do
+                            p_ [ class_ "post-meta" ] $ "Following post"
+                            p_ (link following)) mbFollowing
+    in PageContent{ mainContent, footerContent }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -49,7 +64,7 @@ tagsList tagsWithCounts = do
     tagWithCount :: (Tag, Int) -> Html ()
     tagWithCount (tag, count) =
       li_ $ do
-        tagLink tag
+        link $ tagLink tag
         small_ $ " (" <> toHtml (show count) <> " posts)"
 
 
@@ -59,10 +74,10 @@ archiveEntry includeTags thePost@Post
                , composed
                , tags } =
    div_ [ class_ "archive-entry" ] $ do
-      div_ [ class_ "date" ] $
-         date composed
-      div_ [ class_ "title" ] $
-         h2_ $ postLink thePost
+      div_ [ class_ "post-meta" ] $
+         p_ $ date composed
+      div_ $
+         p_ $ link $ postLink thePost
       div_ [ class_ "synopsis" ] $
          p_ $ toHtml synopsis
       when includeTags $
@@ -75,28 +90,38 @@ date theDate =
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-postLink :: Post -> Html ()
-postLink Post{ title, isDraft, slug } =
-   link (toHtml theTitle) (Routes.Post slug)
-  where
-   theTitle :: Text
-   theTitle =
-      if isDraft then "[DRAFT] " <> title else title
+postLink :: Post -> Link
+postLink Post{ title, slug } =
+   Link{ linkText = toHtml title
+       , linkAttributes = [ class_ "post-title" ]
+       , linkRoute = Routes.Post slug }
 
 tagLinks :: [Tag] -> Html ()
 tagLinks [] = mempty
 tagLinks theTags =
     small_ $
-      "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags)) 
+      "Tagged as " <> mconcat (intersperse ", " (map (link . tagLink) theTags)) 
 
-tagLink :: Tag -> Html ()
+tagLink :: Tag -> Link
 tagLink tagName =
-  link (toHtml tagName) (Routes.Tag tagName)
+  Link{ linkText = toHtml tagName
+      , linkAttributes = []
+      , linkRoute = Routes.Tag tagName }
+
+data PageContent = PageContent
+    { mainContent :: Html ()
+    , footerContent :: Html ()
+    }
+
+data Link = Link
+    { linkRoute :: Route
+    , linkAttributes :: [Attribute]
+    , linkText :: Html () }
 
 page :: Text -- ^ This page's title.
-     -> Html () -- ^ This page's content.
+     -> PageContent
      -> Html ()
-page pageTitle content = do
+page pageTitle PageContent{mainContent, footerContent} = do
     doctype_
     html_ [ lang_ "en" ] $ do
         head_ $ do
@@ -117,9 +142,11 @@ page pageTitle content = do
                 , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]
         body_ $ do
             main_ $ do
-                content
+                mainContent
+            footer_ $ do
+                footerContent
 
-link :: Html () -> Route -> Html ()
-link linkText route =
-   a_ [ href_ (url route) ]
+link :: Link -> Html ()
+link Link{ linkText, linkAttributes, linkRoute } =
+   a_ (href_ (url linkRoute) : linkAttributes)
       linkText

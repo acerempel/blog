@@ -5,12 +5,11 @@ import Introit
 import qualified Text
 import Utilities
 
+import System.FilePath
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
-import Development.Shake
-import Development.Shake.FilePath
 import qualified Network.URI.Encode as URI
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
@@ -32,10 +31,9 @@ data Post = Post
 type Tag = Text
 
 readPost :: FilePath
-         -> Action Post
+         -> IO Post
 readPost filepath = do
-    need [filepath]
-    contents <- liftIO $ Text.readFile filepath
+    contents <- Text.readFile filepath
     either (throwFileError filepath) return $ do
       body <-
          first (MMark.parseErrorsPretty contents) $

@@ -2,7 +2,6 @@ module Introit ( module X, Text, foldrMapM ) where
 
 import Control.Applicative as X
 import Control.Monad as X
-import Control.Monad.Trans.Class as X
 import Data.Bifunctor as X
 import Data.Either as X
 import Data.Foldable as X

@@ -14,9 +14,7 @@ cabal-version:       >=1.10
 
 executable blog
   main-is:             Main.hs
-  other-modules:       Build
-                     , Flags
-                     , Actions
+  other-modules:       BuildV2
                      , Templates
                      , Routes
                      , Post
@@ -26,22 +24,13 @@ executable blog
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
                      , RecordWildCards
-  other-extensions:    GADTs, ViewPatterns
-                     , DeriveGeneric, DeriveAnyClass
-                     , GeneralizedNewtypeDeriving
-                     , DuplicateRecordFields
-  ghc-options:         -threaded -rtsopts "-with-rtsopts=-I0 -qg"
   build-depends:       base >= 4.8 && < 5
-                     , bytestring
-                     , containers
+                     , filepath
                      , directory >= 1.2.5
-                     , hashable
                      , lucid >= 2.9.7 && < 3.0
                      , mmark >= 0.0.4.2 && < 0.1
-                     , shake >= 0.16 && < 0.17
                      , time >= 1.5
                      , text
-                     , transformers
                      , uri-encode
                      , yaml >= 0.8.23 && < 0.9
   hs-source-dirs:      hs-src
