@@ -10,7 +10,7 @@ import Lucid ( Html )
 import qualified Lucid as Html
 
 import Post ( Post(..), readPost )
-import Routes ( Route(..), targetFile )
+import Routes ( Route(..), targetFile, ContentType(..) )
 import Templates ( postLink )
 import qualified Templates
 
@@ -22,7 +22,7 @@ listDirectoryRecursively baseDirectory = do
     where
       go directory = do
         directoryContents <- listDirectory directory
-        fmap concat $ for directoryContents $ \item -> do
+        fmap concat $ for directoryContents \item -> do
           let itemPath = directory </> item
           isNormalFile <- doesFileExist itemPath
           if isNormalFile then
@@ -34,32 +34,33 @@ listDirectoryRecursively baseDirectory = do
             else
               return []
 
-analyzeSource :: FilePath -> BuildItem
+analyzeSource :: FilePath -> SomeBuildItem
 analyzeSource sourcePath =
-  let
-    buildSource = sourcePath
-    buildTarget =
-      case takeExtension sourcePath of
-      ".md" ->
-        PageR (dropExtension sourcePath)
-      ".scss" ->
-        StylesheetR (replaceExtension sourcePath ".css")
-      extension | extension `elem` imageExtensions ->
-        ImageR sourcePath
-      unknownExtension ->
-        error "Que faire??"
-   in
-    BuildItem{..}
+  case takeExtension sourcePath of
+  ".md" -> SomeBuildItem BuildItem
+    { buildTarget = PageR (dropExtension sourcePath)
+    , buildSource = sourcePath }
+  ".scss" -> SomeBuildItem BuildItem
+    { buildTarget = StylesheetR (replaceExtension sourcePath ".css")
+    , buildSource = sourcePath }
+  extension | extension `elem` imageExtensions -> SomeBuildItem BuildItem
+    { buildTarget = ImageR sourcePath
+    , buildSource = sourcePath }
+  unknownExtension ->
+    error "Que faire??"
 
   where imageExtensions = [".jpg", ".png"]
 
-data BuildItem = BuildItem
+data BuildItem a = BuildItem
     { buildSource :: FilePath
-    , buildTarget :: Route }
+    , buildTarget :: Route a }
+
+data SomeBuildItem where
+    SomeBuildItem :: BuildItem a -> SomeBuildItem
 
 data Page = Page
     { pageHtml :: Html ()
-    , pageRoute :: Route }
+    , pageRoute :: Route 'Html }
 
 renderPosts :: [Post] -> [Page]
 renderPosts posts =

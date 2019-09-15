@@ -3,17 +3,18 @@ module Post ( Post(..), Tag, readPost ) where
 
 import Introit
 import qualified Text
-import Utilities
 
 import System.FilePath
+import Control.Exception ( throwIO )
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import qualified Network.URI.Encode as URI
+import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
-import qualified Text.MMark.Extension as MMark
+import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
@@ -34,17 +35,17 @@ readPost :: FilePath
          -> IO Post
 readPost filepath = do
     contents <- Text.readFile filepath
-    either (throwFileError filepath) return $ do
+    either (throwIO . userError) return do
       body <-
-         first (MMark.parseErrorsPretty contents) $
-         second (MMark.useExtension hyphensToDashes) $
+         first MP.errorBundlePretty $
+         second (MMark.useExtension punctuationPrettifier) $
          MMark.parse filepath contents
       yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
       withMetadata body yaml
  where
    withMetadata content = Yaml.parseEither $
-      Yaml.withObject "metadata" $ \metadata -> do
+      Yaml.withObject "metadata" \metadata -> do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
@@ -55,13 +56,6 @@ readPost filepath = do
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False
             , .. }
-
-   hyphensToDashes :: MMark.Extension
-   hyphensToDashes = MMark.inlineTrans $
-      MMark.mapInlineRecursively $
-      MMark.mapInlineText $
-      Text.replace "--" "–" .
-      Text.replace "---" "—"
 
    noMetadataError =
       "Couldn't find a metadata block in file " <> filepath

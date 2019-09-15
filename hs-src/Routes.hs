@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 module Routes
    ( Route(..)
+   , ContentType(..)
    , targetFile
    , url
    ) where
@@ -8,20 +9,24 @@ module Routes
 import Introit
 import qualified Text
 
+import Data.Kind ( Type )
 import System.FilePath ( (</>) )
 import qualified Network.URI.Encode as URI
 
 type Path = String
+type TagName = Text
 
-data Route
-   = HomeR
-   | PageR Path
-   | AllTagsR
-   | TagR Text
-   | StylesheetR Path
-   | ImageR Path
+data ContentType = Html | CSS | Image
 
-targetFile :: Route -> FilePath
+data Route :: ContentType -> Type where
+  HomeR :: Route Html
+  PageR :: Path -> Route Html
+  AllTagsR :: Route Html
+  TagR :: TagName -> Route Html
+  StylesheetR :: Path -> Route CSS
+  ImageR :: Path -> Route Image
+
+targetFile :: Route a -> FilePath
 targetFile = \case
    HomeR             -> htmlTargetFile HomeR
    p@(PageR _)       -> htmlTargetFile p
@@ -36,7 +41,7 @@ targetFile = \case
    htmlTargetFile route =
       urlToTargetFile (url route) </> "index.html"
 
-url :: Route -> Text
+url :: Route a -> Text
 url = Text.pack . \case
    HomeR ->
       "/"
