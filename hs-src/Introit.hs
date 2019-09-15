@@ -8,7 +8,9 @@ import Data.Foldable as X
 import Data.List as X
 import Data.Maybe as X
 import Data.Monoid as X
+import Data.Ord as X
 import Data.Text ( Text )
+import Data.Traversable as X
 
 foldrMapM :: (Foldable f, Monoid z, Monad m) => (a -> m z) -> f a -> m z
 foldrMapM f =

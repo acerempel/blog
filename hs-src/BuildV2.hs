@@ -1,10 +1,13 @@
 module BuildV2 where
 
-import Data.Traversable ( for )
+import Introit
+
+import Data.Map.Strict ( Map )
+import qualified Data.Map.Strict as Map
 import System.Directory
     ( listDirectory, doesDirectoryExist, doesFileExist )
 import System.FilePath
-    ( (</>), takeExtension, dropExtension, replaceExtension )
+    ( (</>), takeDirectory, takeExtension )
 
 import Lucid ( Html )
 import qualified Lucid as Html
@@ -13,6 +16,28 @@ import Post ( Post(..), readPost )
 import Routes ( Route(..), targetFile, ContentType(..) )
 import Templates ( postLink )
 import qualified Templates
+
+data Options = Options
+    { postsSubDirectory :: DirectoryPath
+    , inputDirectory :: DirectoryPath
+    , outputDirectory :: DirectoryPath
+    , includeDrafts :: Bool
+    }
+
+build :: Options -> IO ()
+build Options{..} = do
+    inputPaths <- listDirectoryRecursively inputDirectory
+    let inputPathsCategorized =
+          categorizePathsByExtension inputPaths
+    let postSourcePaths =
+          filter ((postsSubDirectory ==) . takeDirectory) $
+          toList $
+          Map.lookup ".md" inputPathsCategorized
+    postsUnordered <- traverse readPost postSourcePaths
+    let postsOrdered =
+          sortOn (Down . published) postsUnordered
+    let postsRendered = renderPosts postsOrdered
+    traverse_ (writePage outputDirectory) postsRendered
 
 type DirectoryPath = FilePath
 
@@ -34,29 +59,16 @@ listDirectoryRecursively baseDirectory = do
             else
               return []
 
-analyzeSource :: FilePath -> SomeBuildItem
-analyzeSource sourcePath =
-  case takeExtension sourcePath of
-  ".md" -> SomeBuildItem BuildItem
-    { buildTarget = PageR (dropExtension sourcePath)
-    , buildSource = sourcePath }
-  ".scss" -> SomeBuildItem BuildItem
-    { buildTarget = StylesheetR (replaceExtension sourcePath ".css")
-    , buildSource = sourcePath }
-  extension | extension `elem` imageExtensions -> SomeBuildItem BuildItem
-    { buildTarget = ImageR sourcePath
-    , buildSource = sourcePath }
-  unknownExtension ->
-    error "Que faire??"
+type Extension = String
 
-  where imageExtensions = [".jpg", ".png"]
+categorizePathsByExtension :: [FilePath] -> Map Extension FilePath
+categorizePathsByExtension =
+    foldr (\path -> Map.insert (takeExtension path) path) Map.empty
 
-data BuildItem a = BuildItem
-    { buildSource :: FilePath
-    , buildTarget :: Route a }
-
-data SomeBuildItem where
-    SomeBuildItem :: BuildItem a -> SomeBuildItem
+{- ALTERNATIVE IMPLEMENTATION:
+categorizePathsByExtension =
+    Map.fromList . map (\path -> (takeExtension path, path))
+-}
 
 data Page = Page
     { pageHtml :: Html ()

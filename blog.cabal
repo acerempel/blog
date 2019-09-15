@@ -27,6 +27,7 @@ executable blog
                      , TypeInType
                      , BlockArguments
   build-depends:       base >= 4.10 && < 5
+                     , containers
                      , filepath
                      , directory >= 1.2.5
                      , lucid >= 2.9.7 && < 3.0
