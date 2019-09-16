@@ -12,6 +12,8 @@ import System.FilePath
 import Lucid ( Html )
 import qualified Lucid as Html
 
+import List ( List )
+import qualified List
 import Post ( Post(..), readPost )
 import Routes ( Route(..), targetFile, ContentType(..) )
 import qualified Templates
@@ -29,37 +31,37 @@ build Options{..} = do
     let inputPathsCategorized =
           categorizePathsByExtension inputPaths
     let postSourcePaths =
-          filter ((postsSubDirectory ==) . takeDirectory) $
-          fromMaybe [] $
+          List.filter ((postsSubDirectory ==) . takeDirectory) $
+          fromMaybe List.empty $
           Map.lookup ".md" inputPathsCategorized
     postsUnordered <- traverse readPost postSourcePaths
     let postsOrdered =
-          sortOn (Down . published) postsUnordered
-    let postsRendered = map (renderPost includeTags) postsOrdered
+          List.sortOn (Down . published) postsUnordered
+    let postsRendered = fmap (renderPost includeTags) postsOrdered
     traverse_ (writePage outputDirectory) postsRendered
 
 type DirectoryPath = FilePath
 
-listDirectoryRecursively :: DirectoryPath -> IO [FilePath]
+listDirectoryRecursively :: DirectoryPath -> IO (List FilePath)
 listDirectoryRecursively directory = do
-  directoryContents <- listDirectory directory
-  fmap concat $ for directoryContents \item -> do
+  directoryContents <- List.fromList <$> listDirectory directory
+  fmap List.concat $ for directoryContents \item -> do
     let itemPath = directory </> item
     isNormalFile <- doesFileExist itemPath
     if isNormalFile then
-      return [itemPath]
+      return (List.singleton itemPath)
     else do
       isDirectory <- doesDirectoryExist itemPath
       if isDirectory then
         listDirectoryRecursively itemPath
       else
-        return []
+        return List.empty
 
 type Extension = String
 
-categorizePathsByExtension :: [FilePath] -> Map Extension [FilePath]
+categorizePathsByExtension :: (List FilePath) -> Map Extension (List FilePath)
 categorizePathsByExtension =
-    foldr (\path -> Map.insertWith (<>) (takeExtension path) [path]) Map.empty
+    foldr (\path -> Map.insertWith (<>) (takeExtension path) (List.singleton path)) Map.empty
 
 {- ALTERNATIVE IMPLEMENTATION:
 categorizePathsByExtension =
