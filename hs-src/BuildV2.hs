@@ -30,7 +30,7 @@ build Options{..} = do
           categorizePathsByExtension inputPaths
     let postSourcePaths =
           filter ((postsSubDirectory ==) . takeDirectory) $
-          toList $
+          fromMaybe [] $
           Map.lookup ".md" inputPathsCategorized
     postsUnordered <- traverse readPost postSourcePaths
     let postsOrdered =
@@ -57,9 +57,9 @@ listDirectoryRecursively directory = do
 
 type Extension = String
 
-categorizePathsByExtension :: [FilePath] -> Map Extension FilePath
+categorizePathsByExtension :: [FilePath] -> Map Extension [FilePath]
 categorizePathsByExtension =
-    foldr (\path -> Map.insert (takeExtension path) path) Map.empty
+    foldr (\path -> Map.insertWith (<>) (takeExtension path) [path]) Map.empty
 
 {- ALTERNATIVE IMPLEMENTATION:
 categorizePathsByExtension =
