@@ -21,8 +21,7 @@ data Options = Options
     , inputDirectory :: DirectoryPath
     , outputDirectory :: DirectoryPath
     , includeDrafts :: Bool
-    , includeTags :: Bool
-    }
+    , includeTags :: Bool }
 
 build :: Options -> IO ()
 build Options{..} = do
@@ -42,22 +41,19 @@ build Options{..} = do
 type DirectoryPath = FilePath
 
 listDirectoryRecursively :: DirectoryPath -> IO [FilePath]
-listDirectoryRecursively baseDirectory = do
-    go baseDirectory
-    where
-      go directory = do
-        directoryContents <- listDirectory directory
-        fmap concat $ for directoryContents \item -> do
-          let itemPath = directory </> item
-          isNormalFile <- doesFileExist itemPath
-          if isNormalFile then
-            return [itemPath]
-          else do
-            isDirectory <- doesDirectoryExist itemPath
-            if isDirectory then
-              go itemPath
-            else
-              return []
+listDirectoryRecursively directory = do
+  directoryContents <- listDirectory directory
+  fmap concat $ for directoryContents \item -> do
+    let itemPath = directory </> item
+    isNormalFile <- doesFileExist itemPath
+    if isNormalFile then
+      return [itemPath]
+    else do
+      isDirectory <- doesDirectoryExist itemPath
+      if isDirectory then
+        listDirectoryRecursively itemPath
+      else
+        return []
 
 type Extension = String
 
