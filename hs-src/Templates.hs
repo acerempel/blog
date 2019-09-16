@@ -21,10 +21,9 @@ import qualified Routes
 
 type IncludeTags = Bool
 
-archive :: [Post] -> Maybe Text -> IncludeTags -> Html ()
-archive posts heading includeTags =
+archive :: IncludeTags -> [Post] -> Html ()
+archive includeTags posts =
    div_ [ class_ "archive-listing" ] do
-      maybe mempty (h1_ . toHtml) heading
       foldrMapM (archiveEntry includeTags) posts
 
 post :: IncludeTags -> Post -> PageContent
