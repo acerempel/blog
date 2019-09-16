@@ -76,7 +76,7 @@ date theDate =
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-postLink :: Post -> Link Routes.Html
+postLink :: Post -> Link 'Routes.Html
 postLink Post{ title, slug } =
    Link{ linkText = toHtml title
        , linkAttributes = [ class_ "post-title" ]
@@ -88,7 +88,7 @@ tagLinks theTags =
     small_ $
       "Tagged as " <> mconcat (intersperse ", " (map (link . tagLink) theTags)) 
 
-tagLink :: Tag -> Link Routes.Html
+tagLink :: Tag -> Link 'Routes.Html
 tagLink tagName =
   Link{ linkText = toHtml tagName
       , linkAttributes = []
