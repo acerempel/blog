@@ -14,7 +14,6 @@ import qualified Lucid as Html
 
 import Post ( Post(..), readPost )
 import Routes ( Route(..), targetFile, ContentType(..) )
-import Templates ( postLink )
 import qualified Templates
 
 data Options = Options
@@ -22,6 +21,7 @@ data Options = Options
     , inputDirectory :: DirectoryPath
     , outputDirectory :: DirectoryPath
     , includeDrafts :: Bool
+    , includeTags :: Bool
     }
 
 build :: Options -> IO ()
@@ -36,7 +36,7 @@ build Options{..} = do
     postsUnordered <- traverse readPost postSourcePaths
     let postsOrdered =
           sortOn (Down . published) postsUnordered
-    let postsRendered = renderPosts postsOrdered
+    let postsRendered = map (renderPost includeTags) postsOrdered
     traverse_ (writePage outputDirectory) postsRendered
 
 type DirectoryPath = FilePath
@@ -74,28 +74,11 @@ data Page = Page
     { pageHtml :: Html ()
     , pageRoute :: Route 'Html }
 
-renderPosts :: [Post] -> [Page]
-renderPosts posts =
-    case posts of
-        [] -> []
-        [post1] ->
-            renderPost post1 Nothing Nothing : []
-        post1 : postsN ->
-            go Nothing post1 postsN
-
-    where
-        go mbPreceding post1 more =
-            case more of
-              post2 : evenMore ->
-                renderPost post1 mbPreceding (Just (postLink post2)) :
-                  go (Just (postLink post1)) post2 evenMore
-              [] ->
-                renderPost post1 mbPreceding Nothing : []
-
-        renderPost post mbPreceding mbFollowing =
-          let postContent = Templates.post post mbPreceding mbFollowing False
-           in Page{ pageHtml = Templates.page (title post) postContent
-                  , pageRoute = Routes.PageR (slug post) }
+renderPost :: Templates.IncludeTags -> Post -> Page
+renderPost includeTags post =
+  let postContent = Templates.post includeTags post
+   in Page{ pageHtml = Templates.page (title post) postContent
+          , pageRoute = Routes.PageR (slug post) }
 
 writePage :: DirectoryPath -> Page -> IO ()
 writePage baseDirectory Page{pageHtml, pageRoute} =

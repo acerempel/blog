@@ -1,7 +1,8 @@
 module Templates ( Html
                  , archive, post, tagsList
                  , postLink
-                 , page ) where
+                 , page
+                 , IncludeTags ) where
 
 import Introit
 import qualified Text
@@ -26,11 +27,8 @@ archive posts heading includeTags =
       maybe mempty (h1_ . toHtml) heading
       foldrMapM (archiveEntry includeTags) posts
 
-post :: Post -> Maybe (Link Routes.Html) -> Maybe (Link Routes.Html) -> IncludeTags -> PageContent
-post thePost@Post
-      { content
-      , composed
-      , tags } mbPreceding mbFollowing includeTags =
+post :: IncludeTags -> Post -> PageContent
+post includeTags thePost@Post{ content, composed, tags } =
     let
         mainContent =
             article_ do
@@ -41,17 +39,7 @@ post thePost@Post
                 when includeTags $
                     footer_ [ class_ "tags" ] $
                         tagLinks tags
-        footerContent = do
-                maybe mempty (\preceding -> div_ [ class_ "footer-block" ] do
-                            h2_ [ class_ "post-meta" ] $ "Preceding post"
-                            p_ (link preceding)) mbPreceding
-                div_ [ class_ "footer-block" ] $
-                    link Link{ linkRoute = Routes.HomeR
-                             , linkAttributes = []
-                             , linkText = "Home" }
-                maybe mempty (\following -> div_ [ class_ "footer-block" ] do
-                            h2_ [ class_ "post-meta" ] $ "Following post"
-                            p_ (link following)) mbFollowing
+        footerContent = return ()
     in PageContent{ mainContent, footerContent }
 
 tagsList :: [(Tag, Int)] -> Html ()
