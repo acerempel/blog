@@ -55,10 +55,7 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags thePost@Post
-               { synopsis
-               , composed
-               , tags } =
+archiveEntry includeTags thePost@Post{ synopsis, composed, tags } =
    div_ [ class_ "archive-entry" ] do
       div_ [ class_ "post-meta" ] $
          date composed
@@ -96,8 +93,7 @@ tagLink tagName =
 
 data PageContent = PageContent
     { mainContent :: Html ()
-    , footerContent :: Html ()
-    }
+    , footerContent :: Html () }
 
 data Link a = Link
     { linkRoute :: Route a
