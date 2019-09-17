@@ -16,3 +16,5 @@ singleton :: a -> List a
 fromList :: [a] -> List a
 
 sortOn :: Ord b => (a -> b) -> List a -> List a
+
+filter :: (a -> Bool) -> List a -> List a

@@ -1,4 +1,4 @@
-module BuildV2 where
+module BuildV2 ( build, Options(..) ) where
 
 import Introit
 
@@ -59,14 +59,9 @@ listDirectoryRecursively directory = do
 
 type Extension = String
 
-categorizePathsByExtension :: (List FilePath) -> Map Extension (List FilePath)
+categorizePathsByExtension :: List FilePath -> Map Extension (List FilePath)
 categorizePathsByExtension =
     foldr (\path -> Map.insertWith (<>) (takeExtension path) (List.singleton path)) Map.empty
-
-{- ALTERNATIVE IMPLEMENTATION:
-categorizePathsByExtension =
-    Map.fromList . map (\path -> (takeExtension path, path))
--}
 
 data Page = Page
     { pageHtml :: Html ()
