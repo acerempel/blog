@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module CLI ( runCLI ) where
 
+import qualified Data.Set as Set
 import Data.String
 
 import Prelude hiding ( (>>) )
@@ -29,6 +30,10 @@ parseCLI = Options
         long "output-dir"
         metavar "DIRECTORY"
         help "Where to put the finished site."
+  <*> (Set.fromList <$> many (strOption do
+        long "exclude-dir"
+        metavar "DIRECTORY"
+        help "Ignore these subdirectories when searching for files."))
   <*> switch do
         long "include-drafts"
         help "Build drafts too."

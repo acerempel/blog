@@ -34,6 +34,7 @@ type Tag = Text
 readPost :: FilePath
          -> IO Post
 readPost filepath = do
+    putStrLn $ "Reading post from " <> filepath
     contents <- Text.readFile filepath
     either (throwIO . userError) return do
       body <-

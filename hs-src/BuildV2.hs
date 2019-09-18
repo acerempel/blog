@@ -4,10 +4,12 @@ import Introit
 
 import Data.Map.Strict ( Map )
 import qualified Data.Map.Strict as Map
+import Data.Set ( Set )
+import qualified Data.Set as Set
 import System.Directory
-    ( listDirectory, doesDirectoryExist, doesFileExist )
+    ( listDirectory, doesDirectoryExist, doesFileExist, createDirectoryIfMissing )
 import System.FilePath
-    ( (</>), takeDirectory, takeExtension )
+    ( (</>), takeDirectory, takeExtension, takeFileName, splitDirectories )
 
 import Lucid ( Html )
 import qualified Lucid as Html
@@ -22,16 +24,17 @@ data Options = Options
     { postsSubDirectory :: DirectoryPath
     , inputDirectory :: DirectoryPath
     , outputDirectory :: DirectoryPath
+    , excludeDirs :: Set DirectoryPath
     , includeDrafts :: Bool
     , includeTags :: Bool }
 
 build :: Options -> IO ()
 build Options{..} = do
-    inputPaths <- listDirectoryRecursively inputDirectory
+    inputPaths <- listDirectoryRecursively inputDirectory excludeDirs
     let inputPathsCategorized =
           categorizePathsByExtension inputPaths
     let postSourcePaths =
-          List.filter ((postsSubDirectory ==) . takeDirectory) $
+          List.filter ((postsSubDirectory ==) . last . splitDirectories . takeDirectory) $
           fromMaybe List.empty $
           Map.lookup ".md" inputPathsCategorized
     postsUnordered <- traverse readPost postSourcePaths
@@ -42,8 +45,8 @@ build Options{..} = do
 
 type DirectoryPath = FilePath
 
-listDirectoryRecursively :: DirectoryPath -> IO (List FilePath)
-listDirectoryRecursively directory = do
+listDirectoryRecursively :: DirectoryPath -> Set DirectoryPath -> IO (List FilePath)
+listDirectoryRecursively directory excludeDirs = do
   directoryContents <- List.fromList <$> listDirectory directory
   fmap List.concat $ for directoryContents \item -> do
     let itemPath = directory </> item
@@ -52,8 +55,8 @@ listDirectoryRecursively directory = do
       return (List.singleton itemPath)
     else do
       isDirectory <- doesDirectoryExist itemPath
-      if isDirectory then
-        listDirectoryRecursively itemPath
+      if isDirectory && takeFileName itemPath `Set.notMember` excludeDirs then
+        listDirectoryRecursively itemPath excludeDirs
       else
         return List.empty
 
@@ -76,4 +79,8 @@ renderPost includeTags post =
 writePage :: DirectoryPath -> Page -> IO ()
 writePage baseDirectory Page{pageHtml, pageRoute} =
     let filepath = baseDirectory </> targetFile pageRoute
-     in Html.renderToFile filepath pageHtml
+        containingDirectory = takeDirectory filepath
+     in do
+         putStrLn $ "Writing to " <> filepath
+         createDirectoryIfMissing True containingDirectory
+         Html.renderToFile filepath pageHtml
