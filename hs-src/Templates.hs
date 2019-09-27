@@ -11,7 +11,6 @@ import Control.Monad ( when )
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Lucid
-import qualified Lucid.Base as Lucid
 import qualified Text.MMark as MMark
 
 import Post
@@ -33,7 +32,7 @@ post includeTags thePost@Post{ content, composed, tags } =
             article_ do
                 p_ [ class_ "post-meta" ] (date composed)
                 h1_ [ class_ "post-title" ] (link (postLink thePost))
-                Lucid.relaxHtmlT $ MMark.render content
+                MMark.render content
                 when includeTags $ footer_ $
                     p_ [ class_ "tags" ] (tagLinks tags)
         footerContent = return ()
