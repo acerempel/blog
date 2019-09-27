@@ -31,41 +31,35 @@ post includeTags thePost@Post{ content, composed, tags } =
     let
         mainContent =
             article_ do
-                div_ [ class_ "post-meta" ] $
-                    date composed
-                h1_ $ link $ postLink thePost
+                p_ [ class_ "post-meta" ] (date composed)
+                h1_ [ class_ "post-title" ] (link (postLink thePost))
                 Lucid.relaxHtmlT $ MMark.render content
-                when includeTags $
-                    footer_ [ class_ "tags" ] $
-                        tagLinks tags
+                when includeTags $ footer_ $
+                    p_ [ class_ "tags" ] (tagLinks tags)
         footerContent = return ()
     in PageContent{ mainContent, footerContent }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
     h1_ "Tags"
-    div_ [ class_ "tags" ]$ ul_ $
+    p_ [ class_ "tags" ] $ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
     tagWithCount :: (Tag, Int) -> Html ()
     tagWithCount (tag, count) =
-      li_ do
+      li_ $ p_ do
         link $ tagLink tag
         small_ $ " (" <> toHtml (show count) <> " posts)"
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags thePost@Post{ synopsis, composed, tags } =
-   div_ [ class_ "archive-entry" ] do
-      div_ [ class_ "post-meta" ] $
-         date composed
-      div_ $
-         link $ postLink thePost
-      div_ [ class_ "synopsis" ] $
-         toHtml synopsis
+   section_ [ class_ "archive-entry" ] do
+      p_ [ class_ "post-meta" ] (date composed)
+      h2_ [ class_ "post-title" ] (link (postLink thePost))
+      p_ [ class_ "synopsis" ] (toHtml synopsis)
       when includeTags $
-         div_ [ class_ "tags" ] $
-            tagLinks tags
+         p_ [ class_ "tags" ] (tagLinks tags)
 
 date :: Day -> Html ()
 date theDate =
@@ -76,7 +70,7 @@ date theDate =
 postLink :: Post -> Link 'Routes.Html
 postLink Post{ title, slug } =
    Link{ linkText = toHtml title
-       , linkAttributes = [ class_ "post-title" ]
+       , linkAttributes = []
        , linkRoute = Routes.PageR slug }
 
 tagLinks :: [Tag] -> Html ()
@@ -128,5 +122,4 @@ page pageTitle PageContent{mainContent, footerContent} = do
 
 link :: Link a -> Html ()
 link Link{ linkText, linkAttributes, linkRoute } =
-   a_ (href_ (url linkRoute) : linkAttributes)
-      linkText
+   a_ (href_ (url linkRoute) : linkAttributes) linkText
