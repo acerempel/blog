@@ -7,9 +7,12 @@ import qualified Data.Map.Strict as Map
 import Data.Set ( Set )
 import qualified Data.Set as Set
 import System.Directory
-    ( listDirectory, doesDirectoryExist, doesFileExist, createDirectoryIfMissing )
+    ( listDirectory, doesDirectoryExist, doesFileExist
+    , createDirectoryIfMissing, copyFileWithMetadata )
 import System.FilePath
-    ( (</>), takeDirectory, takeExtension, takeFileName, splitDirectories )
+    ( (</>), (-<.>), takeDirectory, takeExtension, takeFileName
+    , splitDirectories, joinPath )
+import System.Process.Typed ( proc, withProcessWait, waitExitCode )
 
 import Lucid ( Html )
 import qualified Lucid as Html
@@ -35,13 +38,32 @@ build Options{..} = do
           categorizePathsByExtension inputPaths
     let postSourcePaths =
           List.filter ((postsSubDirectory ==) . last . splitDirectories . takeDirectory) $
-          fromMaybe List.empty $
-          Map.lookup ".md" inputPathsCategorized
+          Map.findWithDefault List.empty ".md" inputPathsCategorized
+        scssPaths =
+          Map.findWithDefault List.empty ".scss" inputPathsCategorized
+        assetPaths =
+          [".css", ".jpg", ".png", ".woff", ".woff2"] >>= \extension ->
+            Map.findWithDefault List.empty extension inputPathsCategorized
     postsUnordered <- traverse readPost postSourcePaths
     let postsOrdered =
-          List.sortOn (Down . published) postsUnordered
+          List.sortOn published postsUnordered
     let postsRendered = fmap (renderPost includeTags) postsOrdered
     traverse_ (writePage outputDirectory) postsRendered
+    for_ assetPaths \assetPath -> do
+      let targetPath = joinPath $ outputDirectory : tail (splitDirectories assetPath)
+      createDirectoryIfMissing True (takeDirectory targetPath)
+      copyFileWithMetadata assetPath targetPath
+    let scssTargetPath scssSourcePath =
+          (joinPath $ outputDirectory : tail (splitDirectories scssSourcePath)) -<.> ".css"
+        sassArguments =
+          (\scssPath -> scssPath <> ":" <> scssTargetPath scssPath) <$> scssPaths
+        sassProcessConfig = proc "sass" ("--no-stop-on-error" : "--no-source-map" : sassArguments)
+    _ <- withProcessWait sassProcessConfig waitExitCode
+    let homePageContent =
+          Templates.page "Three Dots" (Templates.archive includeTags postsOrdered)
+        homePage = Page{pageHtml = homePageContent, pageRoute = HomeR}
+    writePage outputDirectory homePage
+
 
 type DirectoryPath = FilePath
 

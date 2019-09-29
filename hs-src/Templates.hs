@@ -20,28 +20,30 @@ import qualified Routes
 
 type IncludeTags = Bool
 
-archive :: IncludeTags -> [Post] -> Html ()
+archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
-   div_ [ class_ "archive-listing" ] do
-      foldrMapM (archiveEntry includeTags) posts
+  let mainContent =
+        foldrMapM (archiveEntry includeTags) posts
+  in PageContent{mainContent, footerContent = mempty}
 
 post :: IncludeTags -> Post -> PageContent
 post includeTags thePost@Post{ content, composed, tags } =
     let
         mainContent =
             article_ do
-                p_ [ class_ "post-meta" ] (date composed)
-                h1_ [ class_ "post-title" ] (link (postLink thePost))
+                header_ do
+                  date composed
+                  h1_ [ class_ "bold" ] (link (postLink thePost))
                 MMark.render content
                 when includeTags $ footer_ $
-                    p_ [ class_ "tags" ] (tagLinks tags)
+                    p_ (tagLinks tags)
         footerContent = return ()
     in PageContent{ mainContent, footerContent }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
     h1_ "Tags"
-    p_ [ class_ "tags" ] $ ul_ $
+    p_ $ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
     tagWithCount :: (Tag, Int) -> Html ()
@@ -53,16 +55,16 @@ tagsList tagsWithCounts = do
 
 archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags thePost@Post{ synopsis, composed, tags } =
-   section_ [ class_ "archive-entry" ] do
-      p_ [ class_ "post-meta" ] (date composed)
-      h2_ [ class_ "post-title" ] (link (postLink thePost))
-      p_ [ class_ "synopsis" ] (toHtml synopsis)
+   section_ [ class_ "margin-bottom-half" ] do
+      date composed
+      h2_ [ class_ "semibold" ] (link (postLink thePost))
+      p_ (toHtml synopsis)
       when includeTags $
-         p_ [ class_ "tags" ] (tagLinks tags)
+         p_ (tagLinks tags)
 
 date :: Day -> Html ()
 date theDate =
-   time_
+   div_ $ time_
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
@@ -110,11 +112,10 @@ page pageTitle PageContent{mainContent, footerContent} = do
                 [ charset_ "utf-8" ]
             title_ $ toHtml pageTitle
             link_
-                [ rel_ "stylesheet"
-                , href_ (url (Routes.StylesheetR "magenta")) ]
+                [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
             link_
                 [ rel_ "stylesheet"
-                , href_ "https://fonts.googleapis.com/css?family=Lato:regular,bold,regularitalic|Crimson+Text:regular,regularitalic,bold" ]
+                , href_ (url (Routes.StylesheetR "/styles/three-dots.css")) ]
         body_ do
             main_ mainContent
             footer_ footerContent

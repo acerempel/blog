@@ -30,7 +30,7 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , containers
                      , filepath
-                     , directory >= 1.2.5
+                     , directory >= 1.2.6
                      , list-base
                      , list-indef
                      , lucid >= 2.9.7 && < 3.0
@@ -40,6 +40,7 @@ executable blog
                      , optparse-applicative >= 0.14 && < 0.16
                      , time >= 1.5
                      , text
+                     , typed-process >= 0.2.5 && < 1.0
                      , uri-encode
                      , yaml >= 0.8.23 && < 1.0
   mixins:              list-base (List.Base as List)
