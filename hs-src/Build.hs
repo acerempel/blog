@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 module Build ( Options(..), build ) where
 
-import Introit
 import Data.List ( sortOn )
 import Data.Monoid ( Endo(..) )
 

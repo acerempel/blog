@@ -12,9 +12,10 @@ import qualified Data.Yaml as Yaml
 import Development.Shake
 import Development.Shake.FilePath
 import qualified Network.URI.Encode as URI
+import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
-import qualified Text.MMark.Extension as MMark
+import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
@@ -38,8 +39,8 @@ readPost filepath = do
     contents <- liftIO $ Text.readFile filepath
     either (throwFileError filepath) return $ do
       body <-
-         first (MMark.parseErrorsPretty contents) $
-         second (MMark.useExtension hyphensToDashes) $
+         first MP.errorBundlePretty $
+         second (MMark.useExtension punctuationPrettifier) $
          MMark.parse filepath contents
       yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
@@ -57,13 +58,6 @@ readPost filepath = do
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False
             , .. }
-
-   hyphensToDashes :: MMark.Extension
-   hyphensToDashes = MMark.inlineTrans $
-      MMark.mapInlineRecursively $
-      MMark.mapInlineText $
-      Text.replace "--" "–" .
-      Text.replace "---" "—"
 
    noMetadataError =
       "Couldn't find a metadata block in file " <> filepath
