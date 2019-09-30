@@ -1,6 +1,5 @@
 module Templates ( Html
                  , archive, post, tagsList
-                 , postLink
                  , page
                  , IncludeTags ) where
 
@@ -24,21 +23,20 @@ archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
   let mainContent =
         foldrMapM (archiveEntry includeTags) posts
-  in PageContent{mainContent, footerContent = mempty}
+  in PageContent{mainContent, pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
-post includeTags thePost@Post{ content, composed, tags } =
+post includeTags Post{ content, composed, tags, title, slug } =
     let
         mainContent =
             article_ do
                 header_ do
                   date composed
-                  h1_ [ class_ "bold" ] (link (postLink thePost))
+                  h1_ $ a_ [ href_ (url (Routes.PageR slug)) ] (toHtml title)
                 MMark.render content
                 when includeTags $ footer_ $
                     p_ (tagLinks tags)
-        footerContent = return ()
-    in PageContent{ mainContent, footerContent }
+    in PageContent{ mainContent, pageTitle = title }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -54,10 +52,10 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags thePost@Post{ synopsis, composed, tags } =
+archiveEntry includeTags Post{ synopsis, composed, tags, title, slug } =
    section_ [ class_ "margin-bottom-half" ] do
       date composed
-      h2_ [ class_ "semibold" ] (link (postLink thePost))
+      h2_ $ a_ [ href_ (url (Routes.PageR slug)) ] (toHtml title)
       p_ (toHtml synopsis)
       when includeTags $
          p_ (tagLinks tags)
@@ -67,12 +65,6 @@ date theDate =
    div_ $ time_
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
-
-postLink :: Post -> Link 'Routes.Html
-postLink Post{ title, slug } =
-   Link{ linkText = toHtml title
-       , linkAttributes = []
-       , linkRoute = Routes.PageR slug }
 
 tagLinks :: [Tag] -> Html ()
 tagLinks [] = mempty
@@ -88,17 +80,15 @@ tagLink tagName =
 
 data PageContent = PageContent
     { mainContent :: Html ()
-    , footerContent :: Html () }
+    , pageTitle :: Text }
 
 data Link a = Link
     { linkRoute :: Route a
     , linkAttributes :: [Attribute]
     , linkText :: Html () }
 
-page :: Text -- ^ This page's title.
-     -> PageContent
-     -> Html ()
-page pageTitle PageContent{mainContent, footerContent} = do
+page :: PageContent -> Html ()
+page PageContent{mainContent, pageTitle} = do
     doctype_
     html_ [ lang_ "en" ] do
         head_ do
@@ -110,13 +100,14 @@ page pageTitle PageContent{mainContent, footerContent} = do
                 , content_ "width=device-width, initial-scale=1" ]
             meta_
                 [ charset_ "utf-8" ]
-            title_ $ toHtml pageTitle
+            title_ $ toHtml $ pageTitle <> " … ‹three dots›"
             link_
                 [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
             link_
-                [ rel_ "stylesheet"
-                , href_ (url (Routes.StylesheetR "/styles/three-dots.css")) ]
+                [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
         body_ do
+            header_ do
+              h1_ $ a_ [ href_ "/" ] "Three dots …"
             main_ mainContent
             footer_ footerContent
 

@@ -60,7 +60,7 @@ build Options{..} = do
         sassProcessConfig = proc "sass" ("--no-stop-on-error" : "--no-source-map" : sassArguments)
     _ <- withProcessWait sassProcessConfig waitExitCode
     let homePageContent =
-          Templates.page "Three Dots" (Templates.archive includeTags postsOrdered)
+          Templates.page (Templates.archive includeTags postsOrdered)
         homePage = Page{pageHtml = homePageContent, pageRoute = HomeR}
     writePage outputDirectory homePage
 
@@ -95,7 +95,7 @@ data Page = Page
 renderPost :: Templates.IncludeTags -> Post -> Page
 renderPost includeTags post =
   let postContent = Templates.post includeTags post
-   in Page{ pageHtml = Templates.page (title post) postContent
+   in Page{ pageHtml = Templates.page postContent
           , pageRoute = Routes.PageR (slug post) }
 
 writePage :: DirectoryPath -> Page -> IO ()
