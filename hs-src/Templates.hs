@@ -109,7 +109,11 @@ page PageContent{mainContent, pageTitle} = do
             header_ do
               h1_ $ a_ [ href_ "/" ] "Three dots …"
             main_ mainContent
-            footer_ footerContent
+            footer_ $ p_ $ address_ do
+              "If you wish to comment, enquire, inquire, or muse upon anything on this website, "
+              "please send me an electronic mail message at "
+              a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan•rempel@gmail•com›"
+              "."
 
 link :: Link a -> Html ()
 link Link{ linkText, linkAttributes, linkRoute } =
