@@ -13,7 +13,7 @@ import Lucid
 import qualified Text.MMark as MMark
 
 import Post
-import Routes ( Route, url )
+import Routes ( url )
 import qualified Routes
 
 
@@ -47,8 +47,8 @@ tagsList tagsWithCounts = do
     tagWithCount :: (Tag, Int) -> Html ()
     tagWithCount (tag, count) =
       li_ $ p_ do
-        link $ tagLink tag
-        small_ $ " (" <> toHtml (show count) <> " posts)"
+        tagLink tag
+        " (" <> toHtml (show count) <> " posts)"
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
@@ -69,23 +69,15 @@ date theDate =
 tagLinks :: [Tag] -> Html ()
 tagLinks [] = mempty
 tagLinks theTags =
-    small_ $
-      "Tagged as " <> mconcat (intersperse ", " (map (link . tagLink) theTags)) 
+  "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags))
 
-tagLink :: Tag -> Link 'Routes.Html
+tagLink :: Tag -> Html ()
 tagLink tagName =
-  Link{ linkText = toHtml tagName
-      , linkAttributes = []
-      , linkRoute = Routes.TagR tagName }
+  a_ [ href_ (url (Routes.TagR tagName)) ] $ toHtml tagName
 
 data PageContent = PageContent
     { mainContent :: Html ()
     , pageTitle :: Text }
-
-data Link a = Link
-    { linkRoute :: Route a
-    , linkAttributes :: [Attribute]
-    , linkText :: Html () }
 
 page :: PageContent -> Html ()
 page PageContent{mainContent, pageTitle} = do
@@ -114,7 +106,3 @@ page PageContent{mainContent, pageTitle} = do
               "please send me an electronic mail message at "
               a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan•rempel@gmail•com›"
               "."
-
-link :: Link a -> Html ()
-link Link{ linkText, linkAttributes, linkRoute } =
-   a_ (href_ (url linkRoute) : linkAttributes) linkText
