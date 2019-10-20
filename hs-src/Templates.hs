@@ -53,7 +53,7 @@ tagsList tagsWithCounts = do
 
 archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags Post{ synopsis, composed, tags, title, slug } =
-   section_ [ class_ "margin-bottom-half" ] do
+   section_ [ class_ "margin-bottom-two-thirds" ] do
       date composed
       h2_ $ a_ [ href_ (url (Routes.PageR slug)) ] (toHtml title)
       p_ (toHtml synopsis)
@@ -98,11 +98,12 @@ page PageContent{mainContent, pageTitle} = do
             link_
                 [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
         body_ do
+          div_ [ class_ "container" ] do
             header_ do
               h1_ $ a_ [ href_ "/" ] "Three dots …"
             main_ mainContent
-            footer_ $ p_ $ address_ do
+            footer_ $ address_ do
               "If you wish to comment, enquire, inquire, or muse upon anything on this website, "
               "please send me an electronic mail message at "
-              a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan•rempel@gmail•com›"
+              a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan\x200B•rempel\x200B@gmail\x200B•com›"
               "."
