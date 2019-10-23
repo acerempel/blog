@@ -22,7 +22,8 @@ data Post = Post
                     -- TODO: Should this really be the 'Routes.Post'?
    , title :: Text -- ^ Title.
    , content :: MMark -- ^ The post body.
-   , synopsis :: Text -- ^ A little description or summary or teaser.
+   , synopsis :: Text -- ^ A little summary or tagline.
+   , description :: Text -- ^ A slightly longer and self-contained description.
    , composed :: Day -- ^ Date of composition.
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -50,6 +51,8 @@ readPost filepath = do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
+         let defaultDescription = title <> " – " <> synopsis
+         description <- metadata .:? "description" .!= defaultDescription
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = URI.encode $ takeBaseName filepath
