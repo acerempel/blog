@@ -35,7 +35,7 @@ post includeTags Post{ content, composed, tags, title, description, slug } =
             article_ do
                 header_ do
                   date composed
-                  h1_ $ a_ [ href_ (url (Routes.PageR slug)) ] (toHtml title)
+                  h1_ $ a_ [ href_ (url slug) ] (toHtml title)
                 MMark.render content
                 when includeTags $ footer_ $
                     p_ (tagLinks tags)
@@ -61,7 +61,7 @@ archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags Post{ synopsis, composed, tags, title, slug } =
    section_ [ class_ "margin-bottom-two-thirds" ] do
       date composed
-      h2_ $ a_ [ href_ (url (Routes.PageR slug)) ] (toHtml title)
+      h2_ $ a_ [ href_ (url slug) ] (toHtml title)
       p_ (toHtml synopsis)
       when includeTags $
          p_ (tagLinks tags)

@@ -3,6 +3,8 @@ module Post ( Post(..), Tag, readPost ) where
 
 import Introit
 import qualified Text
+import Routes ( Route, ContentType(Html) )
+import qualified Routes
 
 import System.FilePath
 import Control.Exception ( throwIO )
@@ -18,8 +20,7 @@ import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
-   { slug :: String -- ^ Identifier to use for the slug in the url.
-                    -- TODO: Should this really be the 'Routes.Post'?
+   { slug :: Route 'Html -- ^ Route to this post.
    , title :: Text -- ^ Title.
    , content :: MMark -- ^ The post body.
    , synopsis :: Text -- ^ A little summary or tagline.
@@ -55,7 +56,7 @@ readPost filepath = do
          description <- metadata .:? "description" .!= defaultDescription
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = URI.encode $ takeBaseName filepath
+         let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False

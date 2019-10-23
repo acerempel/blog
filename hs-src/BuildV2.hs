@@ -96,7 +96,7 @@ renderPost :: Templates.IncludeTags -> Post -> Page
 renderPost includeTags post =
   let postContent = Templates.post includeTags post
    in Page{ pageHtml = Templates.page postContent
-          , pageRoute = Routes.PageR (slug post) }
+          , pageRoute = slug post }
 
 writePage :: DirectoryPath -> Page -> IO ()
 writePage baseDirectory Page{pageHtml, pageRoute} =
