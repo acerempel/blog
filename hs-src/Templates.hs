@@ -23,10 +23,13 @@ archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
   let mainContent =
         foldrMapM (archiveEntry includeTags) posts
-  in PageContent{mainContent, pageTitle = "All Posts"}
+  in PageContent
+       { mainContent
+       , pageDescription = "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
+       , pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
-post includeTags Post{ content, composed, tags, title, slug } =
+post includeTags Post{ content, composed, tags, title, description, slug } =
     let
         mainContent =
             article_ do
@@ -36,7 +39,10 @@ post includeTags Post{ content, composed, tags, title, slug } =
                 MMark.render content
                 when includeTags $ footer_ $
                     p_ (tagLinks tags)
-    in PageContent{ mainContent, pageTitle = title }
+    in PageContent
+        { mainContent
+        , pageDescription = description
+        , pageTitle = title }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -77,10 +83,11 @@ tagLink tagName =
 
 data PageContent = PageContent
     { mainContent :: Html ()
+    , pageDescription :: Text
     , pageTitle :: Text }
 
 page :: PageContent -> Html ()
-page PageContent{mainContent, pageTitle} = do
+page PageContent{mainContent, pageDescription, pageTitle} = do
     doctype_
     html_ [ lang_ "en" ] do
         head_ do
@@ -93,6 +100,8 @@ page PageContent{mainContent, pageTitle} = do
             meta_
                 [ charset_ "utf-8" ]
             title_ $ toHtml $ pageTitle <> " … ‹three dots›"
+            meta_
+                [ name_ "description", content_ pageDescription ]
             link_
                 [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
             link_
