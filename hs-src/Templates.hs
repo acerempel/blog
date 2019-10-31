@@ -110,10 +110,9 @@ page PageContent{mainContent, footerContent, pageDescription, pageTitle} = do
             title_ $ toHtml $ pageTitle <> " … ‹three dots›"
             meta_
                 [ name_ "description", content_ pageDescription ]
-            link_
-                [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
-            link_
-                [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
+            link_ [ rel_ "stylesheet" , href_ "/styles/normalize.css" ]
+            link_ [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
+            link_ [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
             script_
               [ src_ "/scripts/colour-scheme.js"
               , defer_ "" {- re. defer_: I wish boolean attributes in Lucid could be written without the argument -} ]
