@@ -43,7 +43,7 @@ build Options{..} = do
         scssPaths =
           Map.findWithDefault List.empty ".scss" inputPathsCategorized
         assetPaths =
-          [".css", ".jpg", ".png", ".woff", ".woff2"] >>= \extension ->
+          [".css", ".js", ".jpg", ".png", ".woff", ".woff2"] >>= \extension ->
             Map.findWithDefault List.empty extension inputPathsCategorized
     putStr "Assets: "; print assetPaths
     postsUnordered <- traverse readPost postSourcePaths
