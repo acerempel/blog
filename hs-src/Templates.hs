@@ -3,7 +3,7 @@ module Templates ( Html
                  , page
                  , IncludeTags ) where
 
-import Introit
+import Introit hiding ( for_ ) -- I use 'Lucid.for_', meaning the HTML5 attribute, below
 import qualified Text
 
 import Control.Monad ( when )
@@ -114,9 +114,20 @@ page PageContent{mainContent, footerContent, pageDescription, pageTitle} = do
                 [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
             link_
                 [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
-        body_ do
+            script_
+              [ src_ "/scripts/colour-scheme.js"
+              , defer_ "" {- re. defer_: I wish boolean attributes in Lucid could be written without the argument -} ]
+              ("" :: String) {- Also, it would be nice if this argument were optional for script_ -}
+        body_ [ class_ "colour-scheme-auto" ] do
           div_ [ class_ "container" ] do
             header_ do
               h1_ $ a_ [ href_ "/" ] "Three dots …"
+              fieldset_ do
+                legend_ "Settings"
+                label_ [ for_ "colour-scheme-select" ] "Colour scheme:"
+                select_ [ onchange_ "changeColourScheme('colour-scheme-', 'body')", id_ "colour-scheme-select", required_ "" {- See above re. defer_ -} ] do
+                  option_ [ value_ "auto", selected_ "" {- See above re. defer_ -} ] "System setting (if applicable; otherwise light)"
+                  option_ [ value_ "light" ] "Light"
+                  option_ [ value_ "dark" ] "Dark"
             main_ mainContent
             maybe mempty footer_ footerContent
