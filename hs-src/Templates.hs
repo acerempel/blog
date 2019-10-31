@@ -23,8 +23,14 @@ archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
   let mainContent =
         foldrMapM (archiveEntry includeTags) posts
+      footerContent = Just $ address_ do
+         "If you wish to comment, enquire, inquire, or muse upon anything on this website, "
+         "please send me an electronic mail message at "
+         a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan\x200B•rempel\x200B@gmail\x200B•com›"
+         "."
   in PageContent
        { mainContent
+       , footerContent
        , pageDescription = "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
        , pageTitle = "All Posts"}
 
@@ -41,6 +47,7 @@ post includeTags Post{ content, composed, tags, title, description, slug } =
                     p_ (tagLinks tags)
     in PageContent
         { mainContent
+        , footerContent = Nothing
         , pageDescription = description
         , pageTitle = title }
 
@@ -83,11 +90,12 @@ tagLink tagName =
 
 data PageContent = PageContent
     { mainContent :: Html ()
+    , footerContent :: Maybe (Html ())
     , pageDescription :: Text
     , pageTitle :: Text }
 
 page :: PageContent -> Html ()
-page PageContent{mainContent, pageDescription, pageTitle} = do
+page PageContent{mainContent, footerContent, pageDescription, pageTitle} = do
     doctype_
     html_ [ lang_ "en" ] do
         head_ do
@@ -111,8 +119,4 @@ page PageContent{mainContent, pageDescription, pageTitle} = do
             header_ do
               h1_ $ a_ [ href_ "/" ] "Three dots …"
             main_ mainContent
-            footer_ $ address_ do
-              "If you wish to comment, enquire, inquire, or muse upon anything on this website, "
-              "please send me an electronic mail message at "
-              a_ [ href_ "mailto:alan.rempel@gmail.com" ] "Alan Rempel ‹alan\x200B•rempel\x200B@gmail\x200B•com›"
-              "."
+            maybe mempty footer_ footerContent
