@@ -121,14 +121,18 @@ page PageContent{mainContent, footerContent, pageDescription, pageTitle} = do
           div_ [ class_ "container" ] do
             header_ do
               h1_ $ a_ [ href_ "/" ] "Three dots …"
-              details_ do
-                summary_ "Settings"
-                fieldset_ do
-                  legend_ "Appearance"
-                  label_ [ for_ "colour-scheme-select" ] "Colour scheme:"
-                  select_ [ onchange_ "changeColourScheme('colour-scheme-', 'body')", id_ "colour-scheme-select", required_ "" {- See above re. defer_ -} ] do
-                    option_ [ value_ "auto", selected_ "" {- See above re. defer_ -} ] "System setting (if applicable; otherwise light)"
-                    option_ [ value_ "light" ] "Light"
-                    option_ [ value_ "dark" ] "Dark"
+              settings
             main_ mainContent
             maybe mempty footer_ footerContent
+
+settings :: Html ()
+settings =
+  details_ do
+    summary_ "Settings"
+    fieldset_ do
+      legend_ "Appearance"
+      label_ [ for_ "colour-scheme-select" ] "Colour scheme:"
+      select_ [ id_ "colour-scheme-select", required_ "" {- See above re. defer_ -} ] do
+        option_ [ value_ "auto", selected_ "" {- See above re. defer_ -} ] "System setting (if applicable; otherwise light)"
+        option_ [ value_ "light" ] "Light"
+        option_ [ value_ "dark" ] "Dark"
