@@ -19,8 +19,10 @@ function addSelectOnChangeEvent(element, select) {
 
 function getSavedColourScheme(element, select) {
   var stored = window.localStorage.getItem(storageKey);
-  if (stored) { select.value = stored }
-  setColourScheme(element, stored);
+  if (stored) {
+    select.value = stored;
+    setColourScheme(element, stored);
+  }
 };
 
 // This script should have the 'defer' attribute set, so that the
