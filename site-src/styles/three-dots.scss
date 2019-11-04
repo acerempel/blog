@@ -1,0 +1,103 @@
+@charset "utf-8";
+
+$base-line-height: 1.575rem;
+$base-font-size: 1.125rem;
+
+@import "magenta";
+
+.container {
+  @include centered;
+  @include responsive-width;
+}
+
+a {
+    text-decoration: none;
+    &:hover {
+        text-decoration: underline;
+    }
+    color: inherit;
+}
+
+address { font-style: normal; }
+address a { font-style: oblique; }
+footer {
+  @include quite-small;
+  @include padding-top-two-thirds;
+  @include margin-top-two-thirds;
+  border-top: 0.79px solid $deepgray;
+  margin-bottom: 0;
+}
+
+article p { @include margin-bottom-one-half; }
+
+p a { @include magenta; }
+
+
+// Citations
+cite {
+    font-style: normal;
+}
+
+/* blockquote + p > cite:first-child::before {
+    content: "\2014";
+} */
+
+// Headings and other meta
+h1 {
+  @include font-size-twentyone-twentieths;
+  @include line-height-one;
+  font-weight: 600;
+}
+
+article h1 {
+  @include font-size-three-halves;
+  @include line-height-three-halves;
+  @include margin-bottom-one-half;
+  font-weight: 700;
+}
+
+h2 {
+  @include font-size-six-fifths;
+  @include line-height-six-fifths;
+}
+
+section.post-listing time {
+  @include line-height-four-fifths;
+  @include font-size-nine-tenths;
+}
+
+section.post-listing {
+  @include margin-bottom-two-thirds;
+}
+
+time { @include light-oblique; @include medium-gray; }
+article header time { @include font-size-seven-eighths; }
+
+hr { width: 32%; }
+
+p img { width: 100%; }
+
+blockquote {
+    margin-left: 4%;
+    margin-right: 4%;
+    color: #4c4c4c;
+}
+
+p, h1, h2, h3, article, section, header {
+  margin: 0;
+}
+
+main { @include margin-top-two-thirds; }
+
+body {
+    @include normal;
+    font-family: $sans-serif-fonts;
+    font-variant-ligatures: contextual;
+    font-variant-numeric: proportional-nums;
+    font-kerning: normal;
+    font-synthesis: none;
+    text-rendering: optimizelegibility;
+    color: $deepgray;
+    background-color: $background-offwhite;
+}
+
