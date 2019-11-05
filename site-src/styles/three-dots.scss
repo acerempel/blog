@@ -5,6 +5,12 @@ $base-font-size: 1.125rem;
 
 @import "magenta";
 
+$serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, serif;
+$sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+$colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "text-normal": #222222, "text-lighter": #555555);
+$colours-dark: ("text-highlight": #783f75, "background-normal": #222222, "text-normal": #f8f8f8, "text-lighter": #e6e6e6);
+
 .container {
   @include centered;
   @include responsive-width;
@@ -21,16 +27,17 @@ a {
 address { font-style: normal; }
 address a { font-style: oblique; }
 footer {
-  @include quite-small;
+  @include font-size-three-quarters;
+  @include line-height-two-thirds;
   @include padding-top-two-thirds;
   @include margin-top-two-thirds;
-  border-top: 0.79px solid $deepgray;
+  border-top: 0.79px solid var(--text-normal);
   margin-bottom: 0;
 }
 
 article p { @include margin-bottom-one-half; }
 
-p a { @include magenta; }
+p a { @include text-colour-highlight; }
 
 
 // Citations
@@ -70,7 +77,11 @@ section.post-listing {
   @include margin-bottom-two-thirds;
 }
 
-time { @include light-oblique; @include medium-gray; }
+time {
+  @include light-oblique;
+  @include text-colour-lighter;
+}
+
 article header time { @include font-size-seven-eighths; }
 
 hr { width: 32%; }
@@ -90,14 +101,18 @@ p, h1, h2, h3, article, section, header {
 main { @include margin-top-two-thirds; }
 
 body {
-    @include normal;
     font-family: $sans-serif-fonts;
     font-variant-ligatures: contextual;
     font-variant-numeric: proportional-nums;
     font-kerning: normal;
     font-synthesis: none;
     text-rendering: optimizelegibility;
-    color: $deepgray;
-    background-color: $background-offwhite;
+    @include font-size-one;
+    @include line-height-one;
+    @include text-colour-normal;
+    @include background-colour-normal;
 }
 
+:root {
+  @include responsive-colours($colours-light, $colours-dark, $colours-light);
+}

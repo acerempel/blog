@@ -3,39 +3,51 @@
 $base-line-height: 1.4rem !default;
 $base-font-size: 1rem !default;
 
-$serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, serif;
-$sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+@mixin responsive-colours($colours-light, $colours-dark, $colours-whatever) {
+  .colour-scheme-auto {
+    @media (prefers-color-scheme: light) {
+      @include colour-scheme($colours-light);
+    }
+    @media (prefers-color-scheme: dark) {
+      @include colour-scheme($colours-dark);
+    }
+    @media (prefers-color-scheme: no-preference) {
+      @include colour-scheme($colours-whatever);
+    }
+  }
+  .colour-scheme-light {
+    @include colour-scheme($colours-light);
+  }
+  .colour-scheme-dark {
+    @include colour-scheme($colours-dark);
+  }
+}
 
-$text-magenta: #783f75;
-$background-offwhite: #f8f8f8;
-$deepgray: #222222;
-$mediumgray: #555555;
+@mixin colour-scheme($colours) {
+  @each $label, $colour in $colours {
+    --#{$label}: #{$colour};
+  }
+}
 
-@mixin normal {
-  font-size: $base-font-size;
-  line-height: $base-line-height;
+@mixin text-colour-normal {
+  color: var(--text-normal);
+}
+
+@mixin text-colour-highlight {
+  color: var(--text-highlight);
+}
+
+@mixin text-colour-lighter {
+  color: var(--text-lighter);
+}
+
+@mixin background-colour-normal {
+  background-color: var(--background-normal);
 }
 
 @mixin quite-small {
   font-size: $base-font-size * 3 / 4;
   line-height: $base-line-height * 2 / 3;
-}
-
-@mixin smaller {
-  font-size: $base-font-size * 4 / 5;
-  line-height: $base-line-height * 4 / 5;
-}
-
-@mixin quite-big {
-  $qb-line-height: $base-line-height * 5 / 4;
-  font-size: $base-font-size + $qb-line-height - $base-line-height;
-  line-height: $qb-line-height;
-}
-
-@mixin bigger {
-  $bigger-line-height: $base-line-height * 6 / 5;
-  font-size: $base-font-size + $bigger-line-height - $base-line-height;
-  line-height: $bigger-line-height;
 }
 
 @mixin centered {
@@ -61,21 +73,21 @@ $mediumgray: #555555;
   padding-top: $base-line-height * 2 / 3;
 }
 
-@mixin magenta {
-  color: $text-magenta;
-}
-
 @mixin light-oblique {
     font-style: oblique;
     font-weight: 300;
 }
 
-@mixin medium-gray {
-    color: $mediumgray;
+@mixin font-size-one {
+  font-size: $base-font-size;
 }
 
 @mixin font-size-two-thirds {
   font-size: $base-font-size * 2 / 3;
+}
+
+@mixin font-size-three-quarters {
+  font-size: $base-font-size * 0.75;
 }
 
 @mixin font-size-fourteen-fifteenths {
@@ -100,6 +112,10 @@ $mediumgray: #555555;
 
 @mixin line-height-three-halves {
   line-height: $base-line-height * 1.5;
+}
+
+@mixin line-height-two-thirds {
+  line-height: $base-line-height * 2 / 3;
 }
 
 @mixin margin-bottom-one-half {
