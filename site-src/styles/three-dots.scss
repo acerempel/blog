@@ -14,6 +14,8 @@ $colours-dark: ("text-highlight": #783f75, "background-normal": #222222, "text-n
 .container {
   @include centered;
   @include responsive-width;
+  @include margin-bottom-one;
+  @include margin-top-one;
 }
 
 a {

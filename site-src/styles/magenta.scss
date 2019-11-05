@@ -122,6 +122,14 @@ $base-font-size: 1rem !default;
   margin-bottom: $base-line-height * 0.5;
 }
 
+@mixin margin-bottom-one {
+  margin-bottom: $base-line-height;
+}
+
+@mixin margin-top-one {
+  margin-top: $base-line-height;
+}
+
 @mixin font-size-thirteen-tenths{
   font-size: $base-font-size * 1.3;
 }
