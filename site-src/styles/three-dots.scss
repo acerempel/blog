@@ -9,7 +9,7 @@ $serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, 
 $sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
 $colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "text-normal": #222222, "text-lighter": #555555);
-$colours-dark: ("text-highlight": #783f75, "background-normal": #222222, "text-normal": #f8f8f8, "text-lighter": #e6e6e6);
+$colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
 
 .container {
   @include centered;
