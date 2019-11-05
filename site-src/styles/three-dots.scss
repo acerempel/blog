@@ -100,7 +100,9 @@ p, h1, h2, h3, article, section, header {
   margin: 0;
 }
 
-main { @include margin-top-two-thirds; }
+main {
+  @include margin-top-two-thirds;
+}
 
 body {
     font-family: $sans-serif-fonts;
