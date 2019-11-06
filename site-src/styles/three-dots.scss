@@ -8,8 +8,8 @@ $base-font-size: 1.125rem;
 $serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, serif;
 $sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
-$colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "text-normal": #222222, "text-lighter": #555555);
-$colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
+$colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "background-lighter": #e8e8e8, "text-normal": #222222, "text-lighter": #555555);
+$colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "background-lighter": #4f4f4f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
 
 .container {
   @include centered;
@@ -18,11 +18,15 @@ $colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "text-n
   @include margin-top-one;
 }
 
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
 a {
     text-decoration: none;
-    &:hover {
-        text-decoration: underline;
-    }
+    @include clickable;
     color: inherit;
 }
 
@@ -51,11 +55,21 @@ cite {
     content: "\2014";
 } */
 
-// Headings and other meta
-h1 {
+.semibold {
+  font-weight: 600;
+}
+
+.light {
+  font-weight: 300;
+}
+
+.oblique {
+  font-style: oblique;
+}
+
+.slightly-bigger {
   @include font-size-twentyone-twentieths;
   @include line-height-one;
-  font-weight: 600;
 }
 
 article h1 {
@@ -65,7 +79,7 @@ article h1 {
   font-weight: 700;
 }
 
-h2 {
+section.post-listing h2 {
   @include font-size-six-fifths;
   @include line-height-six-fifths;
 }
@@ -80,12 +94,57 @@ section.post-listing {
 }
 
 time {
-  @include light-oblique;
+  @extend .light, .oblique;
   @include text-colour-lighter;
 }
 
 article header time { @include font-size-seven-eighths; }
 
+button.unstyled {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  @include clickable;
+  @include text-colour-normal;
+  @include line-height-one;
+  @include font-size-one;
+}
+
+select {
+  @include line-height-one;
+  @include font-size-one;
+  margin-inline-start: 0.5em;
+}
+
+#settings-panel {
+  position: absolute;
+  @extend .row;
+  flex-wrap: wrap-reverse;
+  left: 0;
+  right: 0;
+  top: $base-line-height * 1.5;
+  padding: 1em;
+  @include background-colour-lighter;
+  border-radius: 0.5em;
+  &[hidden] {
+    clip: rect(0 0 0 0);
+    z-index: -100;
+    opacity: 0;
+  }
+  z-index: 100;
+  opacity: 1;
+  box-shadow: 0.1em 0.2em 0.4em #111;
+  clip: auto;
+}
+
+#settings-close {
+  font-size: 2rem;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
 hr { width: 32%; }
 
 p img { width: 100%; }

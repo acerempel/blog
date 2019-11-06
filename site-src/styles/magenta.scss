@@ -45,6 +45,10 @@ $base-font-size: 1rem !default;
   background-color: var(--background-normal);
 }
 
+@mixin background-colour-lighter {
+  background-color: var(--background-lighter);
+}
+
 @mixin quite-small {
   font-size: $base-font-size * 3 / 4;
   line-height: $base-line-height * 2 / 3;
@@ -61,6 +65,11 @@ $base-font-size: 1rem !default;
   width: 93%;
 }
 
+@mixin clickable {
+  &:hover { text-decoration: underline; }
+  cursor: pointer;
+}
+
 @mixin margin-bottom-two-thirds {
   margin-bottom: $base-line-height * 2 / 3;
 }
@@ -71,11 +80,6 @@ $base-font-size: 1rem !default;
 
 @mixin padding-top-two-thirds {
   padding-top: $base-line-height * 2 / 3;
-}
-
-@mixin light-oblique {
-    font-style: oblique;
-    font-weight: 300;
 }
 
 @mixin font-size-one {
