@@ -1,0 +1,20 @@
+signature List where
+
+data List a
+
+instance Functor List
+instance Applicative List
+instance Monad List
+instance Monoid (List a)
+instance Foldable List
+instance Traversable List
+
+empty :: List a
+
+singleton :: a -> List a
+
+fromList :: [a] -> List a
+
+sortOn :: Ord b => (a -> b) -> List a -> List a
+
+filter :: (a -> Bool) -> List a -> List a

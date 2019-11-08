@@ -1,7 +1,0 @@
-- pattern:
-  - ^posts/.+\.md
-  - ^styles/.+\.scss
-  - blog.cabal
-  - cabal.project
-  - .+\.hs
-  command: make site

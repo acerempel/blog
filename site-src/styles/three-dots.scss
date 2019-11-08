@@ -1,0 +1,181 @@
+@charset "utf-8";
+
+$base-line-height: 1.575rem;
+$base-font-size: 1.125rem;
+
+@import "magenta";
+
+$serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, serif;
+$sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+$colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "background-lighter": #e8e8e8, "text-normal": #222222, "text-lighter": #555555);
+$colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "background-lighter": #4f4f4f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
+
+.container {
+  @include centered;
+  @include responsive-width;
+  @include margin-bottom-one;
+  @include margin-top-one;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+a {
+    text-decoration: none;
+    @include clickable;
+    color: inherit;
+}
+
+address { font-style: normal; }
+address a { font-style: oblique; }
+footer {
+  @include font-size-three-quarters;
+  @include line-height-two-thirds;
+  @include padding-top-two-thirds;
+  @include margin-top-two-thirds;
+  border-top: 0.79px solid var(--text-normal);
+  margin-bottom: 0;
+}
+
+article p { @include margin-bottom-one-half; }
+
+p a { @include text-colour-highlight; }
+
+
+// Citations
+cite {
+    font-style: normal;
+}
+
+/* blockquote + p > cite:first-child::before {
+    content: "\2014";
+} */
+
+.semibold {
+  font-weight: 600;
+}
+
+.light {
+  font-weight: 300;
+}
+
+.oblique {
+  font-style: oblique;
+}
+
+.slightly-bigger {
+  @include font-size-twentyone-twentieths;
+  @include line-height-one;
+}
+
+article h1 {
+  @include font-size-three-halves;
+  @include line-height-three-halves;
+  @include margin-bottom-one-half;
+  font-weight: 700;
+}
+
+section.post-listing h2 {
+  @include font-size-six-fifths;
+  @include line-height-six-fifths;
+}
+
+section.post-listing time {
+  @include line-height-four-fifths;
+  @include font-size-nine-tenths;
+}
+
+section.post-listing {
+  @include margin-bottom-two-thirds;
+}
+
+time {
+  @extend .light, .oblique;
+  @include text-colour-lighter;
+}
+
+article header time { @include font-size-seven-eighths; }
+
+button.unstyled {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  @include clickable;
+  @include text-colour-normal;
+  @include line-height-one;
+  @include font-size-one;
+}
+
+select {
+  @include line-height-one;
+  @include font-size-one;
+  margin-inline-start: 0.5em;
+}
+
+#settings-panel {
+  position: absolute;
+  @extend .row;
+  flex-wrap: wrap-reverse;
+  left: 0;
+  right: 0;
+  top: $base-line-height * 1.5;
+  padding: 1em;
+  @include background-colour-lighter;
+  border-radius: 0.5em;
+  &[hidden] {
+    clip: rect(0 0 0 0);
+    z-index: -100;
+    opacity: 0;
+  }
+  z-index: 100;
+  opacity: 1;
+  box-shadow: 0.1em 0.2em 0.4em #111;
+  clip: auto;
+}
+
+#settings-close {
+  font-size: 2rem;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+hr { width: 32%; }
+
+p img { width: 100%; }
+
+blockquote {
+    margin-left: 4%;
+    margin-right: 4%;
+    color: #4c4c4c;
+}
+
+p, h1, h2, h3, article, section, header {
+  margin: 0;
+}
+
+main {
+  @include margin-top-two-thirds;
+}
+
+body {
+    font-family: $sans-serif-fonts;
+    font-variant-ligatures: contextual;
+    font-variant-numeric: proportional-nums;
+    font-kerning: normal;
+    font-synthesis: none;
+    text-rendering: optimizelegibility;
+    @include font-size-one;
+    @include line-height-one;
+    @include text-colour-normal;
+    @include background-colour-normal;
+}
+
+:root {
+  @include responsive-colours($colours-light, $colours-dark, $colours-light);
+}

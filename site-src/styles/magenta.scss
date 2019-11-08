@@ -1,0 +1,163 @@
+@charset "UTF-8";
+
+$base-line-height: 1.4rem !default;
+$base-font-size: 1rem !default;
+
+@mixin responsive-colours($colours-light, $colours-dark, $colours-whatever) {
+  .colour-scheme-auto {
+    @media (prefers-color-scheme: light) {
+      @include colour-scheme($colours-light);
+    }
+    @media (prefers-color-scheme: dark) {
+      @include colour-scheme($colours-dark);
+    }
+    @media (prefers-color-scheme: no-preference) {
+      @include colour-scheme($colours-whatever);
+    }
+  }
+  .colour-scheme-light {
+    @include colour-scheme($colours-light);
+  }
+  .colour-scheme-dark {
+    @include colour-scheme($colours-dark);
+  }
+}
+
+@mixin colour-scheme($colours) {
+  @each $label, $colour in $colours {
+    --#{$label}: #{$colour};
+  }
+}
+
+@mixin text-colour-normal {
+  color: var(--text-normal);
+}
+
+@mixin text-colour-highlight {
+  color: var(--text-highlight);
+}
+
+@mixin text-colour-lighter {
+  color: var(--text-lighter);
+}
+
+@mixin background-colour-normal {
+  background-color: var(--background-normal);
+}
+
+@mixin background-colour-lighter {
+  background-color: var(--background-lighter);
+}
+
+@mixin quite-small {
+  font-size: $base-font-size * 3 / 4;
+  line-height: $base-line-height * 2 / 3;
+}
+
+@mixin centered {
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+}
+
+@mixin responsive-width {
+  max-width: 33rem;
+  width: 93%;
+}
+
+@mixin clickable {
+  &:hover { text-decoration: underline; }
+  cursor: pointer;
+}
+
+@mixin margin-bottom-two-thirds {
+  margin-bottom: $base-line-height * 2 / 3;
+}
+
+@mixin margin-top-two-thirds {
+  margin-top: $base-line-height * 2 / 3;
+}
+
+@mixin padding-top-two-thirds {
+  padding-top: $base-line-height * 2 / 3;
+}
+
+@mixin font-size-one {
+  font-size: $base-font-size;
+}
+
+@mixin font-size-two-thirds {
+  font-size: $base-font-size * 2 / 3;
+}
+
+@mixin font-size-three-quarters {
+  font-size: $base-font-size * 0.75;
+}
+
+@mixin font-size-fourteen-fifteenths {
+  font-size: $base-font-size * 0.933333333;
+}
+
+@mixin font-size-twentyone-twentieths {
+  font-size: $base-font-size * 1.05;
+}
+
+@mixin line-height-nine-eighths {
+  line-height: $base-line-height * 1.125;
+}
+
+@mixin line-height-one{
+  line-height: $base-line-height;
+}
+
+@mixin line-height-two {
+  line-height: $base-line-height * 2;
+}
+
+@mixin line-height-three-halves {
+  line-height: $base-line-height * 1.5;
+}
+
+@mixin line-height-two-thirds {
+  line-height: $base-line-height * 2 / 3;
+}
+
+@mixin margin-bottom-one-half {
+  margin-bottom: $base-line-height * 0.5;
+}
+
+@mixin margin-bottom-one {
+  margin-bottom: $base-line-height;
+}
+
+@mixin margin-top-one {
+  margin-top: $base-line-height;
+}
+
+@mixin font-size-thirteen-tenths{
+  font-size: $base-font-size * 1.3;
+}
+
+@mixin line-height-six-fifths {
+  line-height: $base-line-height * 1.2;
+}
+
+@mixin font-size-seven-eighths {
+  font-size: $base-font-size * 0.875;
+}
+
+@mixin font-size-nine-tenths {
+  font-size: $base-font-size * 0.9;
+}
+
+@mixin font-size-six-fifths {
+  font-size: $base-font-size * 1.2;
+}
+
+@mixin font-size-three-halves {
+  font-size: $base-font-size * 1.5;
+}
+
+@mixin line-height-four-fifths {
+  line-height: $base-line-height * 0.8;
+}

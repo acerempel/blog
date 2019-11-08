@@ -1,8 +1,7 @@
-{-# LANGUAGE DeriveGeneric, DeriveAnyClass
-           , LambdaCase
-#-}
+{-# LANGUAGE LambdaCase #-}
 module Routes
    ( Route(..)
+   , ContentType(..)
    , targetFile
    , url
    ) where
@@ -10,28 +9,31 @@ module Routes
 import Introit
 import qualified Text
 
-import Data.Hashable ( Hashable )
-import Development.Shake.FilePath
-import GHC.Generics ( Generic )
+import Data.Kind ( Type )
+import System.FilePath ( (</>) )
 import qualified Network.URI.Encode as URI
 
-data Route
-   = Home
-   | Post String
-   | AllTags
-   | Tag Text
-   | Stylesheet String
-   | Image String
-   deriving ( Eq, Generic, Hashable )
+type Path = String
+type TagName = Text
 
-targetFile :: Route -> FilePath
+data ContentType = Html | CSS | Image
+
+data Route :: ContentType -> Type where
+  HomeR :: Route Html
+  PageR :: Path -> Route Html
+  AllTagsR :: Route Html
+  TagR :: TagName -> Route Html
+  StylesheetR :: Path -> Route CSS
+  ImageR :: Path -> Route Image
+
+targetFile :: Route a -> FilePath
 targetFile = \case
-   Home             -> htmlTargetFile Home
-   p@(Post _)       -> htmlTargetFile p
-   AllTags          -> htmlTargetFile AllTags
-   t@(Tag _)        -> htmlTargetFile t
-   s@(Stylesheet _) -> urlToTargetFile (url s)
-   i@(Image _)      -> urlToTargetFile (url i)
+   HomeR             -> htmlTargetFile HomeR
+   p@(PageR _)       -> htmlTargetFile p
+   AllTagsR          -> htmlTargetFile AllTagsR
+   t@(TagR _)        -> htmlTargetFile t
+   s@(StylesheetR _) -> urlToTargetFile (url s)
+   i@(ImageR _)      -> urlToTargetFile (url i)
  where
    urlToTargetFile url =
      -- This is dumb, see below
@@ -39,17 +41,17 @@ targetFile = \case
    htmlTargetFile route =
       urlToTargetFile (url route) </> "index.html"
 
-url :: Route -> Text
+url :: Route a -> Text
 url = Text.pack . \case
-   Home ->
+   HomeR ->
       "/"
-   Post slug ->
-      "/posts" </> slug
-   AllTags ->
+   PageR path ->
+      "/" </> path
+   AllTagsR ->
       "/tags"
-   Tag tag ->
+   TagR tag ->
       "/tags" </> Text.unpack (URI.encodeText tag)
-   Stylesheet basename ->
-      "/styles" </> basename <.> "css"
-   Image filename ->
-      "/images" </> filename
+   StylesheetR path ->
+      "/" </> path
+   ImageR path ->
+      "/" </> path

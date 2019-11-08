@@ -3,14 +3,15 @@ module Post ( Post(..), Tag, readPost ) where
 
 import Introit
 import qualified Text
-import Utilities
+import Routes ( Route, ContentType(Html) )
+import qualified Routes
 
+import System.FilePath
+import Control.Exception ( throwIO )
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
-import Development.Shake
-import Development.Shake.FilePath
 import qualified Network.URI.Encode as URI
 import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
@@ -19,11 +20,11 @@ import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
-   { slug :: String -- ^ Identifier to use for the slug in the url.
-                    -- TODO: Should this really be the 'Routes.Post'?
+   { slug :: Route 'Html -- ^ Route to this post.
    , title :: Text -- ^ Title.
    , content :: MMark -- ^ The post body.
-   , synopsis :: Text -- ^ A little description or summary or teaser.
+   , synopsis :: Text -- ^ A little summary or tagline.
+   , description :: Text -- ^ A slightly longer and self-contained description.
    , composed :: Day -- ^ Date of composition.
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -33,11 +34,11 @@ data Post = Post
 type Tag = Text
 
 readPost :: FilePath
-         -> Action Post
+         -> IO Post
 readPost filepath = do
-    need [filepath]
-    contents <- liftIO $ Text.readFile filepath
-    either (throwFileError filepath) return $ do
+    putStrLn $ "Reading post from " <> filepath
+    contents <- Text.readFile filepath
+    either (throwIO . userError) return do
       body <-
          first MP.errorBundlePretty $
          second (MMark.useExtension punctuationPrettifier) $
@@ -47,13 +48,15 @@ readPost filepath = do
       withMetadata body yaml
  where
    withMetadata content = Yaml.parseEither $
-      Yaml.withObject "metadata" $ \metadata -> do
+      Yaml.withObject "metadata" \metadata -> do
          title    <- metadata .: "title"
          date     <- metadata .: "date"
          synopsis <- metadata .: "synopsis"
+         let defaultDescription = title <> " – " <> synopsis
+         description <- metadata .:? "description" .!= defaultDescription
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = URI.encode $ takeBaseName filepath
+         let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False

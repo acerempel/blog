@@ -10,41 +10,51 @@ maintainer:          alan.rempel+parsonyorick@gmail.com
 copyright:           Posts copyright Alan Rempel © 2018
 category:            Web
 build-type:          Simple
-cabal-version:       >=1.10
+cabal-version:       >=1.25
 
 executable blog
   main-is:             Main.hs
-  other-modules:       Build
-                     , Flags
-                     , Actions
+  other-modules:       BuildV2
+                     , CLI
                      , Templates
                      , Routes
                      , Post
-                     , Utilities
                      , Introit
                      , Text
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
                      , RecordWildCards
-  other-extensions:    GADTs, ViewPatterns
-                     , DeriveGeneric, DeriveAnyClass
-                     , GeneralizedNewtypeDeriving
-                     , DuplicateRecordFields
-  ghc-options:         -threaded -rtsopts "-with-rtsopts=-I0 -qg"
+                     , GADTs
+                     , TypeInType
+                     , BlockArguments
   build-depends:       base >= 4.10 && < 5
-                     , bytestring
                      , containers
-                     , directory >= 1.2.5
-                     , hashable
+                     , filepath
+                     , directory >= 1.2.6
+                     , list-base
+                     , list-indef
                      , lucid >= 2.9.7 && < 3.0
+                     , megaparsec
                      , mmark >= 0.0.7.1 && < 0.1
                      , mmark-ext >= 0.1.0.0 && < 1.0
-                     , megaparsec
-                     , shake >= 0.16 && < 0.17
+                     , optparse-applicative >= 0.14 && < 0.16
                      , time >= 1.5
                      , text
-                     , transformers
+                     , typed-process >= 0.2.5 && < 1.0
                      , uri-encode
                      , yaml >= 0.8.23 && < 1.0
+  mixins:              list-base (List.Base as List)
   hs-source-dirs:      hs-src
   default-language:    Haskell2010
+
+library list-indef
+  signatures:       List
+  build-depends:    base
+  hs-source-dirs:   hs-sigs
+  default-language: Haskell2010
+
+library list-base
+  exposed-modules:      List.Base
+  build-depends:        base
+  hs-source-dirs:       hs-src
+  default-language:     Haskell2010

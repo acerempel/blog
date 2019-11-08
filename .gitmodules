@@ -1,3 +1,6 @@
 [submodule "mmark"]
 	path = mmark
 	url = https://github.com/zarvunk/mmark
+[submodule "posts"]
+	path = site-src/posts
+	url = https://github.com/parsonyorick/blog-posts/
