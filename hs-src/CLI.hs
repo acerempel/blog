@@ -9,7 +9,7 @@ import Prelude hiding ( (>>) )
 
 import Options.Applicative
 
-import BuildV2 ( Options(..) )
+import Options ( Options(..) )
 
 (>>) = (<>)
 

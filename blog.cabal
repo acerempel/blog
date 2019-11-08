@@ -17,6 +17,8 @@ executable blog
   other-modules:       BuildV2
                      , CLI
                      , Templates
+                     , Options
+                     , Rules
                      , Routes
                      , Post
                      , Introit
@@ -27,6 +29,7 @@ executable blog
                      , GADTs
                      , TypeInType
                      , BlockArguments
+                     , DerivingStrategies
   build-depends:       base >= 4.10 && < 5
                      , containers
                      , filepath
@@ -35,13 +38,15 @@ executable blog
                      , list-base
                      , list-indef
                      , lucid >= 2.9.7 && < 3.0
-                     , megaparsec
+                     , megaparsec >= 7.0 && < 8.0
                      , mmark >= 0.0.7.1 && < 0.1
                      , mmark-ext >= 0.1.0.0 && < 1.0
                      , modern-uri
                      , optparse-applicative >= 0.14 && < 0.16
+                     , shake >= 0.18.2 && < 0.19
                      , time >= 1.5
                      , text
+                     , transformers >= 0.5 && < 0.6
                      , typed-process >= 0.2.5 && < 1.0
                      , uri-encode
                      , yaml >= 0.8.23 && < 1.0

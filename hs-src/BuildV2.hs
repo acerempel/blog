@@ -19,17 +19,10 @@ import qualified Lucid as Html
 
 import List ( List )
 import qualified List
+import Options
 import Post ( Post(..), readPost )
 import Routes ( Route(..), targetFile, ContentType(..) )
 import qualified Templates
-
-data Options = Options
-    { postsSubDirectory :: DirectoryPath
-    , inputDirectory :: DirectoryPath
-    , outputDirectory :: DirectoryPath
-    , excludeDirs :: Set DirectoryPath
-    , includeDrafts :: Bool
-    , includeTags :: Bool }
 
 build :: Options -> IO ()
 build Options{..} = do
@@ -65,8 +58,6 @@ build Options{..} = do
         homePage = Page{pageHtml = homePageContent, pageRoute = HomeR}
     writePage outputDirectory homePage
 
-
-type DirectoryPath = FilePath
 
 listDirectoryRecursively :: DirectoryPath -> Set DirectoryPath -> IO (List FilePath)
 listDirectoryRecursively directory excludeDirs = do
