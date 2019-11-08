@@ -23,15 +23,15 @@ newtype SiteM a =
 
 data Environment =
   Environment
-  { options :: Options
-  , baseTemplate :: Template }
+  { options :: !Options
+  , baseTemplate :: !Template }
 
 type Template = Html () -> Html ()
 
 data RuleParameters =
   RuleParameters
-  { inputPath :: FilePath
-  , outputPath :: FilePath }
+  { inputPath :: !FilePath
+  , outputPath :: !FilePath }
 
 run :: Options -> Template -> SiteM a -> Rules a
 run options template (SiteM m) = do
