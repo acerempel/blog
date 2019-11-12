@@ -53,3 +53,39 @@
        url("/fonts/HKGrotesk-Bold.woff") format("woff"),
        url("/fonts/HKGrotesk-Bold.woff2") format("woff2");
 }
+
+@font-face {
+  font-family: "HK Grotesk";
+  font-style: oblique;
+  font-weight: 600;
+  src: local("HK Grotesk SemiBold Italic"), local("HKGrotesk-SemiBoldItalic"),
+       url("/fonts/hkgrotesk-semibolditalic.woff") format("woff"),
+       url("/fonts/hkgrotesk-semibolditalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HK Grotesk";
+  font-style: oblique;
+  font-weight: 700;
+  src: local("HK Grotesk Bold Italic"), local("HKGrotesk-BoldItalic"),
+       url("/fonts/hkgrotesk-bolditalic.woff") format("woff"),
+       url("/fonts/hkgrotesk-bolditalic.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HK Grotesk";
+  font-style: normal;
+  font-weight: 500;
+  src: local("HK Grotesk Medium"), local("HKGrotesk-Medium"),
+       url("/fonts/HKGrotesk-Medium.woff") format("woff"),
+       url("/fonts/HKGrotesk-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "HK Grotesk";
+  font-style: oblique;
+  font-weight: 500;
+  src: local("HK Grotesk Medium Italic"), local("HKGrotesk-MediumItalic"),
+       url("/fonts/hkgrotesk-mediumitalic.woff") format("woff"),
+       url("/fonts/hkgrotesk-mediumitalic.woff2") format("woff2");
+}
