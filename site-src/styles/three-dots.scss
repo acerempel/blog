@@ -46,11 +46,6 @@ article p { @include margin-bottom-one-half; }
 p a { @include text-colour-highlight; }
 
 
-// Citations
-cite {
-    font-style: normal;
-}
-
 /* blockquote + p > cite:first-child::before {
     content: "\2014";
 } */
@@ -105,6 +100,8 @@ article h3 {
   font-style: oblique;
   font-weight: 400;
 }
+
+cite { font-style: oblique; }
 
 button.unstyled {
   -webkit-appearance: none;

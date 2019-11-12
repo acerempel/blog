@@ -63,7 +63,7 @@ archiveEntry includeTags Post{ synopsis, composed, tags, title, slug } =
    section_ [ class_ "post-listing" ] do
       date composed
       h2_ [ class_ "post-title" ] $ a_ [ href_ (url slug) ] (toHtml title)
-      p_ [ class_ "post-synopsis" ] (toHtml synopsis)
+      p_ [ class_ "post-synopsis" ] (toHtmlRaw synopsis)
       when includeTags $
          p_ (tagLinks tags)
 
