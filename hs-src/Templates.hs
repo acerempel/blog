@@ -36,7 +36,8 @@ post includeTags Post{ content, composed, tags, title, description, slug } =
             article_ do
                 header_ do
                   date composed
-                  h1_ $ a_ [ href_ (url slug) ] (toHtml title)
+                  h2_ [ class_ "bold distinctly-bigger" ] $
+                    a_ [ href_ (url slug) ] (toHtml title)
                 MMark.render content
                 when includeTags $ footer_ $
                     p_ (tagLinks tags)

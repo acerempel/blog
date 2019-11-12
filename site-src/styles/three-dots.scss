@@ -50,8 +50,15 @@ p a { @include text-colour-highlight; }
     content: "\2014";
 } */
 
+b { @extend .semibold; }
+strong { @extend .bold; }
+
 .semibold {
   font-weight: 600;
+}
+
+.bold {
+  font-weight: 700;
 }
 
 .light {
@@ -67,21 +74,31 @@ p a { @include text-colour-highlight; }
   @include line-height-one;
 }
 
-article h1 {
-  @include font-size-three-halves;
-  @include line-height-three-halves;
-  @include margin-bottom-one-half;
-  font-weight: 700;
+.somewhat-smaller {
+  @include line-height-four-fifths;
+  @include font-size-nine-tenths;
 }
 
-section.post-listing h2 {
+.somewhat-bigger {
   @include font-size-six-fifths;
   @include line-height-six-fifths;
 }
 
+.distinctly-bigger {
+  @include font-size-three-halves;
+  @include line-height-three-halves;
+}
+
+article header {
+  @include margin-bottom-one-half;
+}
+
+section.post-listing h2 {
+  @extend .somewhat-bigger;
+}
+
 section.post-listing time {
-  @include line-height-four-fifths;
-  @include font-size-nine-tenths;
+  @extend .somewhat-smaller;
 }
 
 section.post-listing {
