@@ -63,13 +63,15 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags Post{ mSynopsis, composed, tags, mTitle, slug } =
+archiveEntry includeTags Post{ mSynopsis, composed, content, tags, mTitle, slug } =
    section_ [ class_ "post-listing" ] do
       date composed
       whenMaybe mTitle \title ->
         h2_ [ class_ "post-title" ] $ a_ [ href_ (url slug) ] (toHtml title)
       whenMaybe mSynopsis \synopsis ->
         p_ [ class_ "post-synopsis" ] (toHtmlRaw synopsis)
+      when (mTitle == Nothing || mSynopsis == Nothing) $
+        MMark.render content
       when includeTags $
          p_ (tagLinks tags)
 
