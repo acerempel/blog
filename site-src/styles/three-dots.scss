@@ -172,7 +172,7 @@ p img { width: 100%; }
 blockquote {
     margin-left: 4%;
     margin-right: 4%;
-    color: #4c4c4c;
+    @include text-colour-lighter;
 }
 
 p, h1, h2, h3, article, section, header {
