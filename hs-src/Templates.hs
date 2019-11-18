@@ -26,25 +26,28 @@ archive includeTags posts =
         foldrMapM (archiveEntry includeTags) posts
   in PageContent
        { mainContent
-       , pageDescription = "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
+       , pageDescription =
+          Just "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
        , pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
-post includeTags Post{ content, composed, tags, title, description, slug } =
+post includeTags Post{ content, composed, tags, mTitle, description, slug } =
     let
+        pageTitle = fromMaybe (firstNWords 5 content) mTitle
         mainContent =
             article_ do
                 header_ do
                   date composed
-                  h2_ [ class_ "bold distinctly-bigger" ] $
-                    a_ [ href_ (url slug) ] (toHtml title)
+                  whenMaybe mTitle \title ->
+                    h2_ [ class_ "bold distinctly-bigger" ] $
+                      a_ [ href_ (url slug) ] (toHtml title)
                 MMark.render content
                 when includeTags $ footer_ $
                     p_ (tagLinks tags)
     in PageContent
         { mainContent
         , pageDescription = description
-        , pageTitle = title }
+        , pageTitle }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -60,11 +63,13 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags Post{ synopsis, composed, tags, title, slug } =
+archiveEntry includeTags Post{ mSynopsis, composed, tags, mTitle, slug } =
    section_ [ class_ "post-listing" ] do
       date composed
-      h2_ [ class_ "post-title" ] $ a_ [ href_ (url slug) ] (toHtml title)
-      p_ [ class_ "post-synopsis" ] (toHtmlRaw synopsis)
+      whenMaybe mTitle \title ->
+        h2_ [ class_ "post-title" ] $ a_ [ href_ (url slug) ] (toHtml title)
+      whenMaybe mSynopsis \synopsis ->
+        p_ [ class_ "post-synopsis" ] (toHtmlRaw synopsis)
       when includeTags $
          p_ (tagLinks tags)
 
@@ -85,7 +90,7 @@ tagLink tagName =
 
 data PageContent = PageContent
     { mainContent :: Html ()
-    , pageDescription :: Text
+    , pageDescription :: Maybe Text
     , pageTitle :: Text }
 
 page :: PageContent -> Html ()
@@ -102,8 +107,8 @@ page PageContent{mainContent, pageDescription, pageTitle} = do
             meta_
                 [ charset_ "utf-8" ]
             title_ $ toHtml $ pageTitle <> " … ‹three dots›"
-            meta_
-                [ name_ "description", content_ pageDescription ]
+            whenMaybe pageDescription \description ->
+              meta_ [ name_ "description", content_ description ]
             link_ [ rel_ "stylesheet" , href_ "/styles/normalize.css" ]
             link_ [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
             link_ [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
@@ -133,3 +138,6 @@ settings =
         option_ [ value_ "dark" ] "Dark"
     button_ [ class_ "unstyled", id_ "settings-close", title_ "Close", makeAttribute "aria-label" "Close" ] "×"
 
+whenMaybe :: Monoid m => Maybe a -> (a -> m) -> m
+whenMaybe mThing f =
+  maybe mempty f mThing

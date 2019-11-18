@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric #-}
-module Post ( Post(..), Tag, readPost ) where
+{-# LANGUAGE DeriveAnyClass, DeriveGeneric, LambdaCase #-}
+module Post ( Post(..), Tag, readPost, firstNWords ) where
 
 import Introit
 import qualified Text
@@ -16,15 +16,16 @@ import qualified Network.URI.Encode as URI
 import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
+import qualified Text.MMark.Extension as MMark
 import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
    { slug :: Route 'Html -- ^ Route to this post.
-   , title :: Text -- ^ Title.
+   , mTitle :: Maybe Text -- ^ Title.
    , content :: MMark -- ^ The post body.
-   , synopsis :: Text -- ^ A little summary or tagline.
-   , description :: Text -- ^ A slightly longer and self-contained description.
+   , mSynopsis :: Maybe Text -- ^ A little summary or tagline.
+   , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , composed :: Day -- ^ Date of composition.
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -49,11 +50,10 @@ readPost filepath = do
  where
    withMetadata content = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
-         title    <- metadata .: "title"
+         mTitle    <- metadata .:? "title"
          date     <- metadata .: "date"
-         synopsis <- metadata .: "synopsis"
-         let defaultDescription = title <> " – " <> synopsis
-         description <- metadata .:? "description" .!= defaultDescription
+         mSynopsis <- metadata .:? "synopsis"
+         description <- metadata .:? "description"
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
@@ -66,3 +66,28 @@ readPost filepath = do
       "Couldn't find a metadata block in file " <> filepath
 
    dateFormat = "%e %B %Y"
+
+firstNWords :: Int -> MMark -> Text
+firstNWords n content =
+  Text.unwords $ take n $ Text.words $
+  MMark.runScanner content $
+  MMark.scanner Text.empty appendPlainText
+  where
+    appendPlainText textSoFar = \case
+      MMark.Heading1 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Heading2 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Heading3 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Heading4 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Heading5 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Heading6 inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Naked inlines    -> textSoFar <> MMark.asPlainText inlines
+      MMark.Paragraph inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Blockquote blocks ->
+        foldl' appendPlainText textSoFar blocks
+      MMark.OrderedList _ listItems ->
+        fold $ foldl' appendPlainText textSoFar `fmap` listItems
+      MMark.UnorderedList listItems ->
+        fold $ foldl' appendPlainText textSoFar `fmap` listItems
+      MMark.CodeBlock _ text -> textSoFar <> text
+      MMark.ThematicBreak -> textSoFar
+      MMark.Table _ _ -> textSoFar
