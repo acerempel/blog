@@ -35,11 +35,11 @@ post includeTags Post{ content, composed, tags, mTitle, description, slug } =
     let
         pageTitle = fromMaybe (firstNWords 5 content) mTitle
         mainContent =
-            article_ do
+            article_ [ class_ "post full" ] do
                 header_ do
                   date composed
                   whenMaybe mTitle \title ->
-                    h2_ [ class_ "bold distinctly-bigger" ] $
+                    h2_ [ class_ "title" ] $
                       a_ [ href_ (url slug) ] (toHtml title)
                 MMark.render content
                 when includeTags $ footer_ $
@@ -64,16 +64,19 @@ tagsList tagsWithCounts = do
 
 archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags Post{ mSynopsis, composed, content, tags, mTitle, slug } =
-   section_ [ class_ "post-listing" ] do
+   article_ [ class_ ("post " <> if showFullPost then "full" else "summary") ] do
       date composed
       whenMaybe mTitle \title ->
-        h2_ [ class_ "post-title" ] $ a_ [ href_ (url slug) ] (toHtml title)
+        h2_ [ class_ "title" ] $ a_ [ href_ (url slug) ] (toHtml title)
       whenMaybe mSynopsis \synopsis ->
-        p_ [ class_ "post-synopsis" ] (toHtmlRaw synopsis)
-      when (mTitle == Nothing || mSynopsis == Nothing) $
+        p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
+      when showFullPost $
         MMark.render content
       when includeTags $
          p_ (tagLinks tags)
+  where
+    showFullPost =
+      mTitle == Nothing || mSynopsis == Nothing
 
 date :: Day -> Html ()
 date theDate =

@@ -41,7 +41,9 @@ footer {
   margin-bottom: 0;
 }
 
-article p { @include margin-bottom-one-half; }
+article.full p { @include margin-bottom-one-half; }
+
+p.synopsis { margin: 0 !important; }
 
 p a { @include text-colour-highlight; }
 
@@ -89,20 +91,38 @@ strong { @extend .bold; }
   @include line-height-three-halves;
 }
 
-article header {
+article.full header {
   @include margin-bottom-one-half;
 }
 
-section.post-listing h2 {
+article.full {
+  @include margin-bottom-one;
+}
+
+article + article.full {
+  @include margin-top-one;
+}
+
+h2 {
+  font-weight: 700;
+}
+
+article:only-of-type h2 {
+  @include font-size-three-halves;
+  @include line-height-three-halves;
+}
+
+article h2 {
   @extend .somewhat-bigger;
 }
 
-section.post-listing time {
+article time {
   @extend .somewhat-smaller;
 }
 
-section.post-listing {
+article.summary {
   @include margin-bottom-two-thirds;
+  h2 { font-weight: 600; }
 }
 
 time {
@@ -115,7 +135,7 @@ article header time { @include font-size-seven-eighths; }
 article h3 {
   @extend .slightly-bigger;
   font-style: oblique;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 cite { font-style: oblique; }
