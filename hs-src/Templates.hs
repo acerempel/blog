@@ -23,9 +23,11 @@ archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
   let mainContent =
         foldrMapM (archiveEntry includeTags) posts
+      pageDescription =
+        "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
   in PageContent
        { mainContent
-       , pageDescription = "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
+       , pageDescription
        , pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
