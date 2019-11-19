@@ -14,9 +14,16 @@ $colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "backgr
 .container {
   @include centered;
   @include responsive-width;
-  @include margin-bottom-one;
-  @include margin-top-one;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  & > * { flex: none; }
+  min-height: 100vh;
+  & > header {
+    @include margin-top-one;
+  }
 }
+
 
 .row {
   display: flex;
@@ -35,10 +42,10 @@ address a { font-style: oblique; }
 footer {
   @include font-size-three-quarters;
   @include line-height-two-thirds;
-  margin-top: $base-line-height;
+  margin-top: auto;
   padding-top: $base-line-height;
   border-top: 0.79px solid var(--text-normal);
-  margin-bottom: 0;
+  @include margin-bottom-one;
   p { margin-top: $base-line-height / 3; }
 }
 
@@ -166,6 +173,7 @@ p, h1, h2, h3, article, section, header {
 
 main {
   @include margin-top-two-thirds;
+  @include margin-bottom-one;
 }
 
 body {
