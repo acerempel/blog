@@ -10,7 +10,6 @@ import Control.Monad ( when )
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Lucid
-import Lucid.Base ( makeAttribute )
 import qualified Text.MMark as MMark
 
 import Post
@@ -24,10 +23,11 @@ archive :: IncludeTags -> [Post] -> PageContent
 archive includeTags posts =
   let mainContent =
         foldrMapM (archiveEntry includeTags) posts
+      pageDescription =
+        Just "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
   in PageContent
        { mainContent
-       , pageDescription =
-          Just "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
+       , pageDescription
        , pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
@@ -124,24 +124,21 @@ page PageContent{mainContent, pageDescription, pageTitle} = do
         body_ [ class_ "colour-scheme-auto" ] do
           div_ [ class_ "container" ] do
             header_ do
-              div_ [ class_ "row" ] do
                 h1_ [ class_ "slightly-bigger semibold" ] $ a_ [ href_ "/" ] "Three dots …"
-                section_ do
-                  h2_ [ class_ "slightly-bigger light" ] $
-                    button_ [ type_ "button", class_ "unstyled", id_ "settings-toggle" ] "Settings"
-                  settings
             main_ mainContent
+            footer_ do
+              settings
 
 settings :: Html ()
 settings =
-  div_ [ id_ "settings-panel", hidden_ "" ] do
-    div_ do
+  section_ do
+    h2_ [ class_ "semibold" ] "Appearance"
+    p_ do
       label_ [ for_ "colour-scheme-select" ] "Colour scheme:"
       select_ [ id_ "colour-scheme-select", required_ "" {- See above re. defer_ -} ] do
         option_ [ value_ "auto", selected_ "" {- See above re. defer_ -} ] "System setting"
         option_ [ value_ "light" ] "Light"
         option_ [ value_ "dark" ] "Dark"
-    button_ [ class_ "unstyled", id_ "settings-close", title_ "Close", makeAttribute "aria-label" "Close" ] "×"
 
 whenMaybe :: Monoid m => Maybe a -> (a -> m) -> m
 whenMaybe mThing f =

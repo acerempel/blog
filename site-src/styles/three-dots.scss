@@ -35,10 +35,11 @@ address a { font-style: oblique; }
 footer {
   @include font-size-three-quarters;
   @include line-height-two-thirds;
-  @include padding-top-two-thirds;
-  @include margin-top-two-thirds;
+  margin-top: $base-line-height;
+  padding-top: $base-line-height;
   border-top: 0.79px solid var(--text-normal);
   margin-bottom: 0;
+  p { margin-top: $base-line-height / 3; }
 }
 
 article.full p { @include margin-bottom-one-half; }
@@ -140,51 +141,15 @@ article h3 {
 
 cite { font-style: oblique; }
 
-button.unstyled {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  border: none;
-  background: transparent;
-  padding: 0;
-  @include clickable;
-  @include text-colour-normal;
-  @include line-height-one;
-  @include font-size-one;
-}
-
 select {
-  @include line-height-one;
-  @include font-size-one;
   margin-inline-start: 0.5em;
 }
 
-#settings-panel {
-  position: absolute;
-  @extend .row;
-  flex-wrap: wrap-reverse;
-  left: 0;
-  right: 0;
-  top: $base-line-height * 1.5;
-  padding: 1em;
-  @include background-colour-lighter;
-  border-radius: 0.5em;
-  &[hidden] {
-    clip: rect(0 0 0 0);
-    z-index: -100;
-    opacity: 0;
-  }
-  z-index: 100;
-  opacity: 1;
-  box-shadow: 0.1em 0.2em 0.4em #111;
-  clip: auto;
+label, select {
+  @include line-height-one;
+  @include font-size-one;
 }
 
-#settings-close {
-  font-size: 2rem;
-  padding-top: 0;
-  padding-left: 0;
-  padding-right: 0;
-}
 hr { width: 32%; }
 
 p img { width: 100%; }
