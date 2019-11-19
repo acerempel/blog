@@ -35,10 +35,11 @@ address a { font-style: oblique; }
 footer {
   @include font-size-three-quarters;
   @include line-height-two-thirds;
-  @include padding-top-two-thirds;
-  @include margin-top-two-thirds;
+  margin-top: $base-line-height;
+  padding-top: $base-line-height;
   border-top: 0.79px solid var(--text-normal);
   margin-bottom: 0;
+  p { margin-top: $base-line-height / 3; }
 }
 
 article p { @include margin-bottom-one-half; }
