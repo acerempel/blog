@@ -20,18 +20,6 @@ function addSelectOnChangeEvent(element, select) {
   }
 }
 
-function addToggleOnClickEvent(panel, toggle) {
-  toggle.onclick = function(_event) {
-    panel.hidden ? panel.hidden = false : panel.hidden = true;
-  }
-}
-
-function addPanelCloseOnClickEvent(panel, button) {
-  button.onclick = function(_event) {
-    panel.hidden = true;
-  }
-}
-
 function getSavedColourScheme(element, select) {
   var stored = window.localStorage.getItem(storageKey);
   if (stored) {
@@ -47,17 +35,8 @@ function setUpColourSchemeSystem() {
   getSavedColourScheme(body, select);
 }
 
-function setUpSettingsPanelToggle() {
-  var toggle = document.getElementById(settingsPanelToggleId);
-  var panel = document.getElementById(settingsPanelId);
-  var closeButton = document.getElementById(settingsPanelCloseButtonId);
-  addToggleOnClickEvent(panel, toggle);
-  addPanelCloseOnClickEvent(panel, closeButton);
-}
-
 // This script should have the 'defer' attribute set, so that the
 // 'DOMContentLoaded' event will not yet have fired when it is run.
 document.addEventListener("DOMContentLoaded", function(_event) {
   setUpColourSchemeSystem();
-  setUpSettingsPanelToggle();
 });
