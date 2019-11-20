@@ -63,7 +63,7 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags Post{ mSynopsis, composed, preview, tags, mTitle, slug } =
+archiveEntry includeTags Post{..} =
    article_ [ class_ ("post " <> if showPreview then "full" else "summary") ] do
       date composed
       whenMaybe mTitle \title ->
@@ -72,7 +72,8 @@ archiveEntry includeTags Post{ mSynopsis, composed, preview, tags, mTitle, slug 
         p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
       when showPreview do
         MMark.render preview
-        p_ (a_ [ href_ (url slug) ] "Continue reading …")
+        when (not previewIsFullPost) $
+          p_ (a_ [ href_ (url slug) ] "Continue reading …")
       when includeTags $
          p_ (tagLinks tags)
   where

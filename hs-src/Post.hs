@@ -31,6 +31,7 @@ data Post = Post
    , firstFewWords :: Text
    , content :: MMark -- ^ The post body.
    , preview :: MMark
+   , previewIsFullPost :: Bool
    , mSynopsis :: Maybe Text -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , composed :: Day -- ^ Date of composition.
@@ -64,13 +65,14 @@ readPost filepath = do
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
-         let (firstFewWords, firstFewParagraphs) =
+         let (firstFewWords, (firstFewParagraphs, isThereMore)) =
                MMark.runScanner content $
                 (,) <$> firstNWords 5 <*> previewParagraphs 2
          let preview = content{mmarkBlocks = firstFewParagraphs}
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False
+            , previewIsFullPost = not isThereMore
             , .. }
 
    noMetadataError =
@@ -102,12 +104,21 @@ firstNWords n =
       MMark.ThematicBreak -> textSoFar
       MMark.Table _ _ -> textSoFar
 
-previewParagraphs :: Int -> Fold MMark.Bni (List MMark.Bni)
+previewParagraphs :: Int -> Fold MMark.Bni (List MMark.Bni, Bool)
 previewParagraphs n =
-  fst <$> MMark.scanner ([], n) \(blocksSoFar, wanted) thisBlock ->
-    if wanted == 0 then
-      (blocksSoFar, 0)
-    else
+  extractResults <$>
+    MMark.scanner
+      ([], n, undefined)
+      \(blocksSoFar, wanted, _areThereMore) thisBlock ->
+        if wanted == 0 then
+          (blocksSoFar, 0, True)
+        else
+          let (blocksUpdated, wantedUpdated) =
+                appendBlocks blocksSoFar thisBlock wanted
+          in (blocksUpdated, wantedUpdated, False)
+  where
+    extractResults (a, _b, c) = (a, c)
+    appendBlocks blocksSoFar thisBlock wanted =
       case thisBlock of
         MMark.Blockquote subBlocks ->
           -- Descend into the inner blocks of a blockquote. I do have
@@ -116,9 +127,9 @@ previewParagraphs n =
           in ( blocksSoFar <> List.singleton (MMark.Blockquote blocksToAdd)
              , wanted - length blocksToAdd )
         MMark.OrderedList _ listItems ->
-          -- We actually only take n list items, each of which may, in
+          -- We actually only take N list items, each of which may, in
           -- principle, be composed of multiple blocks. Truly taking
-          -- n blocks while preserving the block tree structure is an
+          -- N blocks while preserving the block tree structure is an
           -- interesting problem to solve, but I'm not concerned about it
           -- for now – I don't think I have any multi-paragraph list items
           -- at the moment anyway.
