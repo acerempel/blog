@@ -30,6 +30,7 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , containers
                      , filepath
+                     , foldl
                      , directory >= 1.2.6
                      , list-base
                      , list-indef

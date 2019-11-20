@@ -1,13 +1,17 @@
 {-# LANGUAGE DeriveAnyClass, DeriveGeneric, LambdaCase #-}
-module Post ( Post(..), Tag, readPost, firstNWords ) where
+module Post ( Post(..), Tag, readPost ) where
 
 import Introit
+import List ( List )
+import qualified List
 import qualified Text
 import Routes ( Route, ContentType(Html) )
 import qualified Routes
 
 import System.FilePath
 import Control.Exception ( throwIO )
+import Control.Foldl ( Fold )
+import qualified Data.List.NonEmpty as NE
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
@@ -17,13 +21,16 @@ import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
+import Text.MMark.Type ( MMark(..) )
 import Text.MMark.Extension.PunctuationPrettifier
 
 
 data Post = Post
    { slug :: Route 'Html -- ^ Route to this post.
    , mTitle :: Maybe Text -- ^ Title.
+   , firstFewWords :: Text
    , content :: MMark -- ^ The post body.
+   , preview :: MMark
    , mSynopsis :: Maybe Text -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , composed :: Day -- ^ Date of composition.
@@ -57,6 +64,10 @@ readPost filepath = do
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
+         let (firstFewWords, firstFewParagraphs) =
+               MMark.runScanner content $
+                (,) <$> firstNWords 5 <*> previewParagraphs 2
+         let preview = content{mmarkBlocks = firstFewParagraphs}
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , isDraft = False
@@ -67,10 +78,9 @@ readPost filepath = do
 
    dateFormat = "%e %B %Y"
 
-firstNWords :: Int -> MMark -> Text
-firstNWords n content =
-  Text.unwords $ take n $ Text.words $
-  MMark.runScanner content $
+firstNWords :: Int -> Fold MMark.Bni Text
+firstNWords n =
+  Text.unwords . take n . Text.words <$>
   MMark.scanner Text.empty appendPlainText
   where
     appendPlainText textSoFar = \case
@@ -91,3 +101,48 @@ firstNWords n content =
       MMark.CodeBlock _ text -> textSoFar <> text
       MMark.ThematicBreak -> textSoFar
       MMark.Table _ _ -> textSoFar
+
+previewParagraphs :: Int -> Fold MMark.Bni (List MMark.Bni)
+previewParagraphs n =
+  fst <$> MMark.scanner ([], n) \(blocksSoFar, wanted) thisBlock ->
+    if wanted == 0 then
+      (blocksSoFar, 0)
+    else
+      case thisBlock of
+        MMark.Blockquote subBlocks ->
+          -- Descend into the inner blocks of a blockquote. I do have
+          -- multi-paragraph block quotations, and I'll probably add more.
+          let blocksToAdd = List.take wanted subBlocks
+          in ( blocksSoFar <> List.singleton (MMark.Blockquote blocksToAdd)
+             , wanted - length blocksToAdd )
+        MMark.OrderedList _ listItems ->
+          -- We actually only take n list items, each of which may, in
+          -- principle, be composed of multiple blocks. Truly taking
+          -- n blocks while preserving the block tree structure is an
+          -- interesting problem to solve, but I'm not concerned about it
+          -- for now – I don't think I have any multi-paragraph list items
+          -- at the moment anyway.
+          let blocksToAdd = List.concat . List.fromList $ NE.take wanted listItems
+          in (blocksSoFar <> blocksToAdd, wanted - length blocksToAdd)
+        MMark.UnorderedList listItems ->
+          -- See above, under `MMark.OrderedList`.
+          let blocksToAdd = List.concat . List.fromList $ NE.take wanted listItems
+          in (blocksSoFar <> blocksToAdd, wanted - length blocksToAdd)
+        MMark.Table _ _ ->
+          -- Abort upon hitting a table. I don't want any tables appearing
+          -- on the front page.
+          (blocksSoFar, 0)
+        MMark.ThematicBreak ->
+          if wanted == 1 then
+            -- If this would be the last block we take, then don't take it,
+            -- and abort. It doesn't make sense for a thematic break to be
+            -- the last thing in the preview.
+            (blocksSoFar, 0)
+          else
+            -- If we have more to take, then keep going, but don't count
+            -- the break towards the number we've taken.
+            (blocksSoFar <> List.singleton MMark.ThematicBreak, wanted)
+        _ ->
+          -- All other blocks (headings, paragraphs, naked blocks, and code
+          -- blocks) we simply take.
+          (blocksSoFar <> List.singleton thisBlock, wanted - 1)
