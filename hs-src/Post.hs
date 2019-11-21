@@ -113,9 +113,7 @@ previewParagraphs n =
         if wanted == 0 then
           (blocksSoFar, 0, True)
         else
-          let (blocksUpdated, wantedUpdated) =
-                appendBlocks blocksSoFar thisBlock wanted
-          in (blocksUpdated, wantedUpdated, False)
+          appendBlocks blocksSoFar thisBlock wanted
   where
     extractResults (a, _b, c) = (a, c)
     appendBlocks blocksSoFar thisBlock wanted =
@@ -125,7 +123,8 @@ previewParagraphs n =
           -- multi-paragraph block quotations, and I'll probably add more.
           let blocksToAdd = List.take wanted subBlocks
           in ( blocksSoFar <> List.singleton (MMark.Blockquote blocksToAdd)
-             , wanted - length blocksToAdd )
+             , wanted - length blocksToAdd
+             , length blocksToAdd < length subBlocks)
         MMark.OrderedList _ listItems ->
           -- We actually only take N list items, each of which may, in
           -- principle, be composed of multiple blocks. Truly taking
@@ -134,26 +133,30 @@ previewParagraphs n =
           -- for now – I don't think I have any multi-paragraph list items
           -- at the moment anyway.
           let blocksToAdd = List.concat . List.fromList $ NE.take wanted listItems
-          in (blocksSoFar <> blocksToAdd, wanted - length blocksToAdd)
+          in ( blocksSoFar <> blocksToAdd
+             , wanted - length blocksToAdd
+             , length blocksToAdd < length listItems)
         MMark.UnorderedList listItems ->
           -- See above, under `MMark.OrderedList`.
           let blocksToAdd = List.concat . List.fromList $ NE.take wanted listItems
-          in (blocksSoFar <> blocksToAdd, wanted - length blocksToAdd)
+          in ( blocksSoFar <> blocksToAdd
+             , wanted - length blocksToAdd
+             , length blocksToAdd < length listItems)
         MMark.Table _ _ ->
           -- Abort upon hitting a table. I don't want any tables appearing
           -- on the front page.
-          (blocksSoFar, 0)
+          (blocksSoFar, 0, True)
         MMark.ThematicBreak ->
           if wanted == 1 then
             -- If this would be the last block we take, then don't take it,
             -- and abort. It doesn't make sense for a thematic break to be
             -- the last thing in the preview.
-            (blocksSoFar, 0)
+            (blocksSoFar, 0, True)
           else
             -- If we have more to take, then keep going, but don't count
             -- the break towards the number we've taken.
-            (blocksSoFar <> List.singleton MMark.ThematicBreak, wanted)
+            (blocksSoFar <> List.singleton MMark.ThematicBreak, wanted, False)
         _ ->
           -- All other blocks (headings, paragraphs, naked blocks, and code
           -- blocks) we simply take.
-          (blocksSoFar <> List.singleton thisBlock, wanted - 1)
+          (blocksSoFar <> List.singleton thisBlock, wanted - 1, False)
