@@ -6,11 +6,11 @@ library-profiling: False
 
 package blog
     ghc-options: -fhide-source-paths -Wall -Wincomplete-record-updates -Wmissing-exported-signatures -ferror-spans
-    optimization: 0
+    optimization: 2
 
 package mmark
     ghc-options: -fhide-source-paths -Wall -ferror-spans
-    optimization: 0
+    optimization: 2
 
 package blog-server
     ghc-options: -fhide-source-paths -Wall -ferror-spans
