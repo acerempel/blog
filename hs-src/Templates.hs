@@ -31,7 +31,7 @@ archive includeTags posts =
        , pageTitle = "All Posts"}
 
 post :: IncludeTags -> Post -> PageContent
-post includeTags Post{ content, composed, tags, firstFewWords, mTitle, description, slug } =
+post includeTags Post{..} =
     let
         pageTitle = fromMaybe firstFewWords mTitle
         mainContent =
