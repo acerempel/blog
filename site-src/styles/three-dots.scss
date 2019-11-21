@@ -106,13 +106,14 @@ strong { @extend .bold; }
   @include line-height-three-halves;
 }
 
-article.full header {
-  @include margin-bottom-one-half;
-}
-
 article.full h2 {
   font-weight: 700;
   letter-spacing: 0.5px;
+  margin-bottom: $base-font-size * 0.125;
+}
+
+article.full:only-child h2 {
+  margin-bottom: $base-line-height * 0.5;
 }
 
 article.full {
