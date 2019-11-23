@@ -37,7 +37,8 @@ build Options{..} = do
     let inputPathsCategorized =
           categorizePathsByExtension inputPaths
     let postSourcePaths =
-          List.filter ((postsSubDirectory ==) . last . splitDirectories . takeDirectory) $
+          -- This is bananas. Must switch back to Shake.
+          List.filter ((\dir -> dir == "posts" || dir == "front matter") . last . splitDirectories . takeDirectory) $
           Map.findWithDefault List.empty ".md" inputPathsCategorized
         scssPaths =
           Map.findWithDefault List.empty ".scss" inputPathsCategorized
