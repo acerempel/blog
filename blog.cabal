@@ -38,6 +38,7 @@ executable blog
                      , megaparsec
                      , mmark >= 0.0.7.1 && < 0.1
                      , mmark-ext >= 0.1.0.0 && < 1.0
+                     , modern-uri
                      , optparse-applicative >= 0.14 && < 0.16
                      , time >= 1.5
                      , text

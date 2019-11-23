@@ -16,6 +16,7 @@ import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
+import qualified Lucid
 import qualified Network.URI.Encode as URI
 import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
@@ -23,6 +24,8 @@ import qualified Text.MMark as MMark
 import qualified Text.MMark.Extension as MMark
 import Text.MMark.Type ( MMark(..) )
 import Text.MMark.Extension.PunctuationPrettifier
+import Text.URI ( uriPath, uriScheme )
+import qualified Text.URI as URI
 
 
 data Post = Post
@@ -50,7 +53,7 @@ readPost filepath = do
     either (throwIO . userError) return do
       body <-
          first MP.errorBundlePretty $
-         second (MMark.useExtension punctuationPrettifier) $
+         second (MMark.useExtension (punctuationPrettifier <> customTags)) $
          MMark.parse filepath contents
       yaml <- maybe (Left noMetadataError) Right $
          MMark.projectYaml body
@@ -79,6 +82,23 @@ readPost filepath = do
       "Couldn't find a metadata block in file " <> filepath
 
    dateFormat = "%e %B %Y"
+
+customTags :: MMark.Extension
+customTags =
+  MMark.inlineRender \defaultRender inline ->
+    case inline of
+      MMark.Link innerInlines uri mTitle ->
+        case uriScheme uri of
+          Just scheme | URI.unRText scheme == "tag" ->
+            case uriPath uri of
+              Just (False, tag NE.:| []) ->
+                Lucid.termWith
+                  (URI.unRText tag)
+                  (maybe [] ((: []) . Lucid.title_) mTitle)
+                  (mapM_ defaultRender innerInlines)
+              _ -> defaultRender inline
+          _ -> defaultRender inline
+      _ -> defaultRender inline
 
 firstNWords :: Int -> Fold MMark.Bni Text
 firstNWords n =
