@@ -61,7 +61,9 @@ html sourcePattern targetPattern makeAction = do
         markup <- makeAction source
         liftIO $ Lucid.renderToFile target (template markup)
       targetPattern' =
-        targetPattern </> "index.html"
+        if "html" `isExtensionOf` targetPattern
+          then targetPattern
+          else targetPattern </> "index.html"
   rule sourcePattern targetPattern' makeAction'
 
 rule :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action ()) -> SiteM ()
