@@ -54,22 +54,23 @@ liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
 html :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action (Html ())) -> SiteM ()
-html sourcePattern targetPattern makeAction = do
-  -- TODO: Handle specially the case where the target pattern has an arity
-  -- of zero. E.g. index.html.
-  when (FP.arity sourcePattern /= FP.arity targetPattern) do
+html sourcePattern targetPattern makeAction
+  | FP.arity targetPattern == 0 =
+    undefined
+  | FP.arity sourcePattern /= FP.arity targetPattern =
     -- TODO: Make a custom exception type and throw that in IO.
-    error "not matching arity of patterns!"
-  inputDir <- query inputDirectory
-  outputDir <- query outputDirectory
-  let parameters = RuleParameters{target = targetPattern, source = sourcePattern}
-  SiteM (lift (A.add [parameters]))
-  let targetPattern' = outputDir </> targetPattern
-      sourcePattern' = inputDir </> sourcePattern
-  template <- SiteM (R.asks baseTemplate)
-  liftRules $ targetPattern' %> \target -> do
-    let Just parts = FP.match targetPattern' target
-        source = FP.substitute sourcePattern' parts
-    let parameters = RuleParameters{ source, target }
-    markup <- makeAction parameters
-    liftIO $ Lucid.renderToFile target (template markup)
+    error "Arity of patterns doesn't match!"
+  | otherwise = do
+    inputDir <- query inputDirectory
+    outputDir <- query outputDirectory
+    let parameters = RuleParameters{target = targetPattern, source = sourcePattern}
+    SiteM (lift (A.add [parameters]))
+    let targetPattern' = outputDir </> targetPattern
+        sourcePattern' = inputDir </> sourcePattern
+    template <- SiteM (R.asks baseTemplate)
+    liftRules $ targetPattern' %> \target -> do
+      let Just parts = FP.match targetPattern' target
+          source = FP.substitute sourcePattern' parts
+      let parameters = RuleParameters{ source, target }
+      markup <- makeAction parameters
+      liftIO $ Lucid.renderToFile target (template markup)
