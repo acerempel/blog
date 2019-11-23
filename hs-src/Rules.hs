@@ -4,6 +4,7 @@ module Rules where
 import Introit
 import qualified List
 import Options
+import qualified Templates
 
 import Control.Monad.Fail ( MonadFail )
 import Control.Monad.IO.Class ( liftIO )
@@ -25,7 +26,7 @@ data Environment =
   { options :: !Options
   , baseTemplate :: !Template }
 
-type Template = Html () -> Html ()
+type Template = Templates.PageContent -> Html ()
 
 data RuleParameters a =
   RuleParameters
@@ -53,7 +54,7 @@ query question =
 liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
-html :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action (Html ())) -> SiteM ()
+html :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action Templates.PageContent) -> SiteM ()
 html sourcePattern targetPattern makeAction
   | FP.arity targetPattern == 0 =
     undefined

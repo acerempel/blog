@@ -1,4 +1,5 @@
 module Templates ( Html
+                 , PageContent
                  , archive, post, tagsList
                  , page
                  , IncludeTags ) where

@@ -16,6 +16,7 @@ import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
+import Development.Shake
 import qualified Lucid
 import qualified Network.URI.Encode as URI
 import qualified Text.Megaparsec as MP
@@ -46,11 +47,11 @@ data Post = Post
 type Tag = Text
 
 readPost :: FilePath
-         -> IO Post
+         -> Action Post
 readPost filepath = do
-    putStrLn $ "Reading post from " <> filepath
-    contents <- Text.readFile filepath
-    either (throwIO . userError) return do
+    need [filepath]
+    contents <- liftIO $ Text.readFile filepath
+    liftIO $ either (throwIO . userError) return do
       body <-
          first MP.errorBundlePretty $
          second (MMark.useExtension (punctuationPrettifier <> customTags)) $
