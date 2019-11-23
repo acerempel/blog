@@ -54,8 +54,18 @@ query question =
 liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
-html :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action Templates.PageContent) -> SiteM ()
-html sourcePattern targetPattern makeAction
+html :: FilePattern -> FilePattern -> (FilePath -> Action Templates.PageContent) -> SiteM ()
+html sourcePattern targetPattern makeAction = do
+  template <- SiteM (R.asks baseTemplate)
+  let makeAction' RuleParameters{source, target} = do
+        markup <- makeAction source
+        liftIO $ Lucid.renderToFile target (template markup)
+      targetPattern' =
+        targetPattern </> "index.html"
+  rule sourcePattern targetPattern' makeAction'
+
+rule :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action ()) -> SiteM ()
+rule sourcePattern targetPattern makeAction
   | FP.arity targetPattern == 0 =
     undefined
   | FP.arity sourcePattern /= FP.arity targetPattern =
@@ -68,10 +78,8 @@ html sourcePattern targetPattern makeAction
     SiteM (lift (A.add [parameters]))
     let targetPattern' = outputDir </> targetPattern
         sourcePattern' = inputDir </> sourcePattern
-    template <- SiteM (R.asks baseTemplate)
     liftRules $ targetPattern' %> \target -> do
       let Just parts = FP.match targetPattern' target
           source = FP.substitute sourcePattern' parts
       let parameters = RuleParameters{ source, target }
-      markup <- makeAction parameters
-      liftIO $ Lucid.renderToFile target (template markup)
+      makeAction parameters

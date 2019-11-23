@@ -12,6 +12,6 @@ import Rules
 build :: Options -> IO ()
 build options@Options{..} = shake shakeOptions do
   run options Templates.page do
-    html "posts/*.md" "*/index.html" \RuleParameters{source, target} -> do
+    html "posts/*.md" "*/index.html" \source -> do
       post <- readPost source
       return (Templates.post includeTags post)
