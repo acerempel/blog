@@ -20,9 +20,9 @@ import qualified Routes
 
 type IncludeTags = Bool
 
-archive :: IncludeTags -> [Post] -> PageContent
-archive includeTags posts =
-  let mainContent =
+archive :: [Post] -> PageContent
+archive posts =
+  let mainContent includeTags =
         foldrMapM (archiveEntry includeTags) posts
       pageDescription =
         Just "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
@@ -31,11 +31,11 @@ archive includeTags posts =
        , pageDescription
        , pageTitle = "All Posts"}
 
-post :: IncludeTags -> Post -> PageContent
-post includeTags Post{..} =
+post :: Post -> PageContent
+post Post{..} =
     let
         pageTitle = fromMaybe firstFewWords mTitle
-        mainContent =
+        mainContent includeTags =
             article_ [ class_ "post full" ] do
                 header_ do
                   date composed
@@ -97,12 +97,12 @@ tagLink tagName =
   a_ [ href_ (url (Routes.TagR tagName)) ] $ toHtml tagName
 
 data PageContent = PageContent
-    { mainContent :: Html ()
+    { mainContent :: IncludeTags -> Html ()
     , pageDescription :: Maybe Text
     , pageTitle :: Text }
 
-page :: PageContent -> Html ()
-page PageContent{mainContent, pageDescription, pageTitle} = do
+page :: IncludeTags -> PageContent -> Html ()
+page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
     doctype_
     html_ [ lang_ "en" ] do
         head_ do
@@ -128,7 +128,7 @@ page PageContent{mainContent, pageDescription, pageTitle} = do
           div_ [ class_ "container" ] do
             header_ do
                 h1_ [ class_ "slightly-bigger semibold" ] $ a_ [ href_ "/" ] "Three dots …"
-            main_ mainContent
+            main_ (mainContent includeTags)
             footer_ do
               settings
 
