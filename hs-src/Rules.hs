@@ -2,7 +2,6 @@
 module Rules where
 
 import Introit
-import List ( List )
 import qualified List
 import Options
 
@@ -15,10 +14,10 @@ import Development.Shake
 import Development.Shake.FilePath
 import Lucid ( Html )
 import qualified Lucid
-import System.Directory ( createDirectoryIfMissing )
+import qualified System.FilePattern as FP
 
 newtype SiteM a =
-  SiteM (R.ReaderT Environment (A.AccumT (List FilePath) Rules) a)
+  SiteM (R.ReaderT Environment (A.AccumT ([RuleParameters FilePattern]) Rules) a)
   deriving newtype ( Functor, Applicative, Monad, MonadFail )
 
 data Environment =
@@ -28,23 +27,24 @@ data Environment =
 
 type Template = Html () -> Html ()
 
-data RuleParameters =
+data RuleParameters a =
   RuleParameters
-  { inputPath :: !FilePath
-  , outputPath :: !FilePath }
+  { source :: !a
+  , target :: !a }
 
 run :: Options -> Template -> SiteM a -> Rules a
 run options template (SiteM m) = do
   let environment = Environment options template
-  (result, targets) <- A.runAccumT (R.runReaderT m environment) List.empty
-  let targetsQualifiedWithOutputDir =
-        (outputDirectory options </>) `fmap` targets
-  want (toList targetsQualifiedWithOutputDir)
+  (result, rulePatterns) <- A.runAccumT (R.runReaderT m environment) List.empty
+  action do
+    targetFiles <- forP rulePatterns \RuleParameters{source, target} -> do
+      sourceFiles <- getDirectoryFiles (inputDirectory options) [source]
+      return $ fmap (FP.substitute target . fromJust . FP.match source) sourceFiles
+    -- getDirectoryFiles does not qualify the results with the name of the
+    -- given directory, i.e. the results will match one of the pattern
+    -- arguments.
+    need ((fmap (outputDirectory options </>) . concat) targetFiles)
   return result
-
-targets :: List FilePath -> SiteM ()
-targets paths =
-  SiteM (lift (A.add paths))
 
 query :: (Options -> a) -> SiteM a
 query question =
@@ -53,15 +53,23 @@ query question =
 liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
-html :: FilePattern -> (RuleParameters -> Action (Html ())) -> SiteM ()
-html pattern makeAction = do
+html :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action (Html ())) -> SiteM ()
+html sourcePattern targetPattern makeAction = do
+  -- TODO: Handle specially the case where the target pattern has an arity
+  -- of zero. E.g. index.html.
+  when (FP.arity sourcePattern /= FP.arity targetPattern) do
+    -- TODO: Make a custom exception type and throw that in IO.
+    error "not matching arity of patterns!"
   inputDir <- query inputDirectory
   outputDir <- query outputDirectory
-  let outputPattern = outputDir </> pattern
+  let parameters = RuleParameters{target = targetPattern, source = sourcePattern}
+  SiteM (lift (A.add [parameters]))
+  let targetPattern' = outputDir </> targetPattern
+      sourcePattern' = inputDir </> sourcePattern
   template <- SiteM (R.asks baseTemplate)
-  liftRules $ outputPattern %> \outputPath -> do
-    let inputPath = joinPath $ inputDir : List.tail (splitDirectories outputPath)
-        parameters = RuleParameters{ inputPath, outputPath }
+  liftRules $ targetPattern' %> \target -> do
+    let Just parts = FP.match targetPattern' target
+        source = FP.substitute sourcePattern' parts
+    let parameters = RuleParameters{ source, target }
     markup <- makeAction parameters
-    liftIO $ createDirectoryIfMissing True (takeDirectory outputPath)
-    liftIO $ Lucid.renderToFile outputPath (template markup)
+    liftIO $ Lucid.renderToFile target (template markup)

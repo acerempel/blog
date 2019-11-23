@@ -33,6 +33,7 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , containers
                      , filepath
+                     , filepattern
                      , foldl
                      , directory >= 1.2.6
                      , list-base
