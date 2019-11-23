@@ -19,10 +19,6 @@ runCLI = info parseCLI mempty
 parseCLI :: Parser Options
 parseCLI = Options
   <$> strOption do
-        long "posts-subdir"
-        metavar "DIRECTORY"
-        help "Where to find posts, beneath the input directory."
-  <*> strOption do
         long "input-dir"
         metavar "DIRECTORY"
         help "Where to search for input files."
