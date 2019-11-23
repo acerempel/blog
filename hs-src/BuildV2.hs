@@ -34,7 +34,6 @@ data Options = Options
 build :: Options -> IO ()
 build Options{..} = do
     inputPaths <- listDirectoryRecursively inputDirectory excludeDirs
-    putStr "Found "; print inputPaths
     let inputPathsCategorized =
           categorizePathsByExtension inputPaths
     let postSourcePaths =
@@ -45,7 +44,6 @@ build Options{..} = do
         assetPaths =
           [".css", ".js", ".jpg", ".png", ".woff", ".woff2"] >>= \extension ->
             Map.findWithDefault List.empty extension inputPathsCategorized
-    putStr "Assets: "; print assetPaths
     postsUnordered <- traverse readPost postSourcePaths
     let postsOrdered =
           List.sortOn published postsUnordered
@@ -54,7 +52,6 @@ build Options{..} = do
     for_ assetPaths \assetPath -> do
       let targetPath = joinPath $ outputDirectory : tail (splitDirectories assetPath)
       createDirectoryIfMissing True (takeDirectory targetPath)
-      putStrLn $ "Copying " ++ assetPath ++ " to " ++ targetPath
       copyFileWithMetadata assetPath targetPath
     let scssTargetPath scssSourcePath =
           (joinPath $ outputDirectory : tail (splitDirectories scssSourcePath)) -<.> ".css"
