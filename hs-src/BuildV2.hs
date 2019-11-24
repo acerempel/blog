@@ -11,8 +11,9 @@ import Rules
 
 build :: Options -> IO ()
 build options@Options{includeTags} = shake shakeOptions do
+  getPost <- newCache Post.read
   run options (Templates.page includeTags) do
     html "posts/*.md" "*" \source ->
-      Templates.post <$> Post.read source
+      Templates.post <$> getPost source
     rule "**.scss" "**.css" \RuleParameters{source, target} ->
       undefined

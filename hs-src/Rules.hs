@@ -36,10 +36,12 @@ data RuleParameters a =
 run :: Options -> Template -> SiteM a -> Rules a
 run options template (SiteM m) = do
   let environment = Environment options template
+  getDirectoryFilesCached <-
+    newCache (getDirectoryFiles (inputDirectory options) . (: []))
   (result, rulePatterns) <- A.runAccumT (R.runReaderT m environment) List.empty
   action do
     targetFiles <- forP rulePatterns \RuleParameters{source, target} -> do
-      sourceFiles <- getDirectoryFiles (inputDirectory options) [source]
+      sourceFiles <- getDirectoryFilesCached source
       return $ fmap (FP.substitute target . fromJust . FP.match source) sourceFiles
     -- getDirectoryFiles does not qualify the results with the name of the
     -- given directory, i.e. the results will match one of the pattern
