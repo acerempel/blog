@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveAnyClass, DeriveGeneric, LambdaCase #-}
-module Post ( Post(..), Tag, readPost ) where
+module Post ( Post(..), Tag, read ) where
+
+import Prelude hiding ( read )
 
 import Introit
 import List ( List )
@@ -46,9 +48,9 @@ data Post = Post
 
 type Tag = Text
 
-readPost :: FilePath
-         -> Action Post
-readPost filepath = do
+read :: FilePath
+     -> Action Post
+read filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     liftIO $ either (throwIO . userError) return do
