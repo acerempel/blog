@@ -68,8 +68,10 @@ html sourcePattern targetPattern makeAction = do
 
 rule :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action ()) -> SiteM ()
 rule sourcePattern targetPattern makeAction
+  | FP.arity targetPattern == 0 && FP.arity sourcePattern == 0 =
+    error "not yet implemented!"
   | FP.arity targetPattern == 0 =
-    undefined
+    error "not yet implemented"
   | FP.arity sourcePattern /= FP.arity targetPattern =
     -- TODO: Make a custom exception type and throw that in IO.
     error "Arity of patterns doesn't match!"
