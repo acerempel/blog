@@ -11,42 +11,66 @@ import Control.Monad.IO.Class ( liftIO )
 import qualified Control.Monad.Trans.Accum as A
 import Control.Monad.Trans.Class ( lift )
 import qualified Control.Monad.Trans.Reader as R
+import Data.IORef
+import qualified Data.Map.Strict as Map
 import Development.Shake
 import Development.Shake.FilePath
-import Lucid ( Html )
 import qualified Lucid
-import qualified System.FilePattern as FP
 
 newtype SiteM a =
-  SiteM (R.ReaderT Environment (A.AccumT ([RuleParameters FilePattern]) Rules) a)
+  SiteM (R.ReaderT Environment (A.AccumT ([Rule]) Rules) a)
   deriving newtype ( Functor, Applicative, Monad, MonadFail )
 
 data Environment =
   Environment
-  { options :: !Options
-  , baseTemplate :: !Template }
+  { options :: !Options }
 
-type Template = Templates.PageContent -> Html ()
+data Rule = Rule
+  { sourcePattern :: !FilePattern
+  , targetsAndAction :: !TargetsAndAction }
 
-data RuleParameters a =
-  RuleParameters
-  { source :: !a
-  , target :: !a }
+type SourcePath = FilePath
+type TargetPath = FilePath
+type QualifiedTargetPath = FilePath
 
-run :: Options -> Template -> SiteM a -> Rules a
-run options template (SiteM m) = do
-  let environment = Environment options template
-  getDirectoryFilesCached <-
-    newCache (getDirectoryFiles (inputDirectory options) . (: []))
-  (result, rulePatterns) <- A.runAccumT (R.runReaderT m environment) List.empty
-  action do
-    targetFiles <- forP rulePatterns \RuleParameters{source, target} -> do
-      sourceFiles <- getDirectoryFilesCached source
-      return $ fmap (FP.substitute target . fromJust . FP.match source) sourceFiles
-    -- getDirectoryFiles does not qualify the results with the name of the
-    -- given directory, i.e. the results will match one of the pattern
-    -- arguments.
-    need ((fmap (outputDirectory options </>) . concat) targetFiles)
+data TargetsAndAction
+  = OneToOne (SourcePath -> TargetPath) (SourcePath -> QualifiedTargetPath -> Action ())
+  | ManyToOne TargetPath ([SourcePath] -> QualifiedTargetPath -> Action ())
+  | OneToSome (SourcePath -> [TargetPath]) (SourcePath -> [QualifiedTargetPath] -> Action ())
+  | ManyToSome [TargetPath] ([SourcePath] -> [QualifiedTargetPath] -> Action ())
+
+run :: Options -> SiteM a -> Rules a
+run options (SiteM m) = do
+  let environment = Environment options
+  (result, rules) <- A.runAccumT (R.runReaderT m environment) List.empty
+  topLevelTargets <- liftIO $ newIORef []
+  directoryContents <- liftIO $ newIORef Map.empty
+  forM_ rules \Rule{sourcePattern, targetsAndAction} -> do
+    -- I dunno about this IORef stuff … feels unstylish.
+    sourceFiles <- liftIO do
+      directoryCache <- readIORef directoryContents
+      case Map.lookup sourcePattern directoryCache of
+        Just files ->
+          return files
+        Nothing -> do
+          files <- getDirectoryFilesIO (inputDirectory options) [sourcePattern]
+          modifyIORef directoryContents (Map.insert sourcePattern files)
+          return files
+    case targetsAndAction of
+      OneToOne sourceToTarget targetToAction ->
+        forM_ sourceFiles \sourceFile -> do
+          let qualifiedTargetFile = outputDirectory options </> sourceToTarget sourceFile
+              qualifiedSourceFile = inputDirectory options </> sourceFile
+          liftIO $ modifyIORef topLevelTargets (qualifiedTargetFile :)
+          qualifiedTargetFile %> \_ -> targetToAction qualifiedSourceFile qualifiedTargetFile
+      ManyToOne targetPath pathsToAction -> do
+        let qualifiedTargetFile = outputDirectory options </> targetPath
+            qualifiedSourceFiles = map (inputDirectory options </>) sourceFiles
+        liftIO $ modifyIORef topLevelTargets (qualifiedTargetFile :)
+        qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFiles qualifiedTargetFile
+      _ -> error "not yet implemented!"
+  targets <- liftIO $ readIORef topLevelTargets
+  want targets
   return result
 
 query :: (Options -> a) -> SiteM a
@@ -56,36 +80,12 @@ query question =
 liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
-html :: FilePattern -> FilePattern -> (FilePath -> Action Templates.PageContent) -> SiteM ()
-html sourcePattern targetPattern makeAction = do
-  template <- SiteM (R.asks baseTemplate)
-  let makeAction' RuleParameters{source, target} = do
-        markup <- makeAction source
-        liftIO $ Lucid.renderToFile target (template markup)
-      targetPattern' =
-        if "html" `isExtensionOf` targetPattern
-          then targetPattern
-          else targetPattern </> "index.html"
-  rule sourcePattern targetPattern' makeAction'
+rule :: FilePattern -> TargetsAndAction -> SiteM ()
+rule pattern tAndA = SiteM . lift . A.add $ [Rule pattern tAndA]
 
-rule :: FilePattern -> FilePattern -> (RuleParameters FilePath -> Action ()) -> SiteM ()
-rule sourcePattern targetPattern makeAction
-  | FP.arity targetPattern == 0 && FP.arity sourcePattern == 0 =
-    error "not yet implemented!"
-  | FP.arity targetPattern == 0 =
-    error "not yet implemented"
-  | FP.arity sourcePattern /= FP.arity targetPattern =
-    -- TODO: Make a custom exception type and throw that in IO.
-    error "Arity of patterns doesn't match!"
-  | otherwise = do
-    inputDir <- query inputDirectory
-    outputDir <- query outputDirectory
-    let parameters = RuleParameters{target = targetPattern, source = sourcePattern}
-    SiteM (lift (A.add [parameters]))
-    let targetPattern' = outputDir </> targetPattern
-        sourcePattern' = inputDir </> sourcePattern
-    liftRules $ targetPattern' %> \target -> do
-      let Just parts = FP.match targetPattern' target
-          source = FP.substitute sourcePattern' parts
-      let parameters = RuleParameters{ source, target }
-      makeAction parameters
+html :: Action Templates.PageContent -> FilePath -> Action ()
+html makeAction = \targetFile -> do
+  markup <- makeAction
+  -- TODO: propagate IncludeTags and any other information the template
+  -- needs!
+  liftIO $ Lucid.renderToFile targetFile (Templates.page False markup)
