@@ -46,7 +46,8 @@ run options (SiteM m) = do
   topLevelTargets <- liftIO $ newIORef []
   directoryContents <- liftIO $ newIORef Map.empty
   forM_ rules \Rule{sourcePattern, targetsAndAction} -> do
-    -- I dunno about this IORef stuff … feels unstylish.
+    -- I dunno about this IORef stuff … feels unstylish. I'd rather do
+    -- a 'foldl'' here instead.
     sourceFiles <- liftIO do
       directoryCache <- readIORef directoryContents
       case Map.lookup sourcePattern directoryCache of
