@@ -2,76 +2,87 @@
 module Rules where
 
 import Introit
-import qualified List
 import Options
 import qualified Templates
 
 import Control.Monad.Fail ( MonadFail )
-import Control.Monad.IO.Class ( liftIO )
-import qualified Control.Monad.Trans.Accum as A
+import Control.Monad.IO.Class ( liftIO, MonadIO )
+import qualified Control.Monad.Trans.State.Strict as S
 import Control.Monad.Trans.Class ( lift )
 import qualified Control.Monad.Trans.Reader as R
-import Data.IORef
-import qualified Data.Map.Strict as Map
+import Data.HashMap.Strict ( HashMap )
+import qualified Data.HashMap.Strict as Map
 import Development.Shake
 import Development.Shake.FilePath
 import qualified Lucid
 
 newtype SiteM a =
-  SiteM (R.ReaderT Environment (A.AccumT ([Rule]) Rules) a)
-  deriving newtype ( Functor, Applicative, Monad, MonadFail )
+  SiteM (R.ReaderT Environment (S.StateT State Rules) a)
+  deriving newtype ( Functor, Applicative, Monad, MonadFail, MonadIO )
 
 data Environment =
   Environment
   { options :: !Options }
 
-data Rule = Rule
-  { sourcePattern :: !FilePattern
-  , targetsAndAction :: !TargetsAndAction }
+type DirectoryCache = HashMap FilePattern [SourcePath]
+
+data State = State
+  { directoryCache :: !DirectoryCache
+  , topLevelTargets :: ![QualifiedTargetPath] }
+
+emptyState :: State
+emptyState = State Map.empty []
 
 type SourcePath = FilePath
 type TargetPath = FilePath
+type QualifiedSourcePath = FilePath
 type QualifiedTargetPath = FilePath
 
-data TargetsAndAction
-  = OneToOne (SourcePath -> TargetPath) (SourcePath -> QualifiedTargetPath -> Action ())
-  | ManyToOne TargetPath ([SourcePath] -> QualifiedTargetPath -> Action ())
-  | OneToSome (SourcePath -> [TargetPath]) (SourcePath -> [QualifiedTargetPath] -> Action ())
-  | ManyToSome [TargetPath] ([SourcePath] -> [QualifiedTargetPath] -> Action ())
+getDirectoryFilesCached :: FilePattern -> SiteM [SourcePath]
+getDirectoryFilesCached pattern = do
+  cache <- SiteM (lift (S.gets directoryCache))
+  case Map.lookup pattern cache of
+    Just files ->
+      return files
+    Nothing -> do
+      directory <- query inputDirectory
+      files <- liftIO $ getDirectoryFilesIO directory [pattern]
+      liftState $ S.modify' (\s -> s{directoryCache = Map.insert pattern files cache})
+      return files
+
+addTopLevelTarget :: TargetPath -> SiteM ()
+addTopLevelTarget path = do
+  outDir <- query outputDirectory
+  let qualifiedPath = outDir </> path
+  liftState $ S.modify' (\s -> s{ topLevelTargets = qualifiedPath : topLevelTargets s })
+
+oneToOne :: FilePattern -> (SourcePath -> TargetPath) -> (QualifiedSourcePath -> QualifiedTargetPath -> Action ()) -> SiteM ()
+oneToOne sourcePattern toTargetPath pathsToAction = do
+  sourceFiles <- getDirectoryFilesCached sourcePattern
+  (inDir, outDir) <- (,) <$> query inputDirectory <*> query outputDirectory
+  forM_ sourceFiles \sourceFile -> do
+    let targetFile = toTargetPath sourceFile
+        qualifiedTargetFile = outDir </> targetFile
+        qualifiedSourceFile = inDir </> sourceFile
+    addTopLevelTarget targetFile
+    liftRules $ qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFile qualifiedTargetFile
+
+manyToOne :: FilePattern -> TargetPath -> ([QualifiedSourcePath] -> QualifiedTargetPath -> Action ()) -> SiteM ()
+manyToOne sourcePattern targetFile pathsToAction = do
+  sourceFiles <- getDirectoryFilesCached sourcePattern
+  (inDir, outDir) <- (,) <$> query inputDirectory <*> query outputDirectory
+  let qualifiedTargetFile = outDir </> targetFile
+      qualifiedSourceFiles = map (inDir </>) sourceFiles
+  addTopLevelTarget targetFile
+  liftRules $ qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFiles qualifiedTargetFile
+
 
 run :: Options -> SiteM a -> Rules a
 run options (SiteM m) = do
   let environment = Environment options
-  (result, rules) <- A.runAccumT (R.runReaderT m environment) List.empty
-  topLevelTargets <- liftIO $ newIORef []
-  directoryContents <- liftIO $ newIORef Map.empty
-  forM_ rules \Rule{sourcePattern, targetsAndAction} -> do
-    -- I dunno about this IORef stuff … feels unstylish. I'd rather do
-    -- a 'foldl'' here instead.
-    sourceFiles <- liftIO do
-      directoryCache <- readIORef directoryContents
-      case Map.lookup sourcePattern directoryCache of
-        Just files ->
-          return files
-        Nothing -> do
-          files <- getDirectoryFilesIO (inputDirectory options) [sourcePattern]
-          modifyIORef directoryContents (Map.insert sourcePattern files)
-          return files
-    case targetsAndAction of
-      OneToOne sourceToTarget targetToAction ->
-        forM_ sourceFiles \sourceFile -> do
-          let qualifiedTargetFile = outputDirectory options </> sourceToTarget sourceFile
-              qualifiedSourceFile = inputDirectory options </> sourceFile
-          liftIO $ modifyIORef topLevelTargets (qualifiedTargetFile :)
-          qualifiedTargetFile %> \_ -> targetToAction qualifiedSourceFile qualifiedTargetFile
-      ManyToOne targetPath pathsToAction -> do
-        let qualifiedTargetFile = outputDirectory options </> targetPath
-            qualifiedSourceFiles = map (inputDirectory options </>) sourceFiles
-        liftIO $ modifyIORef topLevelTargets (qualifiedTargetFile :)
-        qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFiles qualifiedTargetFile
-      _ -> error "not yet implemented!"
-  targets <- liftIO $ readIORef topLevelTargets
-  want targets
+  (result, State{topLevelTargets}) <-
+    S.runStateT (R.runReaderT m environment) emptyState
+  want topLevelTargets
   return result
 
 query :: (Options -> a) -> SiteM a
@@ -81,8 +92,8 @@ query question =
 liftRules :: Rules a -> SiteM a
 liftRules = SiteM . lift . lift
 
-rule :: FilePattern -> TargetsAndAction -> SiteM ()
-rule pattern tAndA = SiteM . lift . A.add $ [Rule pattern tAndA]
+liftState :: S.StateT State Rules a -> SiteM a
+liftState = SiteM . lift
 
 html :: Action Templates.PageContent -> FilePath -> Action ()
 html makeAction = \targetFile -> do

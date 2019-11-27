@@ -31,7 +31,6 @@ executable blog
                      , BlockArguments
                      , DerivingStrategies
   build-depends:       base >= 4.10 && < 5
-                     , containers
                      , filepath
                      , filepattern
                      , foldl
@@ -49,6 +48,7 @@ executable blog
                      , text
                      , transformers >= 0.5 && < 0.6
                      , typed-process >= 0.2.5 && < 1.0
+                     , unordered-containers
                      , uri-encode
                      , yaml >= 0.8.23 && < 1.0
   mixins:              list-base (List.Base as List)
