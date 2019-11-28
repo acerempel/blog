@@ -68,6 +68,7 @@ read filepath = do
          date     <- metadata .: "date"
          mSynopsis <- metadata .:? "synopsis"
          description <- metadata .:? "description"
+         isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
          let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
@@ -77,7 +78,6 @@ read filepath = do
          let preview = content{mmarkBlocks = firstFewParagraphs}
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
-            , isDraft = False
             , previewIsFullPost = not isThereMore
             , .. }
 
