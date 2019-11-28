@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, PatternGuards #-}
 module Post ( Post(..), Tag, read ) where
 
 import Prelude hiding ( read )
@@ -87,21 +87,19 @@ read filepath = do
    dateFormat = "%e %B %Y"
 
 customTags :: MMark.Extension
-customTags =
-  MMark.inlineRender \defaultRender inline ->
-    case inline of
-      MMark.Link innerInlines uri mTitle ->
-        case uriScheme uri of
-          Just scheme | URI.unRText scheme == "tag" ->
-            case uriPath uri of
-              Just (False, tag NE.:| []) ->
-                Lucid.termWith
-                  (URI.unRText tag)
-                  (maybe [] ((: []) . Lucid.title_) mTitle)
-                  (mapM_ defaultRender innerInlines)
-              _ -> defaultRender inline
-          _ -> defaultRender inline
-      _ -> defaultRender inline
+customTags = MMark.inlineRender renderCustomTags
+  where
+    renderCustomTags defaultRender inline
+      | MMark.Link innerInlines uri mTitle <- inline
+      , Just scheme <- uriScheme uri
+      , URI.unRText scheme == "tag"
+      , Just (False, tag NE.:| []) <- uriPath uri
+        = Lucid.termWith
+          (URI.unRText tag)
+          (maybe [] ((: []) . Lucid.title_) mTitle)
+          (mapM_ defaultRender innerInlines)
+      | otherwise
+        = defaultRender inline
 
 firstNWords :: Int -> Fold MMark.Bni Text
 firstNWords n =
