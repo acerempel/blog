@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric, LambdaCase #-}
+{-# LANGUAGE LambdaCase #-}
 module Post ( Post(..), Tag, read ) where
 
 import Prelude hiding ( read )
