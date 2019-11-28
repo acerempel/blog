@@ -33,22 +33,22 @@ archive posts =
 
 post :: Post -> PageContent
 post Post{..} =
-    let
-        pageTitle = fromMaybe firstFewWords mTitle
-        mainContent includeTags =
-            article_ [ class_ "post full" ] do
-                header_ do
-                  date composed
-                  whenMaybe mTitle \title ->
-                    h2_ [ class_ "title" ] $
-                      a_ [ href_ (url slug) ] (toHtml title)
-                MMark.render content
-                when includeTags $ footer_ $
-                    p_ (tagLinks tags)
-    in PageContent
-        { mainContent
-        , pageDescription = description
-        , pageTitle }
+  let
+    pageTitle = fromMaybe firstFewWords mTitle
+    mainContent includeTags =
+      article_ [ class_ "post full" ] do
+        header_ do
+          date composed
+          whenMaybe mTitle \title ->
+            h2_ [ class_ "title" ] $
+              a_ [ href_ (url slug) ] (toHtml title)
+        MMark.render content
+        when includeTags $ footer_ $
+          p_ (tagLinks tags)
+  in PageContent
+      { mainContent
+      , pageDescription = description
+      , pageTitle }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
