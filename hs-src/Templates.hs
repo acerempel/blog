@@ -14,8 +14,6 @@ import Lucid
 import qualified Text.MMark as MMark
 
 import Post
-import Routes ( url )
-import qualified Routes
 
 
 type IncludeTags = Bool
@@ -41,7 +39,7 @@ post Post{..} =
           date composed
           whenMaybe mTitle \title ->
             h2_ [ class_ "title" ] $
-              a_ [ href_ (url slug) ] (toHtml title)
+              a_ [ href_ url ] (toHtml title)
         MMark.render content
         when includeTags $ footer_ $
           p_ (tagLinks tags)
@@ -68,13 +66,13 @@ archiveEntry includeTags Post{..} =
    article_ [ class_ ("post " <> if showPreview then "full" else "summary") ] do
       date composed
       whenMaybe mTitle \title ->
-        h2_ [ class_ "title" ] $ a_ [ href_ (url slug) ] (toHtml title)
+        h2_ [ class_ "title" ] $ a_ [ href_ url ] (toHtml title)
       whenMaybe mSynopsis \synopsis ->
         p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
       when showPreview do
         MMark.render preview
         when (not previewIsFullPost) $
-          p_ (a_ [ href_ (url slug) ] "Continue reading …")
+          p_ (a_ [ href_ url ] "Continue reading …")
       when includeTags $
          p_ (tagLinks tags)
   where
@@ -94,7 +92,7 @@ tagLinks theTags =
 
 tagLink :: Tag -> Html ()
 tagLink tagName =
-  a_ [ href_ (url (Routes.TagR tagName)) ] $ toHtml tagName
+  a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
 
 data PageContent = PageContent
     { mainContent :: IncludeTags -> Html ()

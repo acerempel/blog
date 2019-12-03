@@ -7,8 +7,6 @@ import Introit
 import List ( List )
 import qualified List
 import qualified Text
-import Routes ( Route, ContentType(Html) )
-import qualified Routes
 
 import System.FilePath
 import Control.Exception ( throwIO )
@@ -32,7 +30,7 @@ import qualified Text.URI as URI
 
 
 data Post = Post
-   { slug :: Route 'Html -- ^ Route to this post.
+   { url :: Text -- ^ Route to this post.
    , mTitle :: Maybe Text -- ^ Title.
    , firstFewWords :: Text
    , content :: MMark -- ^ The post body.
@@ -71,7 +69,7 @@ read filepath = do
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let slug = Routes.PageR $ URI.encode $ takeBaseName filepath
+         let url = Text.pack $ '/' : URI.encode (takeBaseName filepath)
          let (firstFewWords, (firstFewParagraphs, isThereMore)) =
                MMark.runScanner content $
                 (,) <$> firstNWords 5 <*> previewParagraphs 2

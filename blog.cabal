@@ -19,15 +19,13 @@ executable blog
                      , Templates
                      , Options
                      , Rules
-                     , Routes
                      , Post
                      , Introit
                      , Text
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
                      , RecordWildCards
-                     , GADTs
-                     , TypeInType
+                     , FlexibleContexts
                      , BlockArguments
                      , DerivingStrategies
   build-depends:       base >= 4.10 && < 5
