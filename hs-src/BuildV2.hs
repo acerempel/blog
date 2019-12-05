@@ -16,8 +16,6 @@ build :: Options -> IO ()
 build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "12"} do
   getPost <- newCache Post.read
   run options do
-    -- TODO: These will look a lot nicer when we have helper functions
-    -- hiding the 'OneToOne' etc. constructors.
     Rules.oneToOne "posts/*.md"
       ((</> "index.html") . dropExtension . takeBaseName)
       \source -> html $ Templates.post <$> getPost source
