@@ -30,23 +30,21 @@ archive posts =
        , pageTitle = "All Posts"}
 
 post :: Post -> PageContent
-post Post{..} =
+post self@Post{..} =
   let
-    pageTitle = fromMaybe firstFewWords mTitle
     mainContent includeTags =
       article_ [ class_ "post full" ] do
         header_ do
           date composed
-          whenMaybe mTitle \title ->
-            h2_ [ class_ "title" ] $
-              a_ [ href_ url ] (toHtml title)
+          when (titleProvenance == Explicit) do
+            h2_ [ class_ "title" ] (linkToPost self)
         MMark.render content
         when includeTags $ footer_ $
           p_ (tagLinks tags)
   in PageContent
       { mainContent
       , pageDescription = description
-      , pageTitle }
+      , pageTitle = title }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -62,11 +60,11 @@ tagsList tagsWithCounts = do
 
 
 archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags Post{..} =
+archiveEntry includeTags self@Post{..} =
    article_ [ class_ ("post " <> if showPreview then "full" else "summary") ] do
       date composed
-      whenMaybe mTitle \title ->
-        h2_ [ class_ "title" ] $ a_ [ href_ url ] (toHtml title)
+      when (titleProvenance == Explicit) do
+        h2_ [ class_ "title" ] (linkToPost self)
       whenMaybe mSynopsis \synopsis ->
         p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
       when showPreview do
@@ -77,7 +75,7 @@ archiveEntry includeTags Post{..} =
          p_ (tagLinks tags)
   where
     showPreview =
-      mTitle == Nothing || mSynopsis == Nothing
+      titleProvenance /= Explicit || mSynopsis == Nothing
 
 date :: Day -> Html ()
 date theDate =
@@ -93,6 +91,10 @@ tagLinks theTags =
 tagLink :: Tag -> Html ()
 tagLink tagName =
   a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
+
+linkToPost :: Post -> Html ()
+linkToPost Post{title, url} =
+  a_ [ href_ url, title_ title ] (toHtml title)
 
 data PageContent = PageContent
     { mainContent :: IncludeTags -> Html ()

@@ -13,7 +13,7 @@ import Rules
 build :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "11"} do
+build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "12"} do
   getPost <- newCache Post.read
   run options do
     -- TODO: These will look a lot nicer when we have helper functions

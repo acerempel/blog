@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase, PatternGuards #-}
-module Post ( Post(..), Tag, read ) where
+module Post ( Post(..), Tag, TitleProvenance(..), read ) where
 
 import Prelude hiding ( read )
 
@@ -31,7 +31,8 @@ import qualified Text.URI as URI
 
 data Post = Post
    { url :: Text -- ^ Route to this post.
-   , mTitle :: Maybe Text -- ^ Title.
+   , title :: Text -- ^ Title.
+   , titleProvenance :: TitleProvenance
    , firstFewWords :: Text
    , content :: MMark -- ^ The post body.
    , preview :: MMark
@@ -43,6 +44,11 @@ data Post = Post
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    , tags :: [Tag] -- ^ Some tags.
    }
+
+data TitleProvenance
+  = Explicit
+  | Incipit
+  deriving ( Eq )
 
 type Tag = Text
 
@@ -69,14 +75,19 @@ read filepath = do
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          composed <- parseTimeM True defaultTimeLocale dateFormat date
-         let url = Text.pack $ '/' : URI.encode (takeBaseName filepath)
          let (firstFewWords, (firstFewParagraphs, isThereMore)) =
                MMark.runScanner content $
                 (,) <$> firstNWords 5 <*> previewParagraphs 2
-         let preview = content{mmarkBlocks = firstFewParagraphs}
+         let titleProvenance =
+               case mTitle of
+                 Just _ -> Explicit
+                 Nothing -> Incipit
          return Post
             { published = composed -- TODO: Distinguish these --- maybe.
             , previewIsFullPost = not isThereMore
+            , title = fromMaybe firstFewWords mTitle
+            , preview = content{mmarkBlocks = firstFewParagraphs}
+            , url = Text.pack $ '/' : URI.encode (takeBaseName filepath)
             , .. }
 
    noMetadataError =
