@@ -60,7 +60,7 @@ buildFiles = fmap (map unA) . apply . map SourceFileQ
 sourceFileRun :: Options -> SourceFileQ -> Maybe ByteString -> RunMode -> Action (RunResult SourceFileA)
 sourceFileRun options key@(SourceFileQ sourcePath) mbPrevious mode = do
   (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
-  let newTargetPath = (intoOutputDir options . sourceToTarget relevantRule) (source actionPaths)
+  let newTargetPath = (intoOutputDir options . sourceToTarget relevantRule) sourcePath
       actionPaths = P{ source = outOfInputDir options sourcePath, target = newTargetPath }
   case mode of
     RunDependenciesSame
