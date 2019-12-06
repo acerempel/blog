@@ -13,7 +13,7 @@ import Rules
 build :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "12"} do
+build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "13"} do
   getPost <- newCache Post.read
   run options do
     Rules.oneToOne "posts/*.md"
@@ -21,7 +21,9 @@ build options = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "12"}
       \source -> html $ Templates.post <$> getPost source
     Rules.manyToOne "posts/*.md" "index.html" \sources -> html do
       allPosts <- forP sources getPost
-      let allPostsSorted = sortOn Post.composed allPosts
+      let allPostsSorted =
+            sortBy (compare `on` Post.composed) $
+            filter (not. Post.isDraft) allPosts
       return (Templates.archive allPostsSorted)
     Rules.oneToOne "styles/three-dots.scss" (-<.> ".css")
       \source target -> do
