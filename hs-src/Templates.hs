@@ -1,6 +1,6 @@
 module Templates ( Html
                  , PageContent
-                 , archive, post, tagsList
+                 , archive, post, home, tagsList
                  , page
                  , IncludeTags ) where
 
@@ -18,12 +18,24 @@ import Post
 
 type IncludeTags = Bool
 
+home :: Post -> [Post] -> PageContent
+home Post{content} posts =
+  let mainContent includeTags = do
+        article_ [] $ MMark.render content
+        hr_ []
+        section_ do
+          foldrMapM (archiveEntry includeTags) posts -- TODO!
+          p_ $ a_ [ href_ "/posts" ] "See all posts …"
+      pageDescription = Just "A very mysterious website …"
+      pageTitle = "Hello"
+  in PageContent{..}
+
 archive :: [Post] -> PageContent
 archive posts =
   let mainContent includeTags =
         foldrMapM (archiveEntry includeTags) posts
       pageDescription =
-        Just "A blog by Alan Rempel, featuring posts both fictional and non-fictional on a variety of topics."
+        Just "Posts both fictional and non-fictional on a variety of topics."
   in PageContent
        { mainContent
        , pageDescription
@@ -117,9 +129,7 @@ page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
             title_ $ toHtml $ pageTitle <> " … ‹three dots›"
             whenMaybe pageDescription \description ->
               meta_ [ name_ "description", content_ description ]
-            link_ [ rel_ "stylesheet" , href_ "/styles/normalize.css" ]
-            link_ [ rel_ "stylesheet" , href_ "/fonts/fonts.css" ]
-            link_ [ rel_ "stylesheet" , href_ "/styles/three-dots.css" ]
+            link_ [ rel_ "stylesheet" , href_ "/styles.css" ]
             script_
               [ src_ "/scripts/colour-scheme.js"
               , defer_ "" {- re. defer_: I wish boolean attributes in Lucid could be written without the argument -} ]

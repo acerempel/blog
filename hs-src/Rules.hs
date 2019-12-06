@@ -1,103 +1,95 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Rules where
+{-# LANGUAGE TypeFamilies, DerivingStrategies, DeriveGeneric, DeriveAnyClass,
+ GeneralizedNewtypeDeriving #-}
+module Rules ( intoOutputDir, outOfInputDir, addSourceFileRule, IncludeDraftsQ(..), RunPaths(..), rule, buildFiles ) where
 
-import Introit
+import Data.Binary ( encode, decode )
+import Data.ByteString ( ByteString )
+import qualified Data.ByteString.Lazy as Bytes ( fromStrict, toStrict, readFile )
+import Development.Shake hiding ( doesFileExist )
+import Development.Shake.Classes
+import Development.Shake.Rule
+import GHC.Generics ( Generic )
+import System.Directory ( doesFileExist )
+
+import FilePath
 import Options
-import qualified Templates
 
-import Control.Monad.Fail ( MonadFail )
-import Control.Monad.IO.Class ( liftIO, MonadIO )
-import qualified Control.Monad.Trans.State.Strict as S
-import Control.Monad.Trans.Class ( lift )
-import qualified Control.Monad.Trans.Reader as R
-import Data.HashMap.Strict ( HashMap )
-import qualified Data.HashMap.Strict as Map
-import Development.Shake
-import Development.Shake.FilePath
-import qualified Lucid
+addSourceFileRule :: Options -> Rules ()
+addSourceFileRule options =
+  addBuiltinRule noLint noIdentity (sourceFileRun options)
 
-newtype SiteM a =
-  SiteM (R.ReaderT Environment (S.StateT State Rules) a)
-  deriving newtype ( Functor, Applicative, Monad, MonadFail, MonadIO )
+data IncludeDraftsQ = IncludeDraftsQ
+  -- Derive all the instances that Shake wants
+  deriving stock ( Show, Eq, Generic )
+  deriving anyclass ( Hashable, Binary, NFData )
+type instance RuleResult IncludeDraftsQ = Bool
 
-data Environment =
-  Environment
-  { options :: !Options }
+data SourceFileRule = SourceFileRule
+  { match :: FilePath -> Bool
+  , sourceToTarget :: FilePath -> FilePath
+  , run :: RunPaths -> Action () }
 
-type DirectoryCache = HashMap FilePattern [SourcePath]
+data RunPaths =
+  P { source :: FilePath, target :: FilePath }
 
-data State = State
-  { directoryCache :: !DirectoryCache
-  , topLevelTargets :: ![QualifiedTargetPath] }
+newtype SourceFileQ = SourceFileQ FilePath
+  -- Derive all the instances that Shake wants
+  deriving newtype ( Show, Eq, Hashable, Binary, NFData )
 
-emptyState :: State
-emptyState = State Map.empty []
+-- | The path that the rule produced.
+newtype SourceFileA = SourceFileA { unA :: FilePath }
+  -- Derive all the instances that Shake wants
+  deriving newtype ( Show, Eq, Hashable, Binary, NFData )
 
-type SourcePath = FilePath
-type TargetPath = FilePath
-type QualifiedSourcePath = FilePath
-type QualifiedTargetPath = FilePath
+data SourceFileR = SourceFileR
+  { targetPath :: FilePath
+  , targetHash :: Int }
+  deriving stock ( Eq, Generic )
+  deriving anyclass ( Binary )
 
-getDirectoryFilesCached :: FilePattern -> SiteM [SourcePath]
-getDirectoryFilesCached pattern = do
-  cache <- SiteM (lift (S.gets directoryCache))
-  case Map.lookup pattern cache of
-    Just files ->
-      return files
-    Nothing -> do
-      directory <- query inputDirectory
-      files <- liftIO $ getDirectoryFilesIO directory [pattern]
-      liftState $ S.modify' (\s -> s{directoryCache = Map.insert pattern files cache})
-      return files
+type instance RuleResult SourceFileQ = SourceFileA
 
-addTopLevelTarget :: TargetPath -> SiteM ()
-addTopLevelTarget path = do
-  outDir <- query outputDirectory
-  let qualifiedPath = outDir </> path
-  liftState $ S.modify' (\s -> s{ topLevelTargets = qualifiedPath : topLevelTargets s })
+rule :: (FilePath -> Bool) -> (FilePath -> FilePath) -> (RunPaths -> Action ()) -> Rules ()
+rule match sourceToTarget run =
+  addUserRule SourceFileRule{..}
 
-oneToOne :: FilePattern -> (SourcePath -> TargetPath) -> (QualifiedSourcePath -> QualifiedTargetPath -> Action ()) -> SiteM ()
-oneToOne sourcePattern toTargetPath pathsToAction = do
-  sourceFiles <- getDirectoryFilesCached sourcePattern
-  (inDir, outDir) <- (,) <$> query inputDirectory <*> query outputDirectory
-  forM_ sourceFiles \sourceFile -> do
-    let targetFile = toTargetPath sourceFile
-        qualifiedTargetFile = outDir </> targetFile
-        qualifiedSourceFile = inDir </> sourceFile
-    addTopLevelTarget targetFile
-    liftRules $ qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFile qualifiedTargetFile
+buildFiles :: [FilePath] -> Action [FilePath]
+buildFiles = fmap (map unA) . apply . map SourceFileQ
 
-manyToOne :: FilePattern -> TargetPath -> ([QualifiedSourcePath] -> QualifiedTargetPath -> Action ()) -> SiteM ()
-manyToOne sourcePattern targetFile pathsToAction = do
-  sourceFiles <- getDirectoryFilesCached sourcePattern
-  (inDir, outDir) <- (,) <$> query inputDirectory <*> query outputDirectory
-  let qualifiedTargetFile = outDir </> targetFile
-      qualifiedSourceFiles = map (inDir </>) sourceFiles
-  addTopLevelTarget targetFile
-  liftRules $ qualifiedTargetFile %> \_ -> pathsToAction qualifiedSourceFiles qualifiedTargetFile
-
-
-run :: Options -> SiteM a -> Rules a
-run options (SiteM m) = do
-  let environment = Environment options
-  (result, State{topLevelTargets}) <-
-    S.runStateT (R.runReaderT m environment) emptyState
-  want topLevelTargets
-  return result
-
-query :: (Options -> a) -> SiteM a
-query question =
-  SiteM (R.asks (question . options))
-
-liftRules :: Rules a -> SiteM a
-liftRules = SiteM . lift . lift
-
-liftState :: S.StateT State Rules a -> SiteM a
-liftState = SiteM . lift
-
-html :: Action Templates.PageContent -> FilePath -> Action ()
-html makeAction = \targetFile -> do
-  markup <- makeAction
-  -- TODO: propagate IncludeTags and any other information the template
-  -- needs!
-  liftIO $ Lucid.renderToFile targetFile (Templates.page False markup)
+sourceFileRun :: Options -> SourceFileQ -> Maybe ByteString -> RunMode -> Action (RunResult SourceFileA)
+sourceFileRun options key@(SourceFileQ sourcePath) mbPrevious mode = do
+  (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
+  let newTargetPath = (intoOutputDir options . sourceToTarget relevantRule) sourcePath
+      actionPaths = P{ source = sourcePath, target = newTargetPath }
+  case mode of
+    RunDependenciesSame
+      | Just previous <- mbPrevious
+        -> do let SourceFileR{ targetPath = previousTargetPath } =
+                    decode (Bytes.fromStrict previous)
+              if newTargetPath /= previousTargetPath
+                then rebuild relevantRule actionPaths
+                else do targetStillExists <- liftIO $ doesFileExist newTargetPath
+                        let nothingChanged = RunResult ChangedNothing previous (SourceFileA newTargetPath)
+                        if not targetStillExists
+                          then rebuild relevantRule actionPaths
+                          else return nothingChanged
+      | otherwise -> rebuild relevantRule actionPaths
+    RunDependenciesChanged ->
+      rebuild relevantRule actionPaths
+  where
+    rebuild rule paths = do
+      need [source paths]
+      produces [target paths]
+      run rule paths
+      targetContents <- liftIO $ Bytes.readFile (target paths)
+      let previousTargetHash = fmap (targetHash . decode . Bytes.fromStrict) mbPrevious
+      let newTargetHash = hash targetContents
+          changed = if Just newTargetHash == previousTargetHash
+                      then ChangedRecomputeSame
+                      else ChangedRecomputeDiff
+          store = Bytes.toStrict $ encode
+                    SourceFileR{ targetHash = newTargetHash, targetPath = target paths }
+          result = SourceFileA (target paths)
+      return (RunResult changed store result)
+    matchRule rule@SourceFileRule{..} =
+      if match sourcePath then Just rule else Nothing

@@ -4,11 +4,12 @@ module Post ( Post(..), Tag, TitleProvenance(..), read ) where
 import Prelude hiding ( read )
 
 import Introit
+import FilePath
 import List ( List )
 import qualified List
+import Options
 import qualified Text
 
-import System.FilePath
 import Control.Exception ( throwIO )
 import Control.Foldl ( Fold )
 import qualified Data.List.NonEmpty as NE
@@ -18,7 +19,6 @@ import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
 import qualified Lucid
-import qualified Network.URI.Encode as URI
 import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
 import qualified Text.MMark as MMark
@@ -52,9 +52,10 @@ data TitleProvenance
 
 type Tag = Text
 
-read :: FilePath
+read :: Options
+     -> FilePath
      -> Action Post
-read filepath = do
+read Options{inputDirectory} filepath = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     liftIO $ either (throwIO . userError) return do
@@ -78,6 +79,8 @@ read filepath = do
          let (firstFewWords, (firstFewParagraphs, isThereMore)) =
                MMark.runScanner content $
                 (,) <$> firstNWords 5 <*> previewParagraphs 2
+         let url = Text.pack $
+              swapDirs inputDirectory "/" filepath
          let titleProvenance =
                case mTitle of
                  Just _ -> Explicit
@@ -87,7 +90,6 @@ read filepath = do
             , previewIsFullPost = not isThereMore
             , title = fromMaybe firstFewWords mTitle
             , preview = content{mmarkBlocks = firstFewParagraphs}
-            , url = Text.pack $ '/' : URI.encode (takeBaseName filepath)
             , .. }
 
    noMetadataError =

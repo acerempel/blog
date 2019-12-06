@@ -15,4 +15,4 @@ import Data.Traversable as X
 
 foldrMapM :: (Foldable f, Monoid z, Monad m) => (a -> m z) -> f a -> m z
 foldrMapM f =
-   foldrM (\z1 z2 -> (<>) <$> f z1 <*> return z2) mempty
+   foldlM (\z2 z1 -> (<>) <$> return z2 <*> f z1) mempty
