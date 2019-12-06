@@ -29,6 +29,8 @@ executable blog
                      , BlockArguments
                      , DerivingStrategies
   build-depends:       base >= 4.10 && < 5
+                     , binary
+                     , bytestring
                      , filepath
                      , filepattern
                      , foldl

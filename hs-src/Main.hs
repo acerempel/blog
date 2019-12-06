@@ -9,4 +9,4 @@ import CLI
 main :: IO ()
 main = do
     options <- Options.execParser runCLI
-    build options
+    buildSite options
