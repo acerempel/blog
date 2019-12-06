@@ -18,13 +18,13 @@ import Write
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "25"} do
+buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "31"} do
 
   addSourceFileRule options
 
   let postSourcePattern = "posts/*.md"
       assetExts = Set.fromList [".js", ".jpg", ".jpeg", ".png", ".woff", ".woff2"]
-      assetPatterns = map ("**" <>) $ Set.toList assetExts
+      assetPatterns = map ("**/*" <>) $ Set.toList assetExts
       staticTargets = ["index.html", "posts/index.html", "styles.css"]
 
   -- This is needed by the "index.html" rule to rebuild when the
@@ -34,7 +34,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   -- Make sure we parse each markdown file only once – each file is needed
   -- both for its own page and for the home page.
   getPost <- newCache (Post.read options)
-  getSourceFiles <- newCache ((map (inputDirectory </>) <$>) .  getDirectoryFiles inputDirectory)
+  getSourceFiles <- newCache (getDirectoryFiles inputDirectory)
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]
     allPosts <- forP sources getPost

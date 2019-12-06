@@ -7,9 +7,10 @@ import Data.ByteString ( ByteString )
 import qualified Data.ByteString.Lazy as Bytes ( fromStrict, toStrict, readFile )
 import Development.Shake hiding ( doesFileExist )
 import Development.Shake.Classes
+import Development.Shake.FilePath
 import Development.Shake.Rule
 import GHC.Generics ( Generic )
-import System.Directory ( doesFileExist )
+import System.Directory ( doesFileExist, createDirectoryIfMissing)
 
 import FilePath
 import Options
@@ -59,8 +60,8 @@ buildFiles = fmap (map unA) . apply . map SourceFileQ
 sourceFileRun :: Options -> SourceFileQ -> Maybe ByteString -> RunMode -> Action (RunResult SourceFileA)
 sourceFileRun options key@(SourceFileQ sourcePath) mbPrevious mode = do
   (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
-  let newTargetPath = (intoOutputDir options . sourceToTarget relevantRule) sourcePath
-      actionPaths = P{ source = sourcePath, target = newTargetPath }
+  let newTargetPath = (intoOutputDir options . sourceToTarget relevantRule) (source actionPaths)
+      actionPaths = P{ source = outOfInputDir options sourcePath, target = newTargetPath }
   case mode of
     RunDependenciesSame
       | Just previous <- mbPrevious
@@ -80,6 +81,7 @@ sourceFileRun options key@(SourceFileQ sourcePath) mbPrevious mode = do
     rebuild rule paths = do
       need [source paths]
       produces [target paths]
+      liftIO $ createDirectoryIfMissing True (takeDirectory (target paths))
       run rule paths
       targetContents <- liftIO $ Bytes.readFile (target paths)
       let previousTargetHash = fmap (targetHash . decode . Bytes.fromStrict) mbPrevious

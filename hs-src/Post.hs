@@ -18,6 +18,7 @@ import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import Development.Shake
+import Development.Shake.FilePath
 import qualified Lucid
 import qualified Text.Megaparsec as MP
 import Text.MMark ( MMark )
@@ -55,7 +56,7 @@ type Tag = Text
 read :: Options
      -> FilePath
      -> Action Post
-read Options{inputDirectory} filepath = do
+read Options{inputDirectory} filepath' = do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
     liftIO $ either (throwIO . userError) return do
@@ -67,6 +68,9 @@ read Options{inputDirectory} filepath = do
          MMark.projectYaml body
       withMetadata body yaml
  where
+   filepath = if takeDirectory1 filepath' == inputDirectory
+                then filepath'
+                else inputDirectory </> filepath'
    withMetadata content = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
          mTitle    <- metadata .:? "title"
