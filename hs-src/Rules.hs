@@ -31,7 +31,7 @@ data SourceFileRule = SourceFileRule
   , run :: RunPaths -> Action () }
 
 data RunPaths =
-  P { source :: FilePath, target :: FilePath }
+  P { source :: !FilePath, target :: !FilePath }
 
 newtype SourceFileQ = SourceFileQ FilePath
   -- Derive all the instances that Shake wants
@@ -43,8 +43,8 @@ newtype SourceFileA = SourceFileA { unA :: FilePath }
   deriving newtype ( Show, Eq, Hashable, Binary, NFData )
 
 data SourceFileR = SourceFileR
-  { targetPath :: FilePath
-  , targetHash :: Int }
+  { targetPath :: !FilePath
+  , targetHash :: {-# UNPACK #-} !Int }
   deriving stock ( Eq, Generic )
   deriving anyclass ( Binary )
 
