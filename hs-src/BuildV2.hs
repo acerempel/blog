@@ -44,7 +44,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
             then id
             else filter (not . Post.isDraft)
     return $
-      sortBy (compare `on` (Down . Post.composed)) $
+      sortBy (compare `on` (Down . Post.published)) $
       filterOutDrafts allPosts
 
   action do

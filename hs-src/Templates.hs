@@ -14,18 +14,24 @@ import Lucid
 import qualified Text.MMark as MMark
 
 import Post
+import qualified Properties as P
 
 
 type IncludeTags = Bool
 
 home :: Post -> [Post] -> PageContent
-home Post{content} posts =
+home hello posts =
   let mainContent includeTags = do
-        article_ [] $ MMark.render content
+        article_ [] $ P.render hello
         hr_ []
         section_ do
+          h1_ "Recent posts"
           foldrMapM (archiveEntry includeTags) posts -- TODO!
           p_ $ a_ [ href_ "/posts" ] "See all posts …"
+        hr_ []
+        section_ do
+          h1_ "Miscellaneous"
+          p_ $ a_ [ href_ "/neat_links" ] "Links I like"
       pageDescription = Just "A very mysterious website …"
       pageTitle = "Hello"
   in PageContent{..}
@@ -42,21 +48,21 @@ archive posts =
        , pageTitle = "All Posts"}
 
 post :: Post -> PageContent
-post self@Post{..} =
+post self =
   let
     mainContent includeTags =
       article_ [ class_ "post full" ] do
         header_ do
-          date composed
-          when (titleProvenance == Explicit) do
-            h2_ [ class_ "title" ] (linkToPost self)
-        MMark.render content
+          date (P.date self)
+          whenMaybe (P.title self) \theTitle ->
+            h2_ [ class_ "title" ] (link (url self) theTitle)
+        P.render self
         when includeTags $ footer_ $
-          p_ (tagLinks tags)
+          p_ (tagLinks (tags self))
   in PageContent
       { mainContent
-      , pageDescription = description
-      , pageTitle = title }
+      , pageDescription = description self
+      , pageTitle = P.titleForPage self }
 
 tagsList :: [(Tag, Int)] -> Html ()
 tagsList tagsWithCounts = do
@@ -74,20 +80,24 @@ tagsList tagsWithCounts = do
 archiveEntry :: IncludeTags -> Post -> Html ()
 archiveEntry includeTags self@Post{..} =
    article_ [ class_ ("post " <> if showPreview then "full" else "summary") ] do
-      date composed
-      when (titleProvenance == Explicit) do
-        h2_ [ class_ "title" ] (linkToPost self)
+      date published
+      whenMaybe (P.title self) \theTitle ->
+        h2_ [ class_ "title" ] (link url theTitle)
       whenMaybe mSynopsis \synopsis ->
+        -- TODO make synopsis MMark
         p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
       when showPreview do
-        MMark.render preview
-        when (not previewIsFullPost) $
-          p_ (a_ [ href_ url ] "Continue reading …")
+        case P.preview self of
+          Just thePreview -> do
+            P.render thePreview
+            p_ (a_ [ href_ url ] "Continue reading …")
+          Nothing ->
+            P.render self
       when includeTags $
          p_ (tagLinks tags)
   where
     showPreview =
-      titleProvenance /= Explicit || mSynopsis == Nothing
+      isNothing (P.title self) || isNothing mSynopsis
 
 date :: Day -> Html ()
 date theDate =
@@ -104,9 +114,10 @@ tagLink :: Tag -> Html ()
 tagLink tagName =
   a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
 
-linkToPost :: Post -> Html ()
-linkToPost Post{title, url} =
-  a_ [ href_ url, title_ title ] (toHtml title)
+link :: Text -> MMark.MMark -> Html ()
+link url title =
+  -- TODO: put title attr back -- it needs to be turned into plain text
+  a_ [ href_ url ] (MMark.render title)
 
 data PageContent = PageContent
     { mainContent :: IncludeTags -> Html ()

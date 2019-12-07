@@ -21,6 +21,8 @@ executable blog
                      , Options
                      , Rules
                      , Post
+                     , Properties
+                     , Prose
                      , Introit
                      , Text
                      , Write
