@@ -11,7 +11,6 @@ import Control.Monad ( when )
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
 import Lucid
-import qualified Text.MMark as MMark
 
 import Post
 import qualified Properties as P
@@ -85,7 +84,7 @@ archiveEntry includeTags self@Post{..} =
         h2_ [ class_ "title" ] (link url theTitle)
       whenMaybe mSynopsis \synopsis ->
         -- TODO make synopsis MMark
-        p_ [ class_ "synopsis" ] (toHtmlRaw synopsis)
+        p_ [ class_ "synopsis" ] (P.render synopsis)
       when showPreview do
         case P.preview self of
           Just thePreview -> do
@@ -114,10 +113,10 @@ tagLink :: Tag -> Html ()
 tagLink tagName =
   a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
 
-link :: Text -> MMark.MMark -> Html ()
+link :: P.HasContent c => Text -> c -> Html ()
 link url title =
   -- TODO: put title attr back -- it needs to be turned into plain text
-  a_ [ href_ url ] (MMark.render title)
+  a_ [ href_ url ] (P.render title)
 
 data PageContent = PageContent
     { mainContent :: IncludeTags -> Html ()

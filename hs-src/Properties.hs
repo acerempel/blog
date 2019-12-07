@@ -1,3 +1,4 @@
+{-# LANGUAGE FunctionalDependencies #-}
 module Properties
   ( HasDate(..), HasTitle(..), HasPageTitle(..)
   , HasPreview(..), HasIncipit(..), HasContent(..)
@@ -14,8 +15,8 @@ import qualified Text.MMark as MMark
 class HasDate a where
   date :: a -> Day
 
-class HasTitle a where
-  title :: a -> Maybe MMark
+class HasContent t => HasTitle a t | a -> t where
+  title :: a -> Maybe t
 
 class HasPageTitle a where
   titleForPage :: a -> Text

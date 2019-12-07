@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Post ( Post(..), Tag, read ) where
 
 import Prelude hiding ( read )
@@ -21,10 +22,10 @@ import qualified Text.MMark as MMark
 
 data Post = Post
    { url :: Text -- ^ Route to this post.
-   , postTitle :: Maybe MMark.MMark
+   , postTitle :: Maybe Prose
    , postPageTitle :: Text
    , prose :: Prose -- ^ The post body.
-   , mSynopsis :: Maybe Text -- ^ A little summary or tagline.
+   , mSynopsis :: Maybe Prose -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , published :: Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -33,7 +34,7 @@ data Post = Post
 
 type Tag = Text
 
-instance HasTitle Post where
+instance HasTitle Post Prose where
   title = postTitle
 
 instance HasPageTitle Post where
@@ -70,18 +71,19 @@ read Options{inputDirectory} filepath' = do
       Yaml.withObject "metadata" \metadata -> do
          mTitle    <- metadata .:? "title"
          date     <- metadata .: "date"
-         mSynopsis <- metadata .:? "synopsis"
+         synopsisRaw <- metadata .:? "synopsis"
          description <- metadata .:? "description"
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          published <- parseTimeM True defaultTimeLocale dateFormat date
          let url = Text.pack $
               swapDirs inputDirectory "/" filepath
-             parseTitle text =
-               either (const Nothing) Just (MMark.parse filepath text)
-             postTitle = mTitle >>= parseTitle
+             parseMaybe text =
+               either (const Nothing) Just (parse filepath text)
+             postTitle = mTitle >>= parseMaybe
              postPageTitle =
-               maybe (incipit prose) plain postTitle
+               maybe (incipit prose) plain (content <$> postTitle)
+             mSynopsis = synopsisRaw >>= parseMaybe
          return Post{..}
 
    noMetadataError =
