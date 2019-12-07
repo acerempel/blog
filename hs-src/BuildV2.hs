@@ -69,7 +69,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   (outputDirectory </> "index.html") %> \target -> do
     allPosts <- getAllPosts ()
-    hello <- Post.read options (inputDirectory </> "hello.md")
+    hello <- getPost "hello.md"
     writeHtml target $ Templates.home hello (take 5 allPosts)
 
   (outputDirectory </> "posts/index.html") %> \target -> do
