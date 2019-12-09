@@ -1,22 +1,17 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
-module Post ( Post(..), Tag, read ) where
+module Post ( Post(..), Tag ) where
 
 import Prelude hiding ( read )
 
 import Introit
-import FilePath
-import Options
 import Prose
 import Properties
 import qualified Text
 
-import Control.Exception ( throwIO )
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:), (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
-import Development.Shake
-import Development.Shake.FilePath
 import qualified Text.MMark as MMark
 
 
@@ -52,21 +47,16 @@ instance HasPreview Post where
 instance HasIncipit Post where
   incipit = incipit . prose
 
-read :: Options
-     -> FilePath
-     -> Action Post
-read Options{inputDirectory} filepath' = do
-    need [filepath]
-    contents <- liftIO $ Text.readFile filepath
-    liftIO $ either (throwIO . userError) return do
-      body <- Prose.parse filepath contents
-      yaml <- maybe (Left noMetadataError) Right $
-         MMark.projectYaml (content body)
-      withMetadata body yaml
+instance Parse Post where
+  parse = parsePost
+
+parsePost :: FilePath -> Text -> Either String Post
+parsePost filepath contents = do
+  body <- parse filepath contents
+  yaml <- maybe (Left noMetadataError) Right $
+     MMark.projectYaml (content body)
+  withMetadata body yaml
  where
-   filepath = if takeDirectory1 filepath' == inputDirectory
-                then filepath'
-                else inputDirectory </> filepath'
    withMetadata prose = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
          mTitle    <- metadata .:? "title"
@@ -76,8 +66,7 @@ read Options{inputDirectory} filepath' = do
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          published <- parseTimeM True defaultTimeLocale dateFormat date
-         let url = Text.pack $
-              swapDirs inputDirectory "/" filepath
+         let url = Text.pack $ '/' : filepath
              parseMaybe text =
                either (const Nothing) Just (parse filepath text)
              postTitle = mTitle >>= parseMaybe

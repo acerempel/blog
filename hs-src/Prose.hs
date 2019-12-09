@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase, PatternGuards #-}
-module Prose ( Prose, parse, plain) where
+module Prose ( Prose, plain) where
 
 import Introit
 import Properties
@@ -33,8 +33,11 @@ instance HasIncipit Prose where
 instance HasContent Prose where
   content = proseContent
 
-parse :: FilePath -> Text -> Either String Prose
-parse file contents = do
+instance Parse Prose where
+  parse = parseProse
+
+parseProse :: FilePath -> Text -> Either String Prose
+parseProse file contents = do
   proseContent <-
     first MP.errorBundlePretty $
     second (MMark.useExtension (punctuationPrettifier <> customTags)) $
@@ -48,7 +51,6 @@ parse file contents = do
         then Just proseContent{mmarkBlocks = firstFewParagraphs}
         else Nothing
   return Prose{..}
-
 
 customTags :: MMark.Extension
 customTags = MMark.inlineRender renderCustomTags

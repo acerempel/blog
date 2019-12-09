@@ -1,8 +1,8 @@
-{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies, GADTs #-}
 module Properties
   ( HasDate(..), HasTitle(..), HasPageTitle(..)
   , HasPreview(..), HasIncipit(..), HasContent(..)
-  , render
+  , Parse(..), render
   ) where
 
 import Introit
@@ -37,3 +37,6 @@ instance HasContent MMark where
 
 render :: HasContent a => a -> Lucid.Html ()
 render = MMark.render . content
+
+class Parse a where
+  parse :: FilePath -> Text -> Either String a

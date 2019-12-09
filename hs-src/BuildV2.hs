@@ -1,7 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
 module BuildV2 ( buildSite, Options(..) ) where
 
 import Introit
+import qualified Text
 
+import Control.Exception ( throwIO )
 import qualified Data.Set as Set
 import Development.Shake
 import Development.Shake.FilePath
@@ -10,6 +13,7 @@ import System.Directory ( copyFileWithMetadata )
 import FilePath
 import Options
 import qualified Post
+import Properties
 import qualified Templates
 import Rules
 import Write
@@ -33,11 +37,14 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   -- Make sure we parse each markdown file only once – each file is needed
   -- both for its own page and for the home page.
-  getPost <- newCache (Post.read options)
+  getMarkdown <- newCache \filepath -> do
+    need [filepath]
+    contents <- liftIO $ Text.readFile filepath
+    either (liftIO . throwIO . userError) return (parse filepath contents)
   getSourceFiles <- newCache (getDirectoryFiles inputDirectory)
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]
-    allPosts <- forP sources getPost
+    allPosts <- forP sources getMarkdown
     shouldIncludeDrafts <- askOracle IncludeDraftsQ
     let filterOutDrafts =
           if shouldIncludeDrafts
@@ -55,7 +62,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   rule (".md" `isExtensionOf`)
     ((</> "index.html") . dropExtension . takeBaseName)
     \P{ source, target } -> do
-      page <- Templates.post <$> getPost source
+      page <- Templates.post <$> getMarkdown source
       writeHtml target page
 
   rule ((`Set.member` assetExts) . takeExtension) id
@@ -69,8 +76,8 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   (outputDirectory </> "index.html") %> \target -> do
     allPosts <- getAllPosts ()
-    hello <- getPost "hello.md"
-    writeHtml target $ Templates.home hello (take 5 allPosts)
+    hello <- getMarkdown "hello.md"
+    writeHtml target $ Templates.home hello [] (take 5 allPosts)
 
   (outputDirectory </> "posts/index.html") %> \target -> do
     allPosts <- getAllPosts ()

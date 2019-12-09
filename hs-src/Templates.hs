@@ -14,12 +14,13 @@ import Lucid
 
 import Post
 import qualified Properties as P
+import Prose
 
 
 type IncludeTags = Bool
 
-home :: Post -> [Post] -> PageContent
-home hello posts =
+home :: Prose -> [Prose] -> [Post] -> PageContent
+home hello misc posts =
   let mainContent includeTags = do
         article_ [] $ P.render hello
         hr_ []
