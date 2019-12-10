@@ -19,7 +19,7 @@ import Write
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "31"} do
+buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "34"} do
 
   addSourceFileRule options
 
@@ -56,7 +56,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
     need $ map (outputDirectory </>) staticTargets
 
   rule (".md" `isExtensionOf`)
-    ((</> "index.html") . dropExtension . takeBaseName)
+    ((</> "index.html") . dropExtension)
     \P{ source, target } -> do
       page <- Templates.post <$> getMarkdown (unqualify options source)
       writeHtml target page

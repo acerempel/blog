@@ -88,7 +88,7 @@ archiveEntry includeTags Post{..} =
         case preview of
           Just thePreview -> do
             thePreview
-            p_ (a_ [ href_ url, title_ pageTitle ] "Continue reading …")
+            p_ (link url pageTitle "Continue reading …")
           Nothing ->
             body
       when includeTags $
@@ -112,9 +112,8 @@ tagLink :: Tag -> Html
 tagLink tagName =
   a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
 
-link :: Text -> Text -> Html -> Html
-link url title text =
-  -- TODO: put title attr back -- it needs to be turned into plain text
+link :: URL -> Text -> Html -> Html
+link (URL url) title text =
   a_ [ href_ url, title_ title ] $ text
 
 data PageContent = PageContent

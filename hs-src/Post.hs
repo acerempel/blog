@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase, PatternGuards #-}
-module Post ( Post(..), Tag, parse, Html, Problem(..) ) where
+module Post ( Post(..), URL(..), Tag, parse, Html, Problem(..) ) where
 
 import Prelude hiding ( read )
 
@@ -16,6 +16,7 @@ import qualified Text.MMark as MMark
 import qualified Data.List.NonEmpty as NE
 import Control.Exception
 import Control.Foldl ( Fold )
+import Development.Shake.FilePath
 import List ( List )
 import qualified List
 import qualified Lucid
@@ -31,21 +32,21 @@ import qualified Text.URI as URI
 type Html = Lucid.HtmlT (Either Problem) ()
 
 data Problem
-  = MissingField { what :: Text, field :: Text }
+  = MissingField { what :: URL, field :: Text }
   | MarkdownParseError String
   | YamlParseError String
   deriving Show
 
 instance Exception Problem where
   displayException MissingField { what, field } =
-    "The page at \"" <> Text.unpack what <> "\" is missing the required field \"" <> Text.unpack field <> "\"."
+    "The page at \"" <> Text.unpack (fromURL what) <> "\" is missing the required field \"" <> Text.unpack field <> "\"."
   displayException (MarkdownParseError message) =
     message
   displayException (YamlParseError message) =
     message
 
 data Post = Post
-   { url :: Text -- ^ Route to this post.
+   { url :: URL -- ^ Route to this post.
    , title :: Maybe Html
    , pageTitle :: Text
    , preview :: Maybe Html
@@ -56,6 +57,8 @@ data Post = Post
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    , tags :: [Tag] -- ^ Some tags.
    }
+
+newtype URL = URL { fromURL :: Text } deriving Show
 
 type Tag = Text
 
@@ -82,7 +85,7 @@ parse (SourcePath filepath) contents = do
                then Just $ renderMarkdown bodyMarkdown{mmarkBlocks = firstFewParagraphs}
                else Nothing
            body = renderMarkdown bodyMarkdown
-         let url = Text.pack $ '/' : filepath
+         let url = URL $ Text.pack $ '/' : dropExtension filepath
              parseMaybe text =
                either (const Nothing) Just (parseMarkdown filepath text)
              pageTitle =

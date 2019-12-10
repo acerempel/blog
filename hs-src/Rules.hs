@@ -57,8 +57,11 @@ buildFiles = apply
 sourceFileRun :: Options -> SourcePath -> Maybe ByteString -> RunMode -> Action (RunResult TargetPath)
 sourceFileRun options key mbPrevious mode = do
   (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
-  let newTargetPath = (TargetPath . sourceToTarget relevantRule . fromSourcePath) key
-      actionPaths = P{ source = qualify options key, target = fromTargetPath newTargetPath }
+  let newTargetPath =
+        (TargetPath . sourceToTarget relevantRule . fromSourcePath) key
+      actionPaths =
+        P{ source = qualify options key
+         , target = qualify options newTargetPath }
   case mode of
     RunDependenciesSame
       | Just previous <- mbPrevious
@@ -92,8 +95,9 @@ sourceFileRun options key mbPrevious mode = do
                       then ChangedRecomputeSame
                       else ChangedRecomputeDiff
           store = Bytes.toStrict $ encode
-                    SourceFileR{ targetHash = newTargetHash, targetPath = target paths }
-          result = TargetPath (target paths)
+                    SourceFileR{ targetHash = newTargetHash
+                               , targetPath = target paths }
+          result = unqualify options (target paths)
       return (RunResult changed store result)
     matchRule rule@SourceFileRule{..} =
       if match (fromSourcePath key) then Just rule else Nothing

@@ -9,10 +9,11 @@ import System.IO ( withBinaryFile, IOMode(..) )
 import qualified Templates
 
 writeHtml :: FilePath -> Templates.PageContent -> Action ()
-writeHtml outPath content = liftIO do
+writeHtml outPath content = do
   let htmlOrProblem = execHtmlT (Templates.page False content)
   case htmlOrProblem of
     Left problem ->
-      throwIO problem
-    Right html ->
-      withBinaryFile outPath WriteMode \handle -> hPutBuilder handle html
+      liftIO $ throwIO problem
+    Right html -> do
+      putLoud $ "Writing HTML to " <> outPath
+      liftIO $ withBinaryFile outPath WriteMode \handle -> hPutBuilder handle html
