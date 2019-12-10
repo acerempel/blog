@@ -40,7 +40,9 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
     need [realPath]
     contents <- liftIO $ Text.readFile realPath
     either (liftIO . throwIO) return (Post.parse nominalPath contents)
+
   getSourceFiles <- newCache ((map SourcePath <$>). getDirectoryFiles inputDirectory)
+
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]
     allPosts <- forP sources getMarkdown
