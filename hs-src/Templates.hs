@@ -81,9 +81,9 @@ archiveEntry includeTags Post{..} =
       maybe ((lift . Left) (MissingField url "date")) date published
       whenMaybe title \theTitle ->
         h2_ [ class_ "title" ] (link url pageTitle theTitle)
-      whenMaybe mSynopsis \synopsis ->
+      whenMaybe synopsis \theSynopsis ->
         -- TODO make synopsis MMark
-        p_ [ class_ "synopsis" ] synopsis
+        p_ [ class_ "synopsis" ] theSynopsis
       when showPreview do
         case preview of
           Just thePreview -> do
@@ -95,7 +95,7 @@ archiveEntry includeTags Post{..} =
          p_ (tagLinks tags)
   where
     showPreview =
-      isNothing title || isNothing mSynopsis
+      isNothing title || isNothing synopsis
 
 date :: Day -> Html
 date theDate =

@@ -53,7 +53,7 @@ data PostG prose = Post
    , pageTitle :: Text
    , preview :: Maybe prose
    , body :: Html -- ^ The post body.
-   , mSynopsis :: Maybe prose -- ^ A little summary or tagline.
+   , synopsis :: Maybe prose -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , published :: Maybe Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -62,15 +62,19 @@ data PostG prose = Post
 
 newtype URL = URL { fromURL :: Text } deriving Show
 
+sourcePathToURL :: SourcePath -> URL
+sourcePathToURL =
+  URL . Text.pack . ('/' :) . dropExtension . fromSourcePath
+
 type Tag = Text
 
 parse :: SourcePath -> Text -> Either Problem Post
-parse (SourcePath filepath) contents = do
+parse filepath contents = do
   bodyMarkdown <- parseMarkdown filepath contents
   let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml bodyMarkdown)
   Post{..} <- first YamlParseError $ withMetadata yaml
   titleMarkdown <- traverse (parseMarkdownSingleParagraph filepath) title
-  synopsisMarkdown <- traverse (parseMarkdownSingleParagraph filepath) mSynopsis
+  synopsisMarkdown <- traverse (parseMarkdownSingleParagraph filepath) synopsis
   let
     (incipit, (firstFewParagraphs, isThereMore)) =
       MMark.runScanner bodyMarkdown $
@@ -82,7 +86,7 @@ parse (SourcePath filepath) contents = do
   return Post
     { body = renderMarkdown bodyMarkdown
     , title = renderMarkdown <$> titleMarkdown
-    , mSynopsis = renderMarkdown <$> synopsisMarkdown
+    , synopsis = renderMarkdown <$> synopsisMarkdown
     , preview = renderMarkdown <$> previewMarkdown
     , pageTitle =
         maybe incipit (flip MMark.runScanner plainText) titleMarkdown
@@ -92,23 +96,23 @@ parse (SourcePath filepath) contents = do
    withMetadata = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
          title    <- metadata .:? "title"
-         mSynopsis <- metadata .:? "synopsis"
+         synopsis <- metadata .:? "synopsis"
          description <- metadata .:? "description"
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          published <- traverse (parseTimeM True defaultTimeLocale dateFormat) =<< metadata .:? "date"
-         let url = URL $ Text.pack $ '/' : dropExtension filepath
+         let url = sourcePathToURL filepath
          return Post{..}
 
    dateFormat = "%e %B %Y"
 
-parseMarkdown :: FilePath -> Text -> Either Problem MMark
-parseMarkdown file contents =
+parseMarkdown :: SourcePath -> Text -> Either Problem MMark
+parseMarkdown path contents =
   first (MarkdownParseError . MP.errorBundlePretty) $
   second (MMark.useExtension (punctuationPrettifier <> customTags)) $
-  MMark.parse file contents
+  MMark.parse (fromSourcePath path) contents
 
-parseMarkdownSingleParagraph :: FilePath -> Text -> Either Problem MMark
+parseMarkdownSingleParagraph :: SourcePath -> Text -> Either Problem MMark
 parseMarkdownSingleParagraph file contents =
   MMark.useExtension unParagraphize <$> parseMarkdown file contents
 
