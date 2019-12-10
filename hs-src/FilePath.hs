@@ -17,7 +17,7 @@ newtype SourcePath = SourcePath { fromSourcePath :: FilePath }
   -- Derive all the instances that Shake wants
   deriving newtype ( Show, Eq, Hashable, Binary, NFData, IsString )
 newtype TargetPath = TargetPath { fromTargetPath :: FilePath }
-  deriving newtype ( Show, Eq, Hashable, Binary, NFData )
+  deriving newtype ( Show, Eq, Hashable, Binary, NFData, IsString )
 
 class Relative path where
   qualify :: Options -> path -> FilePath

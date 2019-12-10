@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 module BuildV2 ( buildSite, Options(..) ) where
 
 import Introit
@@ -65,16 +66,18 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
     \P{ source, target } ->
       liftIO $ copyFileWithMetadata source target
 
-  (outputDirectory </> "styles.css") %> \target -> do
+  let mkTarget = qualify @TargetPath options
+
+  (mkTarget "styles.css") %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
     need [source]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 
-  (outputDirectory </> "index.html") %> \target -> do
+  (mkTarget "index.html") %> \target -> do
     allPosts <- getAllPosts ()
     hello <- getMarkdown "hello.md"
     writeHtml target $ Templates.home hello [] (take 5 allPosts)
 
-  (outputDirectory </> "posts/index.html") %> \target -> do
+  (mkTarget "posts/index.html") %> \target -> do
     allPosts <- getAllPosts ()
     writeHtml target $ Templates.archive allPosts
