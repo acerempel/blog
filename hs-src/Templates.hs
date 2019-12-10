@@ -8,21 +8,19 @@ import Introit hiding ( for_ ) -- I use 'Lucid.for_', meaning the HTML5 attribut
 import qualified Text
 
 import Control.Monad ( when )
+import Control.Monad.Trans.Class ( lift )
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
-import Lucid
+import Lucid hiding ( Html )
 
 import Post
-import qualified Properties as P
-import Prose
-
 
 type IncludeTags = Bool
 
-home :: Prose -> [Prose] -> [Post] -> PageContent
+home :: Post -> [Post] -> [Post] -> PageContent
 home hello misc posts =
   let mainContent includeTags = do
-        article_ [] $ P.render hello
+        article_ [] (body hello)
         hr_ []
         section_ do
           h1_ "Recent posts"
@@ -48,83 +46,83 @@ archive posts =
        , pageTitle = "All Posts"}
 
 post :: Post -> PageContent
-post self =
+post Post{..} =
   let
     mainContent includeTags =
       article_ [ class_ "post full" ] do
         header_ do
-          date (P.date self)
-          whenMaybe (P.title self) \theTitle ->
-            h2_ [ class_ "title" ] (link (url self) theTitle)
-        P.render self
+          maybe ((lift . Left) (MissingField url "date")) date published
+          whenMaybe title \theTitle ->
+            h2_ [ class_ "title" ] (link url pageTitle theTitle)
+        body
         when includeTags $ footer_ $
-          p_ (tagLinks (tags self))
+          p_ (tagLinks tags)
   in PageContent
       { mainContent
-      , pageDescription = description self
-      , pageTitle = P.titleForPage self }
+      , pageDescription = description
+      , pageTitle }
 
-tagsList :: [(Tag, Int)] -> Html ()
+tagsList :: [(Tag, Int)] -> Html
 tagsList tagsWithCounts = do
     h1_ "Tags"
     p_ $ ul_ $
       foldMap tagWithCount tagsWithCounts
   where
-    tagWithCount :: (Tag, Int) -> Html ()
+    tagWithCount :: (Tag, Int) -> Html
     tagWithCount (tag, count) =
       li_ $ p_ do
         tagLink tag
         " (" <> toHtml (show count) <> " posts)"
 
 
-archiveEntry :: IncludeTags -> Post -> Html ()
-archiveEntry includeTags self@Post{..} =
+archiveEntry :: IncludeTags -> Post -> Html
+archiveEntry includeTags Post{..} =
    article_ [ class_ ("post " <> if showPreview then "full" else "summary") ] do
-      date published
-      whenMaybe (P.title self) \theTitle ->
-        h2_ [ class_ "title" ] (link url theTitle)
+      maybe ((lift . Left) (MissingField url "date")) date published
+      whenMaybe title \theTitle ->
+        h2_ [ class_ "title" ] (link url pageTitle theTitle)
       whenMaybe mSynopsis \synopsis ->
         -- TODO make synopsis MMark
-        p_ [ class_ "synopsis" ] (P.render synopsis)
+        p_ [ class_ "synopsis" ] synopsis
       when showPreview do
-        case P.preview self of
+        case preview of
           Just thePreview -> do
-            P.render thePreview
-            p_ (a_ [ href_ url ] "Continue reading …")
+            thePreview
+            p_ (a_ [ href_ url, title_ pageTitle ] "Continue reading …")
           Nothing ->
-            P.render self
+            body
       when includeTags $
          p_ (tagLinks tags)
   where
     showPreview =
-      isNothing (P.title self) || isNothing mSynopsis
+      isNothing title || isNothing mSynopsis
 
-date :: Day -> Html ()
+date :: Day -> Html
 date theDate =
    div_ $ time_
        [ datetime_ ((Text.pack . showGregorian) theDate) ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
-tagLinks :: [Tag] -> Html ()
+tagLinks :: [Tag] -> Html
 tagLinks [] = mempty
 tagLinks theTags =
   "Tagged as " <> mconcat (intersperse ", " (map tagLink theTags))
 
-tagLink :: Tag -> Html ()
+tagLink :: Tag -> Html
 tagLink tagName =
   a_ [ href_ ("/tags/" <> tagName) ] $ toHtml tagName
 
-link :: P.HasContent c => Text -> c -> Html ()
-link url title =
+link :: Text -> Text -> Html -> Html
+link url title text =
   -- TODO: put title attr back -- it needs to be turned into plain text
-  a_ [ href_ url ] (P.render title)
+  a_ [ href_ url, title_ title ] $ text
 
 data PageContent = PageContent
-    { mainContent :: IncludeTags -> Html ()
+    { mainContent :: IncludeTags -> Html
     , pageDescription :: Maybe Text
     , pageTitle :: Text }
 
-page :: IncludeTags -> PageContent -> Html ()
+page :: IncludeTags -> PageContent -> Html
 page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
     doctype_
     html_ [ lang_ "en" ] do
@@ -153,7 +151,7 @@ page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
             footer_ do
               settings
 
-settings :: Html ()
+settings :: Html
 settings =
   section_ do
     h2_ [ class_ "semibold" ] "Appearance"
@@ -164,6 +162,6 @@ settings =
         option_ [ value_ "light" ] "Light"
         option_ [ value_ "dark" ] "Dark"
 
-whenMaybe :: Monoid m => Maybe a -> (a -> m) -> m
+whenMaybe :: Monoid f => Maybe a -> (a -> f) -> f
 whenMaybe mThing f =
   maybe mempty f mThing

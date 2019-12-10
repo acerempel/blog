@@ -13,7 +13,6 @@ import System.Directory ( copyFileWithMetadata )
 import FilePath
 import Options
 import qualified Post
-import Properties
 import qualified Templates
 import Rules
 import Write
@@ -40,7 +39,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   getMarkdown <- newCache \filepath -> do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
-    either (liftIO . throwIO . userError) return (parse filepath contents)
+    either (liftIO . throwIO . userError) return (Post.parse filepath contents)
   getSourceFiles <- newCache (getDirectoryFiles inputDirectory)
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]

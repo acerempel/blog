@@ -21,8 +21,6 @@ executable blog
                      , Options
                      , Rules
                      , Post
-                     , Properties
-                     , Prose
                      , Introit
                      , Text
                      , Write
@@ -49,6 +47,7 @@ executable blog
                      , shake >= 0.18.2 && < 0.19
                      , time >= 1.5
                      , text
+                     , transformers
                      , yaml >= 0.8.23 && < 1.0
   mixins:              list-base (List.Base as List)
   hs-source-dirs:      hs-src
