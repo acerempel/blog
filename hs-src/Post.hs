@@ -6,6 +6,7 @@ import Prelude hiding ( read )
 import Introit
 import qualified Text
 
+import qualified Data.HashMap.Strict as HashMap
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
 import Data.Yaml ( (.:?), (.!=) )
@@ -30,11 +31,17 @@ type Html = Lucid.HtmlT (Either Problem) ()
 
 data Problem
   = MissingField { what :: Text, field :: Text }
+  | MarkdownParseError String
+  | YamlParseError String
   deriving Show
 
 instance Exception Problem where
   displayException MissingField { what, field } =
     "The page at \"" <> Text.unpack what <> "\" is missing the required field \"" <> Text.unpack field <> "\"."
+  displayException (MarkdownParseError message) =
+    message
+  displayException (YamlParseError message) =
+    message
 
 data Post = Post
    { url :: Text -- ^ Route to this post.
@@ -51,12 +58,11 @@ data Post = Post
 
 type Tag = Text
 
-parse :: FilePath -> Text -> Either String Post
+parse :: FilePath -> Text -> Either Problem Post
 parse filepath contents = do
   body <- parseMarkdown filepath contents
-  yaml <- maybe (Left noMetadataError) Right $
-     MMark.projectYaml body
-  withMetadata body yaml
+  let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml body)
+  first YamlParseError $ withMetadata body yaml
  where
    withMetadata bodyMarkdown = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
@@ -85,14 +91,11 @@ parse filepath contents = do
              mSynopsis = fmap renderMarkdown $ synopsisRaw >>= parseMaybe
          return Post{..}
 
-   noMetadataError =
-      "Couldn't find a metadata block in file " <> filepath
-
    dateFormat = "%e %B %Y"
 
-parseMarkdown :: FilePath -> Text -> Either String MMark
+parseMarkdown :: FilePath -> Text -> Either Problem MMark
 parseMarkdown file contents =
-  first MP.errorBundlePretty $
+  first (MarkdownParseError . MP.errorBundlePretty) $
   second (MMark.useExtension (punctuationPrettifier <> customTags)) $
   MMark.parse file contents
 

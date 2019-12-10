@@ -32,7 +32,6 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , binary
                      , bytestring
-                     , containers
                      , filepath
                      , foldl
                      , directory >= 1.2.6
@@ -48,6 +47,7 @@ executable blog
                      , time >= 1.5
                      , text
                      , transformers
+                     , unordered-containers
                      , yaml >= 0.8.23 && < 1.0
   mixins:              list-base (List.Base as List)
   hs-source-dirs:      hs-src

@@ -5,7 +5,7 @@ import Introit
 import qualified Text
 
 import Control.Exception ( throwIO )
-import qualified Data.Set as Set
+import qualified Data.HashSet as Set
 import Development.Shake
 import Development.Shake.FilePath
 import System.Directory ( copyFileWithMetadata )
@@ -39,16 +39,14 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   getMarkdown <- newCache \filepath -> do
     need [filepath]
     contents <- liftIO $ Text.readFile filepath
-    either (liftIO . throwIO . userError) return (Post.parse filepath contents)
+    either (liftIO . throwIO) return (Post.parse filepath contents)
   getSourceFiles <- newCache (getDirectoryFiles inputDirectory)
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]
     allPosts <- forP sources getMarkdown
     shouldIncludeDrafts <- askOracle IncludeDraftsQ
     let filterOutDrafts =
-          if shouldIncludeDrafts
-            then id
-            else filter (not . Post.isDraft)
+          if shouldIncludeDrafts then id else filter (not . Post.isDraft)
     return $
       sortBy (compare `on` (Down . Post.published)) $
       filterOutDrafts allPosts
