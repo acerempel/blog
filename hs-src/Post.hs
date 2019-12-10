@@ -86,13 +86,13 @@ parse (SourcePath filepath) contents = do
                else Nothing
            body = renderMarkdown bodyMarkdown
          let url = URL $ Text.pack $ '/' : dropExtension filepath
-             parseMaybe text =
-               either (const Nothing) Just (parseMarkdown filepath text)
+             parseMaybeInlinesOnly text =
+               either (const Nothing) Just (second (MMark.useExtension noBlocks) (parseMarkdown filepath text))
              pageTitle =
                maybe incipit (flip MMark.runScanner plainText) titleMarkdown
-             titleMarkdown = mTitle >>= parseMaybe
+             titleMarkdown = mTitle >>= parseMaybeInlinesOnly
              title = renderMarkdown <$> titleMarkdown
-             mSynopsis = fmap renderMarkdown $ synopsisRaw >>= parseMaybe
+             mSynopsis = fmap renderMarkdown $ synopsisRaw >>= parseMaybeInlinesOnly
          return Post{..}
 
    dateFormat = "%e %B %Y"
@@ -121,6 +121,11 @@ customTags = MMark.inlineRender renderCustomTags
           (mapM_ defaultRender innerInlines)
       | otherwise
         = defaultRender inline
+
+noBlocks :: MMark.Extension
+noBlocks = MMark.blockRender \_defaultRender -> \case
+  MMark.Paragraph (_ois, html) -> html
+  _ -> error "Was ist jetzt los??"
 
 firstNWords n =
   Text.unwords . take n . Text.words <$> plainText
