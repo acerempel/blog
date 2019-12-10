@@ -1,21 +1,34 @@
-module FilePath where
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DerivingStrategies, GeneralizedNewtypeDeriving #-}
+module FilePath
+  ( SourcePath(..), TargetPath(..)
+  , Relative(..)
+  ) where
 
-import Introit
 import Options
+
+import Data.String ( IsString )
+import Data.Coerce
+import Development.Shake.Classes
 import Development.Shake.FilePath
 
-intoOutputDir :: Options -> FilePath -> FilePath
-intoOutputDir Options{..} =
-  swapDirs inputDirectory outputDirectory
 
-outOfInputDir :: Options -> FilePath -> FilePath
-outOfInputDir Options{..} =
-  swapDirs outputDirectory inputDirectory
+newtype SourcePath = SourcePath { fromSourcePath :: FilePath }
+  -- Derive all the instances that Shake wants
+  deriving newtype ( Show, Eq, Hashable, Binary, NFData, IsString )
+newtype TargetPath = TargetPath { fromTargetPath :: FilePath }
+  deriving newtype ( Show, Eq, Hashable, Binary, NFData )
 
-swapDirs original new path =
-  case stripPrefix original path of
-    Just p
-      | isPathSeparator (head p) -> new </> tail p
-      | otherwise -> new </> p
-    Nothing ->
-      new </> path
+class Relative path where
+  qualify :: Options -> path -> FilePath
+  unqualify :: Options -> FilePath -> path
+  default unqualify :: Coercible FilePath path => Options -> FilePath -> path
+  unqualify _opts = coerce . dropDirectory1
+
+instance Relative SourcePath where
+  qualify Options{inputDirectory} (SourcePath fp) =
+    inputDirectory </> fp
+
+instance Relative TargetPath where
+  qualify Options{outputDirectory} (TargetPath fp) =
+    outputDirectory </> fp

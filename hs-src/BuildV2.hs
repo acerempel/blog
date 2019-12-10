@@ -16,7 +16,6 @@ import qualified Templates
 import Rules
 import Write
 
-
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
@@ -35,11 +34,12 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   -- Make sure we parse each markdown file only once – each file is needed
   -- both for its own page and for the home page.
-  getMarkdown <- newCache \filepath -> do
-    need [filepath]
-    contents <- liftIO $ Text.readFile filepath
-    either (liftIO . throwIO) return (Post.parse filepath contents)
-  getSourceFiles <- newCache (getDirectoryFiles inputDirectory)
+  getMarkdown <- newCache \nominalPath -> do
+    let realPath = qualify options nominalPath
+    need [realPath]
+    contents <- liftIO $ Text.readFile realPath
+    either (liftIO . throwIO) return (Post.parse nominalPath contents)
+  getSourceFiles <- newCache ((map SourcePath <$>). getDirectoryFiles inputDirectory)
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles [postSourcePattern]
     allPosts <- forP sources getMarkdown
@@ -58,7 +58,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   rule (".md" `isExtensionOf`)
     ((</> "index.html") . dropExtension . takeBaseName)
     \P{ source, target } -> do
-      page <- Templates.post <$> getMarkdown source
+      page <- Templates.post <$> getMarkdown (unqualify options source)
       writeHtml target page
 
   rule ((`Set.member` assetExts) . takeExtension) id
@@ -66,7 +66,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
       liftIO $ copyFileWithMetadata source target
 
   (outputDirectory </> "styles.css") %> \target -> do
-    let source = outOfInputDir options target -<.> ".scss"
+    let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
     need [source]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 

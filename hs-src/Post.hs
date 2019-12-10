@@ -4,6 +4,7 @@ module Post ( Post(..), Tag, parse, Html, Problem(..) ) where
 import Prelude hiding ( read )
 
 import Introit
+import FilePath
 import qualified Text
 
 import qualified Data.HashMap.Strict as HashMap
@@ -58,8 +59,8 @@ data Post = Post
 
 type Tag = Text
 
-parse :: FilePath -> Text -> Either Problem Post
-parse filepath contents = do
+parse :: SourcePath -> Text -> Either Problem Post
+parse (SourcePath filepath) contents = do
   body <- parseMarkdown filepath contents
   let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml body)
   first YamlParseError $ withMetadata body yaml
