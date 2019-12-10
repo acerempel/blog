@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables, RankNTypes #-}
 module BuildV2 ( buildSite, Options(..) ) where
 
 import Introit
