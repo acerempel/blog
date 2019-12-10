@@ -1,5 +1,5 @@
 {-# LANGUAGE LambdaCase, PatternGuards #-}
-module Post ( Post(..), URL(..), Tag, parse, Html, Problem(..) ) where
+module Post ( Post, PostG(..), URL(..), Tag, parse, Html, Problem(..) ) where
 
 import Prelude hiding ( read )
 
@@ -45,13 +45,15 @@ instance Exception Problem where
   displayException (YamlParseError message) =
     message
 
-data Post = Post
+type Post = PostG Html
+
+data PostG prose = Post
    { url :: URL -- ^ Route to this post.
-   , title :: Maybe Html
+   , title :: Maybe prose
    , pageTitle :: Text
-   , preview :: Maybe Html
+   , preview :: Maybe prose
    , body :: Html -- ^ The post body.
-   , mSynopsis :: Maybe Html -- ^ A little summary or tagline.
+   , mSynopsis :: Maybe prose -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
    , published :: Maybe Day -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
@@ -64,35 +66,38 @@ type Tag = Text
 
 parse :: SourcePath -> Text -> Either Problem Post
 parse (SourcePath filepath) contents = do
-  body <- parseMarkdown filepath contents
-  let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml body)
-  first YamlParseError $ withMetadata body yaml
+  bodyMarkdown <- parseMarkdown filepath contents
+  let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml bodyMarkdown)
+  Post{..} <- first YamlParseError $ withMetadata yaml
+  titleMarkdown <- traverse (parseMarkdownSingleParagraph filepath) title
+  synopsisMarkdown <- traverse (parseMarkdownSingleParagraph filepath) mSynopsis
+  let
+    (incipit, (firstFewParagraphs, isThereMore)) =
+      MMark.runScanner bodyMarkdown $
+        (,) <$> firstNWords 5 <*> previewParagraphs 2
+    previewMarkdown =
+      if isThereMore
+        then Just bodyMarkdown{mmarkBlocks = firstFewParagraphs}
+        else Nothing
+  return Post
+    { body = renderMarkdown bodyMarkdown
+    , title = renderMarkdown <$> titleMarkdown
+    , mSynopsis = renderMarkdown <$> synopsisMarkdown
+    , preview = renderMarkdown <$> previewMarkdown
+    , pageTitle =
+        maybe incipit (flip MMark.runScanner plainText) titleMarkdown
+    , .. }
  where
-   withMetadata bodyMarkdown = Yaml.parseEither $
+   withMetadata :: Yaml.Value -> Either String (PostG Text)
+   withMetadata = Yaml.parseEither $
       Yaml.withObject "metadata" \metadata -> do
-         mTitle    <- metadata .:? "title"
-         synopsisRaw <- metadata .:? "synopsis"
+         title    <- metadata .:? "title"
+         mSynopsis <- metadata .:? "synopsis"
          description <- metadata .:? "description"
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          published <- traverse (parseTimeM True defaultTimeLocale dateFormat) =<< metadata .:? "date"
-         let
-           (incipit, (firstFewParagraphs, isThereMore)) =
-             MMark.runScanner bodyMarkdown $
-               (,) <$> firstNWords 5 <*> previewParagraphs 2
-           preview =
-             if isThereMore
-               then Just $ renderMarkdown bodyMarkdown{mmarkBlocks = firstFewParagraphs}
-               else Nothing
-           body = renderMarkdown bodyMarkdown
          let url = URL $ Text.pack $ '/' : dropExtension filepath
-             parseMaybeInlinesOnly text =
-               either (const Nothing) Just (second (MMark.useExtension noBlocks) (parseMarkdown filepath text))
-             pageTitle =
-               maybe incipit (flip MMark.runScanner plainText) titleMarkdown
-             titleMarkdown = mTitle >>= parseMaybeInlinesOnly
-             title = renderMarkdown <$> titleMarkdown
-             mSynopsis = fmap renderMarkdown $ synopsisRaw >>= parseMaybeInlinesOnly
          return Post{..}
 
    dateFormat = "%e %B %Y"
@@ -102,6 +107,10 @@ parseMarkdown file contents =
   first (MarkdownParseError . MP.errorBundlePretty) $
   second (MMark.useExtension (punctuationPrettifier <> customTags)) $
   MMark.parse file contents
+
+parseMarkdownSingleParagraph :: FilePath -> Text -> Either Problem MMark
+parseMarkdownSingleParagraph file contents =
+  MMark.useExtension unParagraphize <$> parseMarkdown file contents
 
 renderMarkdown :: MMark -> Html
 renderMarkdown =
@@ -122,8 +131,8 @@ customTags = MMark.inlineRender renderCustomTags
       | otherwise
         = defaultRender inline
 
-noBlocks :: MMark.Extension
-noBlocks = MMark.blockRender \_defaultRender -> \case
+unParagraphize :: MMark.Extension
+unParagraphize = MMark.blockRender \_defaultRender -> \case
   MMark.Paragraph (_ois, html) -> html
   _ -> error "Was ist jetzt los??"
 
