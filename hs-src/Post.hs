@@ -143,10 +143,13 @@ unParagraphize = MMark.blockRender \_defaultRender -> \case
 firstNWords n =
   Text.unwords . take n . Text.words <$> plainText
 
+-- | Get the entire document as plain text.
 plainText :: Fold MMark.Bni Text
 plainText =
   MMark.scanner Text.empty appendPlainText
   where
+    -- TODO: Can we use the 'Foldable' instance of 'MMark.Block' to skip
+    -- this boilerplate?
     appendPlainText textSoFar = \case
       MMark.Heading1 inlines -> textSoFar <> MMark.asPlainText inlines
       MMark.Heading2 inlines -> textSoFar <> MMark.asPlainText inlines
@@ -166,6 +169,11 @@ plainText =
       MMark.ThematicBreak -> textSoFar
       MMark.Table _ _ -> textSoFar
 
+-- | Get the first @n@ paragraphs of the document, preserving the
+-- document's tree structure (i.e. paragraphs within a block quotation will
+-- be counted separated, and will still be inside the blockquote). The
+-- second item in the result tuple is whether there are more paragraphs
+-- remaining in the document or not.
 previewParagraphs :: Int -> Fold MMark.Bni (List MMark.Bni, Bool)
 previewParagraphs n =
   extractResults <$>
@@ -178,6 +186,8 @@ previewParagraphs n =
           appendBlocks blocksSoFar thisBlock wanted
   where
     extractResults (a, _b, c) = (a, c)
+    -- TODO: can we use the 'Foldable' instance of 'MMark.Block' to skip
+    -- this boilerplate?
     appendBlocks blocksSoFar thisBlock wanted =
       case thisBlock of
         MMark.Blockquote subBlocks ->

@@ -41,22 +41,26 @@ a {
 address { font-style: normal; }
 address a { font-style: oblique; }
 footer {
-  font-size: $base-font-size * 0.8;
-  line-height: $base-line-height * 0.75;
   margin-top: auto;
   padding-top: $base-line-height;
   border-top: 0.79px solid var(--text-normal);
-  @include margin-bottom-one;
   h2 { font-size: $base-font-size; font-weight: 700; }
   p { margin-top: $base-line-height * 0.25; }
 }
 
-article.full p {
-  @include margin-bottom-one-half;
-  @include font-size-seven-eighths;
+.font-size-four-fifths {
+  font-size: $base-font-size * 0.8;
 }
 
-p.synopsis {
+.line-height-three-quarters {
+  line-height: $base-line-height * 0.75;
+}
+
+.margin-bottom-one {
+  @include margin-bottom-one;
+}
+
+.synopsis {
   margin: 0 !important;
   font-size: $base-font-size !important;
 }
@@ -70,6 +74,10 @@ p a { @include text-colour-highlight; }
 
 b { @extend .semibold; }
 strong { @extend .bold; }
+
+.medium {
+  font-weight: 500;
+}
 
 .semibold {
   font-weight: 600;
@@ -107,51 +115,56 @@ strong { @extend .bold; }
   @include line-height-three-halves;
 }
 
-article.full {
-  h2 {
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    margin-bottom: $base-font-size * 0.125;
-  }
-  &:only-child h2 {
-    margin-bottom: $base-line-height * 0.5;
-  }
-  @include margin-bottom-one;
+.margin-bottom-one-half {
+  @include margin-bottom-one-half;
 }
 
-article + article.full {
+.margin-top-one {
   @include margin-top-one;
 }
 
-article:only-of-type h2 {
-  @include font-size-three-halves;
-  @include line-height-three-halves;
+.font-size-one {
+  font-size: $base-font-size;
 }
 
-article h2 {
-  @extend .somewhat-bigger;
+.font-size-seven-eighths {
+  @include font-size-seven-eighths;
 }
 
-article time {
-  @extend .somewhat-smaller;
+article {
+  .title {
+    @extend .bold;
+    @extend .somewhat-bigger;
+    margin-bottom: $base-font-size * 0.125;
+  }
+  .date {
+    @extend .somewhat-smaller;
+    @extend .light, .oblique;
+    @include text-colour-lighter;
+  }
+  p {
+    @include margin-bottom-one-half;
+    @include font-size-seven-eighths;
+  }
+}
+
+article.full {
+  .title {
+    @include margin-bottom-one-half;
+    @include font-size-three-halves;
+    @include line-height-three-halves;
+  }
+  .date { @include font-size-seven-eighths; }
+  @include margin-bottom-one;
+}
+
+article + article {
+  @include margin-top-one;
 }
 
 article.summary {
   @include margin-bottom-two-thirds;
-  h2 { font-weight: 600; }
-}
-
-time {
-  @extend .light, .oblique;
-  @include text-colour-lighter;
-}
-
-article header time { @include font-size-seven-eighths; }
-
-article h3 {
-  @extend .slightly-bigger;
-  font-style: oblique;
-  font-weight: 500;
+  .title { @extend .semibold; }
 }
 
 cite { font-style: oblique; }
@@ -161,8 +174,8 @@ select {
 }
 
 label, select {
-  @include line-height-one;
-  @include font-size-one;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 hr { width: 32%; }
@@ -173,6 +186,10 @@ blockquote {
     margin-left: 4%;
     margin-right: 4%;
     @include text-colour-lighter;
+}
+
+.further {
+  @extend .medium, .oblique;
 }
 
 p, h1, h2, h3, article, section, header {
@@ -190,7 +207,7 @@ body {
     font-variant-numeric: proportional-nums;
     font-kerning: normal;
     font-synthesis: none;
-    text-rendering: optimizelegibility;
+    text-rendering: optimizeLegibility;
     @include font-size-one;
     @include line-height-one;
     @include text-colour-normal;

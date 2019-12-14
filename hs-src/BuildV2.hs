@@ -20,12 +20,11 @@ import Write
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "35"} do
+buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "43"} do
 
   addSourceFileRule options
 
-  let postSourcePattern = "posts/*.md"
-      assetExts = Set.fromList [".js", ".jpg", ".jpeg", ".png", ".woff", ".woff2"]
+  let assetExts = Set.fromList [".js", ".jpg", ".jpeg", ".png", ".woff", ".woff2"]
       assetPatterns = map ("**/*" <>) $ Set.toList assetExts
       staticTargets = ["index.html", "posts/index.html", "styles.css"]
 
@@ -54,14 +53,20 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
       filterOutDrafts allPosts
 
   action do
-    sourceFiles <- getSourceFiles (postSourcePattern : assetPatterns)
+    sourceFiles <- getSourceFiles ("**/*.md" : assetPatterns)
     buildFiles sourceFiles
     need $ map (outputDirectory </>) staticTargets
 
-  rule (".md" `isExtensionOf`)
+  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "posts"))
     ((</> "index.html") . dropExtension)
     \P{ source, target } -> do
       page <- Templates.post <$> getMarkdown (unqualify options source)
+      writeHtml target page
+
+  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "about"))
+    ((</> "index.html") . dropExtension)
+    \P{ source, target } -> do
+      page <- Templates.aboutPage <$> getMarkdown (unqualify options source)
       writeHtml target page
 
   rule ((`Set.member` assetExts) . takeExtension) id
@@ -77,9 +82,13 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   mkTarget "index.html" %> \target -> do
     allPosts <- getAllPosts ()
-    hello <- getMarkdown "hello.md"
-    writeHtml target $ Templates.home hello [] (take 5 allPosts)
+    aboutPosts <- traverse getMarkdown =<< getSourceFiles ["about/*.md"]
+    writeHtml target $ Templates.home aboutPosts (take 5 allPosts)
 
   mkTarget "posts/index.html" %> \target -> do
     allPosts <- getAllPosts ()
     writeHtml target $ Templates.archive allPosts
+
+f &&^ g = \a -> f a && g a
+
+f ==^ a = \b -> f b == a
