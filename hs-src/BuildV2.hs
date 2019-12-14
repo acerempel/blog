@@ -44,7 +44,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
   getSourceFiles <- newCache ((map SourcePath <$>). getDirectoryFiles inputDirectory)
 
   getAllPosts <- newCache \() -> do
-    sources <- getSourceFiles [postSourcePattern]
+    sources <- getSourceFiles ["posts/*.md"]
     allPosts <- forP sources getMarkdown
     shouldIncludeDrafts <- askOracle IncludeDraftsQ
     let filterOutDrafts =
@@ -70,16 +70,16 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   let mkTarget = qualify @TargetPath options
 
-  (mkTarget "styles.css") %> \target -> do
+  mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
     need [source]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 
-  (mkTarget "index.html") %> \target -> do
+  mkTarget "index.html" %> \target -> do
     allPosts <- getAllPosts ()
     hello <- getMarkdown "hello.md"
     writeHtml target $ Templates.home hello [] (take 5 allPosts)
 
-  (mkTarget "posts/index.html") %> \target -> do
+  mkTarget "posts/index.html" %> \target -> do
     allPosts <- getAllPosts ()
     writeHtml target $ Templates.archive allPosts
