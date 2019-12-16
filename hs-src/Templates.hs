@@ -70,8 +70,9 @@ aboutPage Post{..} =
   let
     content =
       article_ [ class_ "full" ] do
-        header_ do
-          h1_ [ class_ "title" ] (fromJust title)
+        whenMaybe title \theTitle ->
+          header_ do
+            h1_ [ class_ "title" ] theTitle
         body
   in
     PageContent
