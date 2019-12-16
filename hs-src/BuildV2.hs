@@ -18,10 +18,15 @@ import qualified Templates
 import Rules
 import Write
 
+version = "49"
+
+shakeOptions' = shakeOptions
+  {shakeVerbosity = Chatty, shakeVersion = version}
+
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "49"} do
+buildSite options@Options{..} = shake shakeOptions' do
 
   addSourceFileRule options
 
