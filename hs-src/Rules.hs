@@ -5,6 +5,8 @@ module Rules ( addSourceFileRule, IncludeDraftsQ(..), RunPaths(..), rule, buildF
 import Data.Binary ( encode, decode )
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString.Lazy as Bytes ( fromStrict, toStrict, readFile )
+import qualified Data.HashSet as Set
+import Data.IORef
 import Development.Shake hiding ( doesFileExist )
 import Development.Shake.Classes
 import Development.Shake.FilePath
@@ -15,9 +17,9 @@ import System.Directory ( doesFileExist, createDirectoryIfMissing)
 import FilePath
 import Options
 
-addSourceFileRule :: Options -> Rules ()
-addSourceFileRule options =
-  addBuiltinRule noLint noIdentity (sourceFileRun options)
+addSourceFileRule :: Options -> IORef (Set.HashSet TargetPath) -> Rules ()
+addSourceFileRule options builtThisTime =
+  addBuiltinRule noLint noIdentity (sourceFileRun options builtThisTime)
 
 data IncludeDraftsQ = IncludeDraftsQ
   -- Derive all the instances that Shake wants
@@ -54,8 +56,8 @@ rule match sourceToTarget run =
 buildFiles :: [SourcePath] -> Action [TargetPath]
 buildFiles = apply
 
-sourceFileRun :: Options -> SourcePath -> Maybe ByteString -> RunMode -> Action (RunResult TargetPath)
-sourceFileRun options key mbPrevious mode = do
+sourceFileRun :: Options -> IORef (Set.HashSet TargetPath) -> SourcePath -> Maybe ByteString -> RunMode -> Action (RunResult TargetPath)
+sourceFileRun options builtThisTime key mbPrevious mode = do
   (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
   let newTargetPath =
         (TargetPath . sourceToTarget relevantRule . fromSourcePath) key
@@ -95,6 +97,7 @@ sourceFileRun options key mbPrevious mode = do
       produces [target paths]
       liftIO $ createDirectoryIfMissing True (takeDirectory (target paths))
       run rule paths
+      liftIO $ atomicModifyIORef' builtThisTime (\set -> (Set.insert (unqualify options (target paths)) set, ()))
       targetContents <- liftIO $ Bytes.readFile (target paths)
       let previousTargetHash = fmap (targetHash . decode . Bytes.fromStrict) mbPrevious
       let newTargetHash = hash targetContents

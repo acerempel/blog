@@ -31,3 +31,7 @@ parseCLI = Options
   <*> switch do
         long "include-tags"
         help "Also display tags on the site."
+  <*> switch do
+        long "upload"
+        short 'u'
+        help "Upload all changed files"

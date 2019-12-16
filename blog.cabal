@@ -47,6 +47,7 @@ executable blog
                      , time >= 1.5
                      , text
                      , transformers
+                     , typed-process ^>= 0.2.5
                      , unordered-containers
                      , yaml >= 0.8.23 && < 1.0
   mixins:              list-base (List.Base as List)
