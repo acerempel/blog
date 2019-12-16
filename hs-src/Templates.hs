@@ -56,7 +56,7 @@ post Post{..} =
         header_ do
           maybe ((lift . Left) (MissingField url "date")) date published
           whenMaybe title \theTitle ->
-            h1_ [ class_ "title" ] (link url pageTitle theTitle)
+            h1_ [ class_ "title" ] theTitle
         body
         when includeTags $ footer_ $
           p_ (tagLinks tags)
