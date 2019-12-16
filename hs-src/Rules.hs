@@ -71,6 +71,13 @@ sourceFileRun options key mbPrevious mode = do
               -- We compare the qualified paths, so that we rebuild if the
               -- output directory changes.
               if newTargetPathQualified /= previousTargetPathQualified
+                -- If we are building a different file than we did last
+                -- time, rebuild. (Shake's default file rule does not do
+                -- this – it only rebuilds if the file is missing (or deps
+                -- have changed.))
+                -- TODO: Don't rebuild if the target file has changed, but
+                -- the new one exists and has the same hash as what we
+                -- built last time (and deps are same).
                 then rebuild relevantRule actionPaths
                 else do targetStillExists <- liftIO $ doesFileExist newTargetPathQualified
                         let nothingChanged = RunResult ChangedNothing previous newTargetPath
