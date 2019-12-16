@@ -17,25 +17,21 @@ import Post
 
 type IncludeTags = Bool
 
-home :: [Post] -> [Post] -> PageContent
-home abouts posts =
+home :: Post -> [Post] -> PageContent
+home hi posts =
   let mainContent :: IncludeTags -> Html
       mainContent includeTags = do
-        section_ do
-          h1_ [ class_ "bold font-size-one margin-bottom-one-half" ] "About"
-          traverse_ aboutLink abouts
-        section_ do
-          h1_ [ class_ "bold font-size-one margin-top-one margin-bottom-one-half" ] "Recent posts"
+        article_ do
+          h1_ headingClasses "Hello!"
+          body hi
+        section_ [ class_ "margin-top-one" ] do
+          h1_ headingClasses "Recent posts"
           foldrMapM (archiveEntry includeTags) posts -- TODO!
           p_ [ class_ "further" ] $ a_ [ href_ "/posts" ] "See all posts …"
       pageDescription = Just "A very mysterious website …"
       pageTitle = "Hello"
+      headingClasses = [ class_ "bold font-size-one margin-bottom-one-half" ]
   in PageContent{..}
-  where
-    aboutLink = \about ->
-      p_ [ class_ "margin-bottom-one-half" ]$
-        a_ [ href_ (fromURL (url about)) ] $
-          toHtml (Post.pageTitle about)
 
 archive :: [Post] -> PageContent
 archive posts =

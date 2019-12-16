@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module BuildV2 ( buildSite, Options(..) ) where
 
 import Introit
@@ -20,7 +21,7 @@ import Write
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "43"} do
+buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shakeVersion = "49"} do
 
   addSourceFileRule options
 
@@ -63,7 +64,7 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
       page <- Templates.post <$> getMarkdown (unqualify options source)
       writeHtml target page
 
-  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "about"))
+  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "."))
     ((</> "index.html") . dropExtension)
     \P{ source, target } -> do
       page <- Templates.aboutPage <$> getMarkdown (unqualify options source)
@@ -82,8 +83,8 @@ buildSite options@Options{..} = shake shakeOptions{shakeVerbosity = Chatty, shak
 
   mkTarget "index.html" %> \target -> do
     allPosts <- getAllPosts ()
-    aboutPosts <- traverse getMarkdown =<< getSourceFiles ["about/*.md"]
-    writeHtml target $ Templates.home aboutPosts (take 5 allPosts)
+    hi <- getMarkdown "hi.md"
+    writeHtml target $ Templates.home hi (take 5 allPosts)
 
   mkTarget "posts/index.html" %> \target -> do
     allPosts <- getAllPosts ()
