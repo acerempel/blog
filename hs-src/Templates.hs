@@ -162,8 +162,6 @@ page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
               ("" :: String) {- Also, it would be nice if this argument were optional for script_ -}
         body_ [ class_ "colour-scheme-auto" ] do
           div_ [ class_ "container" ] do
-            header_ do
-                h1_ [ class_ "slightly-bigger semibold" ] $ a_ [ href_ "/" ] "Three dots …"
             main_ (mainContent includeTags)
             footer_ [ class_ "margin-bottom-one" ] do
               settings
