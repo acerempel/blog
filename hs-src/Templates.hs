@@ -164,18 +164,37 @@ page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
           div_ [ class_ "container" ] do
             main_ (mainContent includeTags)
             footer_ [ class_ "margin-bottom-one" ] do
+              navigation
               settings
 
 settings :: Html
 settings =
   section_ do
-    h2_ [ class_ "semibold font-size-seven-eighths line-height-three-quarters" ] "Appearance"
-    p_ [ class_ "font-size-seven-eighths line-height-three-quarters" ] do
+    h2_ footerHeadingClasses "Appearance"
+    p_ footerParagraphClasses do
       label_ [ for_ "colour-scheme-select" ] "Colour scheme:"
       select_ [ id_ "colour-scheme-select", required_ "" {- See above re. defer_ -} ] do
         option_ [ value_ "auto", selected_ "" {- See above re. defer_ -} ] "System setting"
         option_ [ value_ "light" ] "Light"
         option_ [ value_ "dark" ] "Dark"
+
+navigation :: Html
+navigation =
+  section_ [ class_ "margin-bottom-three-quarters margin-right-one" ] do
+    h2_ footerHeadingClasses "Navigation"
+    nav_ do
+      traverse_ footerLink
+        [("Home", "/"), ("Posts", "/posts"), ("About", "/introduction")]
+  where
+    footerLink :: (Html, Text) -> Html
+    footerLink (text, url) =
+      p_ footerParagraphClasses (a_ [ href_ url ] text)
+
+footerHeadingClasses =
+  [ class_ "semibold font-size-seven-eighths line-height-three-quarters" ]
+
+footerParagraphClasses =
+  [ class_ "font-size-seven-eighths line-height-three-quarters" ]
 
 whenMaybe :: Monoid f => Maybe a -> (a -> f) -> f
 whenMaybe mThing f =
