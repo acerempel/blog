@@ -22,7 +22,7 @@ import qualified Templates
 import Rules
 import Write
 
-version = "49"
+version = "50"
 
 shakeOptions' = shakeOptions
   {shakeVerbosity = Chatty, shakeVersion = version}

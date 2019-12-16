@@ -67,24 +67,34 @@ sourceFileRun options builtThisTime key mbPrevious mode = do
   case mode of
     RunDependenciesSame
       | Just previous <- mbPrevious
-        -> do let SourceFileR{ targetPath = previousTargetPathQualified } =
+        -> do let SourceFileR{ targetPath = previousTargetPathQualified
+                             , targetHash = previousTargetHash } =
                     decode (Bytes.fromStrict previous)
                   newTargetPathQualified = qualify options newTargetPath
               -- We compare the qualified paths, so that we rebuild if the
               -- output directory changes.
+              newTargetPathExists <- liftIO $ doesFileExist newTargetPathQualified
+              let nothingChanged = RunResult ChangedNothing previous newTargetPath
               if newTargetPathQualified /= previousTargetPathQualified
                 -- If we are building a different file than we did last
-                -- time, rebuild. (Shake's default file rule does not do
-                -- this – it only rebuilds if the file is missing (or deps
-                -- have changed.))
-                -- TODO: Don't rebuild if the target file has changed, but
-                -- the new one exists and has the same hash as what we
-                -- built last time (and deps are same).
-                then rebuild relevantRule actionPaths
-                else do targetStillExists <- liftIO $ doesFileExist newTargetPathQualified
-                        let nothingChanged = RunResult ChangedNothing previous newTargetPath
-                        if not targetStillExists
+                -- time …
+                then if newTargetPathExists then
+                      do newTargetExistingHash <- liftIO $ hash <$> Bytes.readFile newTargetPathQualified
+                         if newTargetExistingHash == previousTargetHash
+                           then return nothingChanged
+                           -- and the new target file is different than
+                           -- what we would build, rebuild. (Shake's
+                           -- default file rule does not do this – it only
+                           -- rebuilds if the file is missing (or deps have
+                           -- changed.))
+                           else rebuild relevantRule actionPaths
+                      else rebuild relevantRule actionPaths
+                else do if not newTargetPathExists
+                          -- If the target file does not exist, rebuild.
                           then rebuild relevantRule actionPaths
+                          -- If the dependencies are the same, and the
+                          -- target file we produced last time is still
+                          -- there, do nothing.
                           else return nothingChanged
       | otherwise -> rebuild relevantRule actionPaths
     RunDependenciesChanged ->
