@@ -19,10 +19,12 @@ parseCLI :: Parser Options
 parseCLI = Options
   <$> strOption do
         long "input-dir"
+        short 'i'
         metavar "DIRECTORY"
         help "Where to search for input files."
   <*> strOption do
         long "output-dir"
+        short 'o'
         metavar "DIRECTORY"
         help "Where to put the finished site."
   <*> switch do
