@@ -11,5 +11,6 @@ data Options = Options
     , outputDirectory :: DirectoryPath
     , includeDrafts :: Bool
     , includeTags :: Bool
+    , rebuildPatterns :: [String]
     , upload :: Bool }
     deriving ( Show, Eq, Generic, Hashable, Binary, NFData )

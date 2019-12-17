@@ -1,12 +1,15 @@
 {-# LANGUAGE TypeFamilies, DerivingStrategies, DeriveGeneric, DeriveAnyClass,
  GeneralizedNewtypeDeriving #-}
-module Rules ( addSourceFileRule, IncludeDraftsQ(..), RunPaths(..), rule, buildFiles ) where
+module Rules
+  ( addSourceFileRule, addEverythingRule
+  , IncludeDraftsQ(..), RunPaths(..)
+  , rule, buildFiles, buildEverything
+  ) where
 
 import Data.Binary ( encode, decode )
 import Data.ByteString ( ByteString )
 import qualified Data.ByteString.Lazy as Bytes ( fromStrict, toStrict, readFile )
-import qualified Data.HashSet as Set
-import Data.IORef
+import Data.Coerce
 import Development.Shake hiding ( doesFileExist )
 import Development.Shake.Classes
 import Development.Shake.FilePath
@@ -15,11 +18,43 @@ import GHC.Generics ( Generic )
 import System.Directory ( doesFileExist, createDirectoryIfMissing)
 
 import FilePath
+import Introit
 import Options
 
-addSourceFileRule :: Options -> IORef (Set.HashSet TargetPath) -> Rules ()
-addSourceFileRule options builtThisTime =
-  addBuiltinRule noLint noIdentity (sourceFileRun options builtThisTime)
+newtype Everything = Everything { everything :: [TargetPath] }
+  deriving newtype ( Eq, Show, Hashable, Binary, NFData )
+
+newtype WhatBuilt = WhatBuilt { whatBuilt :: [TargetPath] }
+  deriving newtype ( Eq, Show, Hashable, Binary, NFData )
+
+type instance RuleResult Everything = WhatBuilt
+
+buildEverything :: [TargetPath] -> Action [TargetPath]
+buildEverything sourcePaths =
+  whatBuilt <$> apply1 (Everything sourcePaths)
+
+addEverythingRule :: Options ->  Rules ()
+addEverythingRule options = do
+  addBuiltinRule noLint noIdentity everythingRun
+  where
+    store = "" :: ByteString
+    everythingRun :: Everything -> Maybe ByteString -> RunMode -> Action (RunResult WhatBuilt)
+    everythingRun Everything{everything} _ mode = do
+      case mode of
+        RunDependenciesSame ->
+          return (RunResult ChangedNothing store (WhatBuilt []))
+        RunDependenciesChanged -> do
+          changedQualified <- needHasChanged (map (qualify options) everything)
+          let changed =
+                map (unqualify options) .
+                filter (outputDirectory options `isPrefixOf`) $
+                changedQualified
+          return (RunResult ChangedRecomputeDiff store (WhatBuilt changed))
+
+
+addSourceFileRule :: Options -> Rules ()
+addSourceFileRule options = do
+  addBuiltinRule noLint noIdentity (sourceFileRun options)
 
 data IncludeDraftsQ = IncludeDraftsQ
   -- Derive all the instances that Shake wants
@@ -47,34 +82,48 @@ data SourceFileR = SourceFileR
   deriving stock ( Eq, Generic )
   deriving anyclass ( Binary )
 
-type instance RuleResult SourcePath = TargetPath
+data TargetPathChanged = TargetPathChanged
+  { resultTargetPath :: TargetPath
+  , resultChanged :: Bool }
+  deriving stock ( Eq, Generic, Show )
+  deriving anyclass ( Hashable, Binary, NFData )
+
+type instance RuleResult SourcePath = TargetPathChanged
 
 rule :: (FilePath -> Bool) -> (FilePath -> FilePath) -> (RunPaths -> Action ()) -> Rules ()
 rule match sourceToTarget run =
   addUserRule SourceFileRule{..}
 
 buildFiles :: [SourcePath] -> Action [TargetPath]
-buildFiles = apply
+buildFiles sourcePaths =
+  map resultTargetPath . filter resultChanged <$> apply sourcePaths
 
-sourceFileRun :: Options -> IORef (Set.HashSet TargetPath) -> SourcePath -> Maybe ByteString -> RunMode -> Action (RunResult TargetPath)
-sourceFileRun options builtThisTime key mbPrevious mode = do
+sourceFileRun :: Options -> SourcePath -> Maybe ByteString -> RunMode -> Action (RunResult TargetPathChanged)
+sourceFileRun options key mbPreviousEncoded mode = do
   (_version, relevantRule) <- getUserRuleOne key (const Nothing) matchRule
   let newTargetPath =
         (TargetPath . sourceToTarget relevantRule . fromSourcePath) key
       actionPaths =
         P{ source = qualify options key
          , target = qualify options newTargetPath }
+      mustRebuild =
+        any (?== coerce newTargetPath) (rebuildPatterns options)
   case mode of
     RunDependenciesSame
       | Just previous <- mbPrevious
+      , not mustRebuild
         -> do let SourceFileR{ targetPath = previousTargetPathQualified
                              , targetHash = previousTargetHash } =
-                    decode (Bytes.fromStrict previous)
+                    previous
                   newTargetPathQualified = qualify options newTargetPath
               -- We compare the qualified paths, so that we rebuild if the
               -- output directory changes.
               newTargetPathExists <- liftIO $ doesFileExist newTargetPathQualified
-              let nothingChanged = RunResult ChangedNothing previous newTargetPath
+              let nothingChanged =
+                    -- The 'fromJust' is fine because we are not called
+                    -- with 'RunDependenciesSame' unless we have run
+                    -- before, and therefore have a database value.
+                    RunResult ChangedNothing (fromJust mbPreviousEncoded) (TargetPathChanged newTargetPath False)
               if newTargetPathQualified /= previousTargetPathQualified
                 -- If we are building a different file than we did last
                 -- time …
@@ -100,6 +149,8 @@ sourceFileRun options builtThisTime key mbPrevious mode = do
     RunDependenciesChanged ->
       rebuild relevantRule actionPaths
   where
+    mbPrevious =
+      decode . Bytes.fromStrict <$> mbPreviousEncoded
     -- N.B. that 'paths' contains the real filesystem paths, not the
     -- unqualified ones.
     rebuild rule paths = do
@@ -107,17 +158,15 @@ sourceFileRun options builtThisTime key mbPrevious mode = do
       produces [target paths]
       liftIO $ createDirectoryIfMissing True (takeDirectory (target paths))
       run rule paths
-      liftIO $ atomicModifyIORef' builtThisTime (\set -> (Set.insert (unqualify options (target paths)) set, ()))
       targetContents <- liftIO $ Bytes.readFile (target paths)
-      let previousTargetHash = fmap (targetHash . decode . Bytes.fromStrict) mbPrevious
       let newTargetHash = hash targetContents
-          changed = if Just newTargetHash == previousTargetHash
-                      then ChangedRecomputeSame
-                      else ChangedRecomputeDiff
-          store = Bytes.toStrict $ encode
-                    SourceFileR{ targetHash = newTargetHash
-                               , targetPath = target paths }
-          result = unqualify options (target paths)
-      return (RunResult changed store result)
+          newStore = SourceFileR (target paths) newTargetHash
+          (changedDatabase, changedResult) =
+            if Just newStore == mbPrevious
+              then (ChangedRecomputeSame, False)
+              else (ChangedRecomputeDiff, True)
+          store = Bytes.toStrict $ encode newStore
+          result = TargetPathChanged (unqualify options (target paths)) changedResult
+      return (RunResult changedDatabase store result)
     matchRule rule@SourceFileRule{..} =
       if match (fromSourcePath key) then Just rule else Nothing

@@ -33,6 +33,11 @@ parseCLI = Options
   <*> switch do
         long "include-tags"
         help "Also display tags on the site."
+  <*> many (strOption do
+        long "rebuild-md"
+        short 'r'
+        metavar "PATTERN"
+        help "Mark all files matching this pattern as needing rebuild")
   <*> switch do
         long "upload"
         short 'u'

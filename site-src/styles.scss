@@ -143,8 +143,7 @@ strong { @extend .bold; }
 
 article {
   .title {
-    @extend .bold;
-    @extend .somewhat-bigger;
+    @extend .bold, .somewhat-bigger;
     margin-bottom: $base-font-size * 0.125;
   }
   .date {

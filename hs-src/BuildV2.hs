@@ -7,10 +7,9 @@ import qualified Text
 
 import Control.Exception ( throwIO )
 import Data.Coerce
+import qualified Data.HashMap.Strict as Map
 import qualified Data.HashSet as Set
-import Data.IORef
 import Development.Shake
-import Development.Shake.Database
 import Development.Shake.FilePath
 import System.Directory ( copyFileWithMetadata )
 import System.Process.Typed
@@ -30,32 +29,12 @@ shakeOptions' = shakeOptions
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
-buildSite options = do
-  -- The reason for the IORef is that shake's ability to list live files
-  -- only works for its built-in file rule. We have to keep track of our
-  -- own file rule's files ourselves.
-  built <- newIORef Set.empty
-  (liveFilesQualified, after) <- shakeWithDatabase shakeOptions' (rules options built) \database -> do
-    shakeOneShotDatabase database
-    ([], after) <- shakeRunDatabase database []
-    liveFiles <- shakeLiveFilesDatabase database
-    return (liveFiles, after)
-  -- This is pure boilerplate -- it just executes a shake feature that we
-  -- do not actually use.
-  shakeRunAfter shakeOptions' after
-  builtThisTime <- readIORef built
-  let liveFiles = map (unqualify options) liveFilesQualified ++ Set.toList builtThisTime
-  when (upload options) $
-    if null liveFiles then
-      putStrLn "Nothing to upload!"
-    else do
-      let uploadCommand =
-            setWorkingDir (outputDirectory options) $
-            proc "neocities" ("upload" : coerce liveFiles)
-      withProcessWait_ uploadCommand (\_ -> return ())
-
-rules options@Options{..} builtThisTime = do
-  addSourceFileRule options builtThisTime
+buildSite options@Options{..} =
+  let shakeOptions'' =
+        shakeOptions'{shakeRebuild = [ (RebuildNow, outputDirectory </> pattern) | pattern <- rebuildPatterns ]}
+  in shake shakeOptions'' do
+  addSourceFileRule options
+  addEverythingRule options
 
   let assetExts = Set.fromList [".js", ".jpg", ".jpeg", ".png", ".woff", ".woff2"]
       assetPatterns = map ("**/*" <>) $ Set.toList assetExts
@@ -87,8 +66,10 @@ rules options@Options{..} builtThisTime = do
 
   action do
     sourceFiles <- getSourceFiles ("**/*.md" : assetPatterns)
-    buildFiles sourceFiles
-    need $ map (outputDirectory </>) staticTargets
+    changedForward <- buildFiles sourceFiles
+    changedBackward <- buildEverything staticTargets
+    let changed = changedBackward ++ changedForward
+    when upload (runAfter (doUpload options changed))
 
   rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "posts"))
     ((</> "index.html") . dropExtension)
@@ -125,3 +106,21 @@ rules options@Options{..} builtThisTime = do
 f &&^ g = \a -> f a && g a
 
 f ==^ a = \b -> f b == a
+
+doUpload :: Options -> [TargetPath] -> IO ()
+doUpload options changed = do
+  if null changed then
+    hPutStrLn stderr "Nothing to upload!"
+  else do
+    for_ (Map.toList changedGroupedByDir) \(directory, paths) ->
+      withProcessWait_
+        (uploadCommand directory paths)
+        (\process -> hPutStrLn stderr (show process))
+  where
+    uploadCommand directory paths =
+      setWorkingDir (outputDirectory options) $
+      let args = "upload" : if directory == "." then paths else ["-d", directory] ++ paths
+      in proc "neocities" args
+    changedGroupedByDir =
+      Map.fromListWith (<>)
+        [ (takeDirectory path, [path]) | path <- coerce changed ]

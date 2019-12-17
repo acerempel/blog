@@ -12,6 +12,7 @@ import Data.Monoid as X
 import Data.Ord as X
 import Data.Text ( Text )
 import Data.Traversable as X
+import System.IO as X
 
 foldrMapM :: (Foldable f, Monoid z, Monad m) => (a -> m z) -> f a -> m z
 foldrMapM f =
