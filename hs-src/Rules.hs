@@ -40,16 +40,18 @@ addEverythingRule options = do
     store = "" :: ByteString
     everythingRun :: Everything -> Maybe ByteString -> RunMode -> Action (RunResult WhatBuilt)
     everythingRun Everything{everything} _ mode = do
-      case mode of
-        RunDependenciesSame ->
-          return (RunResult ChangedNothing store (WhatBuilt []))
-        RunDependenciesChanged -> do
-          changedQualified <- needHasChanged (map (qualify options) everything)
-          let changed =
-                map (unqualify options) .
-                filter (outputDirectory options `isPrefixOf`) $
-                changedQualified
-          return (RunResult ChangedRecomputeDiff store (WhatBuilt changed))
+      changedQualified <- needHasChanged (map (qualify options) everything)
+      let status =
+            if null changedQualified
+              then case mode of
+                     RunDependenciesSame -> ChangedNothing
+                     RunDependenciesChanged -> ChangedRecomputeSame
+              else ChangedRecomputeDiff
+          changed =
+            map (unqualify options) .
+            filter (outputDirectory options `isPrefixOf`) $
+            changedQualified
+      return (RunResult status store (WhatBuilt changed))
 
 
 addSourceFileRule :: Options -> Rules ()
