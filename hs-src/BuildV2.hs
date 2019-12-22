@@ -87,7 +87,7 @@ buildSite options@Options{..} =
     \P{ source, target } ->
       liftIO $ copyFileWithMetadata source target
 
-  let mkTarget = qualify @TargetPath options
+  let mkTarget = (outputDirectory </>)
 
   mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"

@@ -21,6 +21,12 @@ import FilePath
 import Introit
 import Options
 
+data OutputDirectoryQ = OutputDirectoryQ
+  deriving stock ( Eq, Show, Generic )
+  deriving anyclass ( Hashable, Binary, NFData )
+
+type instance RuleResult OutputDirectoryQ = FilePath
+
 newtype Everything = Everything { everything :: [TargetPath] }
   deriving newtype ( Eq, Show, Hashable, Binary, NFData )
 
@@ -35,11 +41,16 @@ buildEverything sourcePaths =
 
 addEverythingRule :: Options ->  Rules ()
 addEverythingRule options = do
+  addOracle \OutputDirectoryQ -> return (outputDirectory options)
   addBuiltinRule noLint noIdentity everythingRun
   where
     store = "" :: ByteString
     everythingRun :: Everything -> Maybe ByteString -> RunMode -> Action (RunResult WhatBuilt)
     everythingRun Everything{everything} _ mode = do
+      -- Rerun if the output directory changes. We won't actually rebuild
+      -- anything that hasn't changed -- this just ensure we are called /at
+      -- all/, so that anything needs to has the /chance/ to rebuild.
+      _ <- askOracle OutputDirectoryQ
       changedQualified <- needHasChanged (map (qualify options) everything)
       let status =
             if null changedQualified
