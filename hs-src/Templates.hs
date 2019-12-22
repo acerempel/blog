@@ -27,7 +27,7 @@ home hi posts =
         section_ [ class_ "margin-top-one" ] do
           h1_ headingClasses "Recent posts"
           foldrMapM (archiveEntry includeTags) posts -- TODO!
-          p_ [ class_ "further" ] $ a_ [ href_ "/posts" ] "See all posts …"
+          p_ [ class_ "further margin-top-one" ] $ a_ [ href_ "/posts" ] "See all posts …"
       pageDescription = Just "A very mysterious website …"
       pageTitle = "Hello"
       headingClasses = [ class_ "bold font-size-one margin-bottom-one-half" ]

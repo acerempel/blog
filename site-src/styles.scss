@@ -10,7 +10,7 @@ $serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, 
 $sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 
 $colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "background-lighter": #e8e8e8, "text-normal": #222222, "text-lighter": #555555);
-$colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "background-lighter": #4f4f4f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
+$colours-dark: ("text-highlight": #f0a4ec, "background-normal": #2f2f2f, "background-lighter": #4f4f4f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
 
 .container {
   @include centered;
@@ -32,9 +32,13 @@ $colours-dark: ("text-highlight": #ea7ce4, "background-normal": #2f2f2f, "backgr
   justify-content: space-between;
 }
 
-a {
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
     text-decoration: none;
-    @include clickable;
+    &:hover {
+      text-decoration: underline;
+      text-decoration-thickness: 0.075em;
+      text-underline-offset: 0.14em;
+    }
     color: inherit;
 }
 
@@ -73,9 +77,22 @@ footer {
 
 .synopsis {
   margin: 0 !important;
+  font-style: oblique;
+  font-size: $base-font-size * 13 / 16;
+  font-weight: 500;
+  line-height: $base-line-height * 0.875;
 }
 
-p a { @include text-colour-highlight; }
+p a {
+  @include text-colour-highlight;
+  text-decoration: underline;
+  text-decoration-thickness: 0.05em;
+  text-underline-offset: 0.14em;
+  &:hover {
+    text-decoration-thickness: 0.14em;
+  }
+  transition: text-decoration-thickness 0.2s;
+}
 
 
 /* blockquote + p > cite:first-child::before {
@@ -200,6 +217,15 @@ blockquote {
 
 .further {
   @extend .medium, .oblique;
+}
+
+nav a {
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 0.44em;
+    text-underline-offset: 0.14em;
+  }
 }
 
 p, h1, h2, h3, article, section, header {

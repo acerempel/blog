@@ -65,11 +65,6 @@ $base-font-size: 1rem !default;
   width: 93%;
 }
 
-@mixin clickable {
-  &:hover { text-decoration: underline; }
-  cursor: pointer;
-}
-
 @mixin margin-bottom-two-thirds {
   margin-bottom: $base-line-height * 2 / 3;
 }
