@@ -24,7 +24,7 @@ import Write
 version = "50"
 
 shakeOptions' = shakeOptions
-  {shakeVerbosity = Chatty, shakeVersion = version}
+  {shakeVerbosity = Diagnostic, shakeVersion = version}
 
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
@@ -90,7 +90,7 @@ buildSite options@Options{..} =
   let mkTarget = (outputDirectory </>)
 
   mkTarget "styles.css" %> \target -> do
-    let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
+    let source = inputDirectory </> "styles.scss"
     need [source]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 

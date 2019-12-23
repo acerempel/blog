@@ -18,6 +18,7 @@ executable blog
                      , CLI
                      , FilePath
                      , Templates
+                     , Templates.Style
                      , Options
                      , Rules
                      , Post
@@ -32,6 +33,7 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , binary
                      , bytestring
+                     , containers
                      , filepath
                      , foldl
                      , directory >= 1.2.6
