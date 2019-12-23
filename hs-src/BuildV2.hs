@@ -23,15 +23,16 @@ import Write
 
 version = "50"
 
-shakeOptions' = shakeOptions
-  {shakeVerbosity = Diagnostic, shakeVersion = version}
+shakeOptions' = shakeOptions {shakeVersion = version}
 
 buildSite :: Options -> IO ()
 -- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
 buildSite options@Options{..} =
   let shakeOptions'' =
-        shakeOptions'{shakeRebuild = [ (RebuildNow, outputDirectory </> pattern) | pattern <- rebuildPatterns ]}
+        shakeOptions'
+        { shakeRebuild = [ (RebuildNow, outputDirectory </> pattern) | pattern <- rebuildPatterns ]
+        , shakeVerbosity = verbosity }
   in shake shakeOptions'' do
   addSourceFileRule options
   addEverythingRule options
