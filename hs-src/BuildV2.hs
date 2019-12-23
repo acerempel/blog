@@ -91,7 +91,7 @@ buildSite options@Options{..} =
   let mkTarget = (outputDirectory </>)
 
   mkTarget "styles.css" %> \target -> do
-    let source = inputDirectory </> "styles.scss"
+    let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
     need [source]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 

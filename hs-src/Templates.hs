@@ -11,10 +11,9 @@ import Control.Monad ( when )
 import Control.Monad.Trans.Class ( lift )
 import Data.Time.Calendar ( Day, showGregorian )
 import Data.Time.Format
-import Lucid hiding ( Html, style_ )
+import Lucid hiding ( Html )
 
 import Post
-import Templates.Style
 
 type IncludeTags = Bool
 
@@ -25,17 +24,13 @@ home hi posts =
         article_ do
           h1_ headingClasses "Hello!"
           body hi
-        section_ [ style_ ("margin-top" `lineHeightMultiple` 1) ] do
+        section_ [ class_ "margin-top-one" ] do
           h1_ headingClasses "Recent posts"
           foldrMapM (archiveEntry includeTags) posts -- TODO!
-          p_ [ class_ "further"
-             , style_ ("margin-top" `lineHeightMultiple` 1) ] $
-             a_ [ href_ "/posts" ] "See all posts …"
+          p_ [ class_ "further margin-top-one" ] $ a_ [ href_ "/posts" ] "See all posts …"
       pageDescription = Just "A very mysterious website …"
       pageTitle = "Hello"
-      headingClasses =
-        [ class_ "bold font-size-one margin-bottom-one-half"
-        , style_ (fontSize 1 <> "margin-bottom" `lineHeightMultiple` 0.5) ]
+      headingClasses = [ class_ "bold font-size-one margin-bottom-one-half" ]
   in PageContent{..}
 
 archive :: [Post] -> PageContent
@@ -57,10 +52,7 @@ post Post{..} =
         header_ do
           maybe ((lift . Left) (MissingField url "date")) date published
           whenMaybe title \theTitle ->
-            h1_
-              [ class_ "title"
-              , style_ ("margin-bottom" `lineHeightMultiple` 0.5 <> lineHeight 1.2 <> fontSize 1.2) ]
-              theTitle
+            h1_ [ class_ "title" ] theTitle
         body
         when includeTags $ footer_ $
           p_ (tagLinks tags)
@@ -99,19 +91,13 @@ tagsList tagsWithCounts = do
 
 archiveEntry :: IncludeTags -> Post -> Html
 archiveEntry includeTags Post{..} =
-   article_
-    [ class_ ("post " <> if showPreview then "preview" else "summary")
-    , style_ ("margin-bottom" `lineHeightMultiple` 1)] do
+   article_ [ class_ ("post " <> if showPreview then "preview" else "summary") ] do
       maybe ((lift . Left) (MissingField url "date")) date published
       whenMaybe title \theTitle ->
-        h2_
-          [ class_ "title bold"
-          , style_ (fontSize 1.2 <> lineHeight 1.2 <> "margin-bottom" `lineHeightMultiple` 0.8) ]
-          (link url pageTitle theTitle)
+        h2_ [ class_ "title" ] (link url pageTitle theTitle)
       whenMaybe synopsis \theSynopsis ->
-        p_ [ class_ "synopsis oblique medium"
-           , style_ (fontSize (13/16) <> lineHeight 0.875) ]
-           theSynopsis
+        -- TODO make synopsis MMark
+        p_ [ class_ "synopsis" ] theSynopsis
       when showPreview do
         case preview of
           Just thePreview -> do
@@ -128,9 +114,7 @@ archiveEntry includeTags Post{..} =
 date :: Day -> Html
 date theDate =
    div_ $ time_
-       [ datetime_ ((Text.pack . showGregorian) theDate)
-       , class_ "date light oblique"
-       , style_ (lineHeight 0.8 <> fontSize 0.9 <> colour "lighter")]
+       [ datetime_ ((Text.pack . showGregorian) theDate), class_ "date" ]
        $ toHtml (formatTime defaultTimeLocale "%d %B %Y" theDate)
 
 tagLinks :: [Tag] -> Html
@@ -175,7 +159,7 @@ page includeTags PageContent{mainContent, pageDescription, pageTitle} = do
         body_ [ class_ "colour-scheme-auto" ] do
           div_ [ class_ "container" ] do
             main_ (mainContent includeTags)
-            footer_ [ style_ (lineHeightMultiple "margin-bottom" 1) ] do
+            footer_ [ class_ "margin-bottom-one" ] do
               navigation
               settings
 
@@ -192,24 +176,21 @@ settings =
 
 navigation :: Html
 navigation =
-  section_
-    [ style_ ("margin-right" `lineHeightMultiple` 1 <> "margin-bottom" `lineHeightMultiple` 0.75) ]
-    do
-      h2_ footerHeadingClasses "Navigation"
-      nav_ do
-        traverse_ footerLink
-          [("Home", "/"), ("Posts", "/posts"), ("About", "/introduction")]
+  section_ [ class_ "margin-bottom-three-quarters margin-right-one" ] do
+    h2_ footerHeadingClasses "Navigation"
+    nav_ do
+      traverse_ footerLink
+        [("Home", "/"), ("Posts", "/posts"), ("About", "/introduction")]
   where
     footerLink :: (Html, Text) -> Html
     footerLink (text, url) =
       p_ footerParagraphClasses (a_ [ href_ url ] text)
 
 footerHeadingClasses =
-  [ class_ "semibold"
-  , style_ (fontSize 0.875 <> lineHeight 0.75) ]
+  [ class_ "semibold font-size-seven-eighths line-height-three-quarters" ]
 
 footerParagraphClasses =
-  [ style_ (fontSize 0.875 <> lineHeight 0.75) ]
+  [ class_ "font-size-seven-eighths line-height-three-quarters" ]
 
 whenMaybe :: Monoid f => Maybe a -> (a -> f) -> f
 whenMaybe mThing f =
