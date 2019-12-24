@@ -25,8 +25,10 @@ version = "50"
 
 shakeOptions' = shakeOptions {shakeVersion = version}
 
+contentSubDir = "hypertext"
+uploadedStateSubDir = "uploaded-state-cache"
+
 buildSite :: Options -> IO ()
--- TODO: Set the verbosity from the command line.
 -- TODO: Automate the updating of the 'shakeVersion'.
 buildSite options@Options{..} =
   let shakeOptions'' =
@@ -90,7 +92,7 @@ buildSite options@Options{..} =
     \P{ source, target } ->
       liftIO $ copyFileWithMetadata source target
 
-  let mkTarget = (outputDirectory </>)
+  let mkTarget t = (outputDirectory </> contentSubDir </> t)
 
   mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
@@ -105,6 +107,9 @@ buildSite options@Options{..} =
   mkTarget "posts/index.html" %> \target -> do
     allPosts <- getAllPosts ()
     writeHtml target $ Templates.archive allPosts
+
+  (outputDirectory </> uploadedStateSubDir </> "*.uploaded") %> \target -> do
+    return undefined
 
 f &&^ g = \a -> f a && g a
 
