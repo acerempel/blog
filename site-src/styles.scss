@@ -1,255 +1,190 @@
 @charset "utf-8";
 
-$base-line-height: 1.575rem;
-$base-font-size: 1.125rem;
-
-@import "styles/magenta";
 @import "fonts/fonts";
 
-$serif-fonts: 'Crimson Text', Athelas, Marion, Baskerville, Garamond, Palatino, serif;
-$sans-serif-fonts: 'HK Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+@mixin colour-scheme-light {
+  --text-colour-normal: #222222;
+  --text-colour-highlight: #783f75;
+  --text-colour-lighter: #555555;
+  --background-colour-normal: #f8f8f8;
+  --background-colour-lighter: #e8e8e8;
+}
 
-$colours-light: ("text-highlight": #783f75, "background-normal": #f8f8f8, "background-lighter": #e8e8e8, "text-normal": #222222, "text-lighter": #555555);
-$colours-dark: ("text-highlight": #f0a4ec, "background-normal": #2f2f2f, "background-lighter": #4f4f4f, "text-normal": #e8e8e8, "text-lighter": #c8c8c8);
+@mixin colour-scheme-dark {
+  --text-colour-normal: #e8e8e8;
+  --text-colour-highlight: #f0a4ec;
+  --text-colour-lighter: #c8c8c8;
+  --background-colour-normal: #2f2f2f;
+  --background-colour-lighter: #4f4f4f;
+}
+
+:root {
+  --base-line-height: 1.525rem;
+  --base-font-size: 1rem;
+  --sans-serif-fonts: 'HK Grotesk', 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  @include colour-scheme-light;
+}
+
+.colour-scheme-auto {
+  @media (prefers-color-scheme: light) {
+    @include colour-scheme-light;
+  }
+  @media (prefers-color-scheme: dark) {
+    @include colour-scheme-dark;
+  }
+  @media (prefers-color-scheme: no-preference) {
+    @include colour-scheme-light;
+  }
+}
+.colour-scheme-light {
+  @include colour-scheme-light;
+}
+.colour-scheme-dark {
+  @include colour-scheme-dark;
+}
+
+body {
+  font-family: var(--sans-serif-fonts);
+  font-variant-ligatures: contextual;
+  font-variant-numeric: proportional-nums;
+  font-kerning: normal;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  color: var(--text-colour-normal);
+  background-color: var(--background-colour-normal);
+  font-size: var(--base-font-size);
+  line-height: var(--base-line-height);
+}
+
+@function multiply-variable($variable, $multiplier) {
+  @return calc(var(--#{$variable}) * #{$multiplier});
+}
+
+$ratios:
+  1 1, 1 2, 3 2,
+  1 4, 3 4, 5 4,
+  1 8, 7 8, 9 8,
+  3 8, 5 8,
+  1 3, 2 3, 4 3,
+  1 5, 4 5, 6 5;
+
+$properties: (
+  mb margin-bottom, mt margin-top,
+  ml margin-left, mr margin-right,
+  fs font-size, lh line-height
+);
+
+@mixin ratio($class-name, $property, $numerator, $denominator) {
+  .#{$class-name}-#{$numerator}-#{$denominator} {
+    $fraction: $numerator / $denominator;
+    @if $property == font-size {
+      #{$property}: multiply-variable("base-font-size", #{$fraction});
+    }
+    @else {
+      #{$property}: multiply-variable("base-line-height", #{$fraction});
+    }
+  }
+}
+
+@each $class-name, $property in $properties {
+  @each $numerator, $denominator in $ratios {
+    @include ratio($class-name, $property, $numerator, $denominator);
+  }
+}
 
 .container {
-  @include centered;
-  @include responsive-width;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  max-width: 33rem;
+  width: 93%;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   & > * { flex: none; }
   min-height: 100vh;
-  & > header {
-    @include margin-top-one;
-  }
 }
 
-
-.row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-
-h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
-    text-decoration: none;
-    &:hover {
-      text-decoration: underline;
-      text-decoration-thickness: 0.075em;
-      text-underline-offset: 0.14em;
-    }
-    color: inherit;
-}
-
-address { font-style: normal; }
-address a { font-style: oblique; }
-footer {
-  margin-top: auto;
-  padding-top: $base-line-height;
-  border-top: 0.79px solid var(--text-normal);
-  h2 { font-size: $base-font-size; font-weight: 700; }
-  p { margin-top: $base-line-height * 0.25; }
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-}
-
-.font-size-four-fifths {
-  font-size: $base-font-size * 0.8;
-}
-
-.line-height-three-quarters {
-  line-height: $base-line-height * 0.75;
-}
-
-.margin-bottom-one {
-  @include margin-bottom-one;
-}
-
-.margin-right-one {
-  margin-right: $base-line-height;
-}
-
-.margin-bottom-three-quarters {
-  margin-bottom: $base-line-height * 0.75;
-}
-
-.synopsis {
-  margin: 0 !important;
-  font-style: oblique;
-  font-size: $base-font-size * 13 / 16;
-  font-weight: 500;
-  line-height: $base-line-height * 0.875;
-}
-
-p a {
-  @include text-colour-highlight;
-  text-decoration: underline;
-  text-decoration-thickness: 0.05em;
+a {
+  color: var(--link-colour, inherit);
+  text-decoration-line: var(--link-text-decoration-line, none);
+  text-decoration-thickness: var(--link-initial-text-decoration-thickness, 0.05em);
   text-underline-offset: 0.14em;
-  &:hover {
-    text-decoration-thickness: 0.14em;
-  }
   transition: text-decoration-thickness 0.2s;
+  &:hover {
+    text-decoration-line: underline;
+    text-decoration-thickness: var(--link-hover-text-decoration-thickness, 0.1em);
+  }
 }
 
-
-/* blockquote + p > cite:first-child::before {
-    content: "\2014";
-} */
-
-b { @extend .semibold; }
-strong { @extend .bold; }
-
-.medium {
-  font-weight: 500;
+p {
+  margin: 0;
+  --link-colour: var(--text-colour-highlight);
+  --link-initial-text-decoration-thickness: 0.05em;
+  --link-hover-text-decoration-thickness: 0.14em;
+  --link-text-decoration-line: underline;
+  font-size: 1em;
+  line-height: var(--base-line-height);
+  & + p {
+    margin-top: calc(var(--paragraph-spacing-factor, 0) * var(--base-line-height));
+  }
 }
 
-.semibold {
-  font-weight: 600;
-}
-
-.bold {
-  font-weight: 700;
-}
-
-.light {
-  font-weight: 300;
-}
-
-.oblique {
-  font-style: oblique;
-}
-
-.slightly-bigger {
-  @include font-size-twentyone-twentieths;
-  @include line-height-one;
-}
-
-.somewhat-smaller {
-  @include line-height-four-fifths;
-  @include font-size-nine-tenths;
-}
-
-.somewhat-bigger {
-  @include font-size-six-fifths;
-  @include line-height-six-fifths;
-}
-
-.distinctly-bigger {
-  @include font-size-three-halves;
-  @include line-height-three-halves;
-}
-
-.margin-bottom-one-half {
-  @include margin-bottom-one-half;
-}
-
-.margin-top-one {
-  @include margin-top-one;
-}
-
-.font-size-one {
-  font-size: $base-font-size;
-}
-
-.font-size-seven-eighths {
-  @include font-size-seven-eighths;
+ol, ul {
+  margin-top: calc(var(--paragraph-spacing-factor, 0.5) * var(--base-line-height));
 }
 
 article {
-  .title {
-    @extend .bold, .somewhat-bigger;
-    margin-bottom: $base-font-size * 0.125;
-  }
-  .date {
-    @extend .somewhat-smaller;
-    @extend .light, .oblique;
-    @include text-colour-lighter;
-  }
-  p {
-    @include margin-bottom-one-half;
-  }
+  --paragraph-spacing-factor: 0.5;
 }
 
-p { @include font-size-seven-eighths; }
-
-article.full {
-  .title {
-    @include margin-bottom-one-half;
-    @include font-size-three-halves;
-    @include line-height-three-halves;
-  }
-  .date { @include font-size-seven-eighths; }
-  @include margin-bottom-one;
-}
-
-article + article {
-  @include margin-top-one;
-}
-
-article.summary {
-  @include margin-bottom-two-thirds;
-  .title { @extend .semibold; }
-}
-
+b { font-weight: 600; }
+strong { font-weight: 700; }
 cite { font-style: oblique; }
 
 select {
   margin-inline-start: 0.5em;
 }
 
-label, select {
-  font-size: inherit;
-  line-height: inherit;
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  --link-text-decoration-line: none;
+  --link-colour: inherit;
+  --link-initial-text-decoration-thickness: 0.07em;
+  --link-hover-text-decoration-thickness: 0.1em;
 }
-
-hr { width: 32%; }
-
-p img { width: 100%; }
 
 blockquote {
     margin-left: 4%;
     margin-right: 4%;
-    @include text-colour-lighter;
+    color: var(--text-colour-lighter);
 }
 
-.further {
-  @extend .medium, .oblique;
+.link-plain {
+  --link-text-decoration-line: none;
 }
 
-nav a {
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-    text-decoration-thickness: 0.44em;
-    text-underline-offset: 0.14em;
-  }
+nav {
+  --link-hover-text-decoration-thickness: 0.44em;
 }
 
-p, h1, h2, h3, article, section, header {
-  margin: 0;
+footer {
+  margin-top: auto;
+  padding-top: var(--base-line-height);
+  border-top: 0.79px solid var(--text-colour-normal);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
-main {
-  @include margin-top-two-thirds;
-  @include margin-bottom-one;
-}
+img { width: 100% }
 
-body {
-    font-family: $sans-serif-fonts;
-    font-variant-ligatures: contextual;
-    font-variant-numeric: proportional-nums;
-    font-kerning: normal;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    @include font-size-one;
-    @include line-height-one;
-    @include text-colour-normal;
-    @include background-colour-normal;
-}
+.medium { font-weight: 500; }
+.semibold { font-weight: 600; }
+.bold { font-weight: 700; }
+.light { font-weight: 300; }
+.oblique { font-style: oblique; }
 
-:root {
-  @include responsive-colours($colours-light, $colours-dark, $colours-light);
-}
+.colour-lighter { color: var(--text-colour-lighter); }
+
+.block { display: block; }
