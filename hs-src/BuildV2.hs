@@ -51,9 +51,9 @@ buildSite options@Options{..} =
     let realPath = qualify options nominalPath
     need [realPath]
     contents <- liftIO $ Text.readFile realPath
-    either (liftIO . throwIO) return (Post.parse nominalPath contents)
+    either (liftIO . throwIO) return $! Post.parse nominalPath contents
 
-  getSourceFiles <- newCache ((map SourcePath <$>). getDirectoryFiles inputDirectory)
+  getSourceFiles <- newCache ((map SourcePath <$!>) . getDirectoryFiles inputDirectory)
 
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles ["posts/*.md"]
@@ -92,7 +92,7 @@ buildSite options@Options{..} =
 
   mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
-    need [source]
+    need [source, inputDirectory </> "fonts" </> "fonts.css"]
     cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
 
   mkTarget "index.html" %> \target -> do

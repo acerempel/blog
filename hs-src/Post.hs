@@ -32,9 +32,9 @@ import qualified Text.URI as URI
 type Html = Lucid.HtmlT (Either Problem) ()
 
 data Problem
-  = MissingField { what :: URL, field :: Text }
-  | MarkdownParseError String
-  | YamlParseError String
+  = MissingField { what :: !URL, field :: !Text }
+  | MarkdownParseError !String
+  | YamlParseError !String
   deriving Show
 
 instance Exception Problem where
@@ -49,13 +49,13 @@ type Post = PostG Html
 
 data PostG prose = Post
    { url :: URL -- ^ Route to this post.
-   , title :: Maybe prose
+   , title :: !(Maybe prose)
    , pageTitle :: Text
    , preview :: Maybe prose
    , body :: Html -- ^ The post body.
    , synopsis :: Maybe prose -- ^ A little summary or tagline.
    , description :: Maybe Text -- ^ A slightly longer and self-contained description.
-   , published :: Maybe Day -- ^ Date of publication.
+   , published :: !(Maybe Day) -- ^ Date of publication.
    , isDraft :: Bool -- ^ Whether this post is a draft or is published.
    , tags :: [Tag] -- ^ Some tags.
    }
