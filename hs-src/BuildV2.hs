@@ -53,7 +53,9 @@ buildSite options@Options{..} =
     contents <- liftIO $ Text.readFile realPath
     either (liftIO . throwIO) return $! Post.parse nominalPath contents
 
-  getSourceFiles <- newCache ((map SourcePath <$!>) . getDirectoryFiles inputDirectory)
+  getSourceFiles <- newCache \patterns -> do
+    files <- getDirectoryFiles inputDirectory patterns
+    return (coerce files :: [SourcePath])
 
   getAllPosts <- newCache \() -> do
     sources <- getSourceFiles ["posts/*.md"]
