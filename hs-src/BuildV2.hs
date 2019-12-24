@@ -71,10 +71,9 @@ buildSite options@Options{..} =
 
   action do
     sourceFiles <- getSourceFiles ("**/*.md" : assetPatterns)
-    changedForward <- buildFiles sourceFiles
-    changedBackward <- buildEverything staticTargets
-    let changed = changedBackward ++ changedForward
-    when upload (runAfter (doUpload options changed))
+    buildFiles sourceFiles
+    buildEverything staticTargets
+    return ()
 
   rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "posts"))
     ((</> "index.html") . dropExtension)
@@ -97,7 +96,7 @@ buildSite options@Options{..} =
   mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
     need [source, inputDirectory </> "fonts" </> "fonts.css"]
-    cmd_ ("sass" :: String) [ "--no-source-map", source, target ]
+    doProcess options $ proc "sass" [ "--no-source-map", source, target ]
 
   mkTarget "index.html" %> \target -> do
     allPosts <- getAllPosts ()
@@ -108,22 +107,28 @@ buildSite options@Options{..} =
     allPosts <- getAllPosts ()
     writeHtml target $ Templates.archive allPosts
 
-  (outputDirectory </> uploadedStateSubDir </> "*.uploaded") %> \target -> do
-    return undefined
+  (outputDirectory </> uploadedStateSubDir </> "*" <.> "uploaded") %> \target -> do
+    let
+      realTarget = (dropExtension . dropDirectory1 . dropDirectory1) target
+    need [realTarget]
+
 
 f &&^ g = \a -> f a && g a
 
 f ==^ a = \b -> f b == a
 
-doUpload :: Options -> [TargetPath] -> IO ()
+doProcess options processConfig = liftIO do
+  withProcessWait_ processConfig
+    \process -> when (verbosity options >= Chatty) $
+      hPutStrLn stderr (show process)
+
+doUpload :: Options -> [TargetPath] -> Action ()
 doUpload options changed = do
   if null changed then
-    hPutStrLn stderr "Nothing to upload!"
+    putNormal "Nothing to upload!"
   else do
     for_ (Map.toList changedGroupedByDir) \(directory, paths) ->
-      withProcessWait_
-        (uploadCommand directory paths)
-        (\process -> hPutStrLn stderr (show process))
+      doProcess options (uploadCommand directory paths)
   where
     uploadCommand directory paths =
       setWorkingDir (outputDirectory options) $
