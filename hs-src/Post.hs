@@ -4,9 +4,10 @@ module Post ( Post, PostG(..), URL(..), Tag, parse, Html, Problem(..) ) where
 import Prelude hiding ( read )
 
 import Introit
-import FilePath
+import Thing
 import qualified Text
 
+import qualified Data.ByteString.Char8 as Bytes
 import qualified Data.HashMap.Strict as HashMap
 import Data.Time.Calendar ( Day )
 import Data.Time.Format ( parseTimeM, defaultTimeLocale )
@@ -16,7 +17,6 @@ import qualified Text.MMark as MMark
 import qualified Data.List.NonEmpty as NE
 import Control.Exception
 import Control.Foldl ( Fold )
-import Development.Shake.FilePath
 import List ( List )
 import qualified List
 import qualified Lucid
@@ -60,16 +60,10 @@ data PostG prose = Post
    , tags :: [Tag] -- ^ Some tags.
    }
 
-newtype URL = URL { fromURL :: Text } deriving Show
-
-sourcePathToURL :: SourcePath -> URL
-sourcePathToURL =
-  URL . Text.pack . ('/' :) . dropExtension . fromSourcePath
-
 type Tag = Text
 
-parse :: SourcePath -> Text -> Either Problem Post
-parse filepath contents = do
+parse :: Thing -> Text -> Either Problem Post
+parse Thing{thingSourcePath = filepath, thingUrl} contents = do
   bodyMarkdown <- parseMarkdown filepath contents
   let yaml = fromMaybe (Yaml.Object HashMap.empty) (MMark.projectYaml bodyMarkdown)
   Post{..} <- first YamlParseError $ withMetadata yaml
@@ -90,7 +84,7 @@ parse filepath contents = do
     , preview = renderMarkdown <$> previewMarkdown
     , pageTitle =
         maybe incipit (flip MMark.runScanner plainText) titleMarkdown
-    , .. }
+    , url = thingUrl, .. }
  where
    withMetadata :: Yaml.Value -> Either String (PostG Text)
    withMetadata = Yaml.parseEither $
@@ -101,16 +95,16 @@ parse filepath contents = do
          isDraft <- metadata .:? "draft" .!= False
          tags     <- metadata .:? "tags" .!= []
          published <- traverse (parseTimeM True defaultTimeLocale dateFormat) =<< metadata .:? "date"
-         let url = sourcePathToURL filepath
          return Post{..}
 
    dateFormat = "%e %B %Y"
 
 parseMarkdown :: SourcePath -> Text -> Either Problem MMark
 parseMarkdown path contents =
+  let nominalSourcePath = Bytes.unpack (fromSourcePath path) in
   first (MarkdownParseError . MP.errorBundlePretty) $
   second (MMark.useExtension (punctuationPrettifier <> customTags)) $
-  MMark.parse (fromSourcePath path) contents
+  MMark.parse nominalSourcePath contents
 
 parseMarkdownSingleParagraph :: SourcePath -> Text -> Either Problem MMark
 parseMarkdownSingleParagraph file contents =

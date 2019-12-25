@@ -1,16 +1,18 @@
 packages:
     blog.cabal
     mmark/mmark.cabal
+    shake/shake.cabal
     server/blog-server.cabal
 library-profiling: False
 
 package blog
     ghc-options: -fhide-source-paths -Wall -Wincomplete-record-updates -Wmissing-exported-signatures -ferror-spans
-    optimization: 2
 
 package mmark
-    ghc-options: -fhide-source-paths -Wall -ferror-spans
-    optimization: 2
+    ghc-options: -fhide-source-paths -ferror-spans
+
+package shake
+    ghc-options: -fhide-source-paths -ferror-spans
 
 package blog-server
     ghc-options: -fhide-source-paths -Wall -ferror-spans

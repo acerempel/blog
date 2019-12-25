@@ -16,10 +16,9 @@ executable blog
   main-is:             Main.hs
   other-modules:       BuildV2
                      , CLI
-                     , FilePath
+                     , Thing
                      , Templates
                      , Options
-                     , Rules
                      , Post
                      , Introit
                      , Text
@@ -32,7 +31,7 @@ executable blog
   build-depends:       base >= 4.10 && < 5
                      , binary
                      , bytestring
-                     , filepath
+                     , filepath-bytestring
                      , foldl
                      , directory >= 1.2.6
                      , list-base
