@@ -159,6 +159,7 @@ plainText =
       MMark.Heading6 inlines -> textSoFar <> MMark.asPlainText inlines
       MMark.Naked inlines    -> textSoFar <> MMark.asPlainText inlines
       MMark.Paragraph inlines -> textSoFar <> MMark.asPlainText inlines
+      MMark.Stanza lines -> foldl' (\s (MMark.Line _ a) -> s <> MMark.asPlainText a) textSoFar lines
       MMark.Blockquote blocks ->
         foldl' appendPlainText textSoFar blocks
       MMark.OrderedList _ listItems ->
