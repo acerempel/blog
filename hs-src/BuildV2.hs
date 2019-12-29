@@ -80,7 +80,7 @@ sourcePathToThing path =
 
 data Path
   = Source !SourcePath
-  | Target !TargetPath
+  | Target !FilePath
   deriving stock ( Generic, Eq )
   deriving anyclass ( Hashable )
 
@@ -106,19 +106,19 @@ buildSite options@Options{..} =
     let fdConfig =
           setWorkingDir inputDirectory $
           setStdout byteStringOutput $
-          proc "fd" $ "." : prefixDir : concat [ ["-e", ext] | ext <- extensions ]
+          proc "fd" $ "." : prefixDir : fdArgs
+        fdArgs = ["-L", "--max-depth", "1", "--type", "file"]
+                 ++ concat [ ["-e", ext] | ext <- extensions ]
     output <- doProcessWith (atomically . getStdout) options fdConfig
     return (Lazy.lines output)
 
-  let assetExts = Set.fromList @FilePath ["js", "jpg", "jpeg", "png", "woff", "woff2"]
-      staticTargets = ["index.html", "posts/index.html", "styles.css"]
-      realSourcePath =
+  let realSourcePath =
         (inputDirectory </>) . Bytes.unpack . fromSourcePath
       realTargetPath =
         (outputDirectory </>) . (contentSubDir </>) . fromTargetPath
       realPath = \case
         Source sp -> realSourcePath sp
-        Target tp -> realTargetPath tp
+        Target tp -> tp
 
   let
     lookupThing targetPath = do
@@ -129,28 +129,37 @@ buildSite options@Options{..} =
 
     registerThings things db =
       foldl' (\db' thing ->
-        Map.insert ((Target . thingTargetPath) thing) thing .
+        Map.insert ((Target . realTargetPath . thingTargetPath) thing) thing .
         Map.insert ((Source . thingSourcePath) thing) thing $ db')
       db things
+
+  getMarkdownThing <- newCache \thing -> do
+    need [realSourcePath (thingSourcePath thing)]
+    contents <- liftIO $ Text.readFile (realSourcePath (thingSourcePath thing))
+    either (liftIO . throwIO) return $! Post.parse thing contents
 
   -- Make sure we parse each markdown file only once – each file is needed
   -- both for its own page and for the home page.
   getMarkdown <- newCache \targetPath -> do
-    thing <- lookupThing targetPath
-    needBS [fromSourcePath (thingSourcePath thing)]
-    contents <- liftIO $ Text.readFile (realSourcePath (thingSourcePath thing))
-    either (liftIO . throwIO) return $! Post.parse thing contents
+    let
+      catchNotFound =
+        case targetPath of
+          Target _ -> id
+          Source (SourcePath sp) ->
+            flip actionCatch (\(ThingNotFound _) -> return (sourcePathToThing sp))
+    thing <- catchNotFound (lookupThing targetPath)
+    getMarkdownThing thing
 
-  getSources <- newCache \fd@Fd{..} -> do
+  getThings <- newCache \fd@Fd{..} -> do
     fdOutput <- askOracle fd
     let results = map Lazy.toStrict fdOutput
     let things = map sourcePathToThing results
     liftIO $ atomicModifyIORef' thingsDatabase ((,()) . registerThings things)
-    return (coerce results :: [SourcePath])
+    return things
 
   getAllPosts <- newCache \() -> do
-    sources <- getSources (Fd "posts" ["md"])
-    allPosts <- forP sources (getMarkdown . Source)
+    sources <- getThings (Fd "posts" ["md"])
+    allPosts <- forP sources getMarkdownThing
     shouldIncludeDrafts <- askOracle IncludeDrafts
     let filterOutDrafts =
           if shouldIncludeDrafts then id else filter (not . Post.isDraft)
@@ -158,52 +167,53 @@ buildSite options@Options{..} =
       sortBy (compare `on` (Down . Post.published)) $
       filterOutDrafts allPosts
 
+  let target = realTargetPath . TargetPath
+      source = realSourcePath . SourcePath
+
+      assetPatterns =
+        [ Fd "scripts" ["js"], Fd "fonts" ["woff", "woff2"]
+        , Fd "images" ["jpg", "jpeg", "png"] ]
+      assetExtensions = foldMap extensions assetPatterns
+
   action do
-    return ()
+    let sourcePatterns =
+          Fd "posts" ["md"] : assetPatterns
+        staticTargets = map target
+          [ "index.html", "introduction/index.html", "posts/index.html", "styles.css" ]
+    things <- forP sourcePatterns getThings
+    need (map (realTargetPath . thingTargetPath) (concat things) ++ staticTargets)
 
-  {-
-  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "posts"))
-    ((</> "index.html") . dropExtension)
-    \P{ source, target } -> do
-      page <- Templates.post <$> getMarkdown (unqualify options source)
-      writeHtml target page
+  target "posts/*/index.html" %> \targetPath -> do
+    page <- Templates.post <$> getMarkdown (Target targetPath)
+    writeHtml targetPath page
 
-  rule ((".md" `isExtensionOf`) &&^ (takeDirectory ==^ "."))
-    ((</> "index.html") . dropExtension)
-    \P{ source, target } -> do
-      page <- Templates.aboutPage <$> getMarkdown (unqualify options source)
-      writeHtml target page
+  target "introduction/index.html" %> \targetPath -> do
+    page <- Templates.aboutPage <$> getMarkdown (Source "introduction.md")
+    writeHtml targetPath page
 
-  rule ((`Set.member` assetExts) . takeExtension) id
-    \P{ source, target } ->
-      liftIO $ copyFileWithMetadata source target
-  -}
+  map (target . ("**/*" <.>)) assetExtensions |%> \targetPath -> do
+    sourcePath <- (realSourcePath . thingSourcePath) <$> lookupThing (Target targetPath)
+    liftIO $ copyFileWithMetadata sourcePath targetPath
 
-  let mkTarget t = outputDirectory </> contentSubDir </> t
+  target "styles.css" %> \targetPath -> do
+    let sourcePath = source "styles.scss"
+    need [sourcePath, source "fonts/fonts.css"]
+    doProcess options $ proc "sass" [ "--no-source-map", sourcePath, targetPath ]
 
-  mkTarget "styles.css" %> \target -> do
-    let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
-    need [source, inputDirectory </> "fonts" </> "fonts.css"]
-    doProcess options $ proc "sass" [ "--no-source-map", source, target ]
-
-  mkTarget "index.html" %> \target -> do
+  target "index.html" %> \targetPath -> do
     allPosts <- getAllPosts ()
     hi <- getMarkdown (Source "hi.md")
-    writeHtml target $ Templates.home hi (take 5 allPosts)
+    writeHtml targetPath $ Templates.home hi (take 5 allPosts)
 
-  mkTarget "posts/index.html" %> \target -> do
+  target "posts/index.html" %> \targetPath -> do
     allPosts <- getAllPosts ()
-    writeHtml target $ Templates.archive allPosts
+    writeHtml targetPath $ Templates.archive allPosts
 
-  (outputDirectory </> uploadedStateSubDir </> "*" <.> "uploaded") %> \target -> do
-    let realTarget =
-          (dropExtension . dropDirectory1 . dropDirectory1) target
-    need [realTarget]
+  -- (outputDirectory </> uploadedStateSubDir </> "*" <.> "uploaded") %> \target -> do
+  --   let realTarget =
+  --         (dropExtension . dropDirectory1 . dropDirectory1) target
+  --   need [realTarget]
 
-
-f &&^ g = \a -> f a && g a
-
-f ==^ a = \b -> f b == a
 
 doProcess = doProcessWith (\_ -> return ())
 

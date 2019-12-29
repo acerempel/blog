@@ -1,4 +1,5 @@
 {-# LANGUAGE DerivingStrategies, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 module Thing
   ( SourcePath(..), TargetPath(..), Thing(..), URL(..)
   , Problem(..)
@@ -8,6 +9,7 @@ import Control.Exception
 import Data.ByteString
 import Data.String ( IsString )
 import Development.Shake.Classes
+import GHC.Generics ( Generic )
 
 import Introit
 import qualified Text
@@ -20,12 +22,15 @@ newtype TargetPath = TargetPath { fromTargetPath :: String }
   deriving newtype ( Show, Eq, Hashable, Binary, NFData, IsString )
 
 newtype URL = URL { fromURL :: Text }
-  deriving stock ( Show )
+  deriving stock ( Eq, Show, Generic )
+  deriving anyclass ( Hashable )
 
 data Thing = Thing
   { thingTargetPath :: TargetPath
   , thingSourcePath :: SourcePath
   , thingUrl :: URL }
+  deriving stock ( Eq, Generic )
+  deriving anyclass ( Hashable )
 
 data Problem
   = MissingField { what :: !URL, field :: !Text }
