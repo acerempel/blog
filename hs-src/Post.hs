@@ -15,7 +15,6 @@ import Data.Yaml ( (.:?), (.!=) )
 import qualified Data.Yaml as Yaml
 import qualified Text.MMark as MMark
 import qualified Data.List.NonEmpty as NE
-import Control.Exception
 import Control.Foldl ( Fold )
 import List ( List )
 import qualified List
@@ -30,23 +29,6 @@ import Text.URI ( uriPath, uriScheme )
 import qualified Text.URI as URI
 
 type Html = Lucid.HtmlT (Either Problem) ()
-
-data Problem
-  = MissingField { what :: !URL, field :: !Text }
-  | MarkdownParseError !String
-  | YamlParseError !String
-  | ThingNotFound !FilePath
-  deriving Show
-
-instance Exception Problem where
-  displayException MissingField { what, field } =
-    "The page at \"" <> Text.unpack (fromURL what) <> "\" is missing the required field \"" <> Text.unpack field <> "\"."
-  displayException (MarkdownParseError message) =
-    message
-  displayException (YamlParseError message) =
-    message
-  displayException (ThingNotFound path) =
-    "Unknown thing: " <> path
 
 type Post = PostG Html
 
