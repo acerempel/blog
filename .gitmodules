@@ -4,3 +4,6 @@
 [submodule "posts"]
 	path = site-src/posts
 	url = https://github.com/parsonyorick/blog-posts/
+[submodule "shake"]
+	path = shake
+	url = https://github.com/parsonyorick/shake
