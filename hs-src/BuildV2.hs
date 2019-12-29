@@ -17,10 +17,10 @@ import qualified Data.HashSet as Set
 import Data.Text.Encoding ( decodeUtf8 )
 import Development.Shake
 import Development.Shake.Classes
+import Development.Shake.FilePath
 import GHC.Conc ( atomically )
 import GHC.Generics ( Generic )
 import System.Directory ( copyFileWithMetadata )
-import System.FilePath.ByteString
 import System.Process.Typed
 
 import Thing
@@ -42,7 +42,7 @@ data FdQ = Fd
   deriving stock ( Eq, Show, Generic )
   deriving anyclass ( Binary, Hashable, NFData )
 
-type instance RuleResult FdQ = Lazy.ByteString
+type instance RuleResult FdQ = [Lazy.ByteString]
 
 data InputDirQ = InputDir
   -- Derive all the instances that Shake wants
@@ -65,14 +65,14 @@ sourcePathToThing path =
   (\thing -> thing{thingSourcePath = SourcePath path})
   if | Just sansExt <- Bytes.stripSuffix ".md" path
      -> Thing
-        { thingTargetPath = TargetPath $ sansExt </> "index.html"
+        { thingTargetPath = TargetPath $ Bytes.unpack sansExt </> "index.html"
         , thingUrl = url sansExt }
      | Just sansExt <- Bytes.stripSuffix ".scss" path
      -> Thing
-        { thingTargetPath = TargetPath $ sansExt <.> "css"
-        , thingUrl = url $ sansExt <.> "css" }
+        { thingTargetPath = TargetPath $ Bytes.unpack sansExt <.> "css"
+        , thingUrl = url $ sansExt <> ".css" }
      | otherwise
-     -> Thing{ thingTargetPath = TargetPath path
+     -> Thing{ thingTargetPath = TargetPath (Bytes.unpack path)
              , thingUrl = url path }
   where
     url = URL . decodeUtf8 . ("/" <>)
@@ -86,6 +86,8 @@ buildSite options@Options{..} =
         , shakeVerbosity = verbosity }
   in shake shakeOptions'' do
 
+  -- thingsDatabase <- newIORef Map.empty
+
   addOracle \InputDir -> return inputDirectory
 
   -- This is needed by the "index.html" rule to rebuild when the
@@ -98,15 +100,15 @@ buildSite options@Options{..} =
           setWorkingDir inputDirectory $
           setStdout byteStringOutput $
           proc "fd" $ "." : prefixDir : concat [ ["-e", ext] | ext <- extensions ]
-    doProcessWith (atomically . getStdout) options fdConfig
+    output <- doProcessWith (atomically . getStdout) options fdConfig
+    return (Lazy.lines output)
 
-  let assetExts = Set.fromList ["js", "jpg", "jpeg", "png", "woff", "woff2"]
+  let assetExts = Set.fromList @FilePath ["js", "jpg", "jpeg", "png", "woff", "woff2"]
       staticTargets = ["index.html", "posts/index.html", "styles.css"]
       realSourcePath =
-        Bytes.unpack . (inputDirectory </>) .
-        fromSourcePath . thingSourcePath
+        (inputDirectory </>) . Bytes.unpack . fromSourcePath . thingSourcePath
       realTargetPath =
-        Bytes.unpack . (outputDirectory </>) . (contentSubDir </>) .
+        (outputDirectory </>) . (contentSubDir </>) .
         fromTargetPath . thingTargetPath
 
   let
@@ -123,9 +125,10 @@ buildSite options@Options{..} =
 
   getSources <- newCache \fd@Fd{..} -> do
     fdOutput <- askOracle fd
-    let results = map Lazy.toStrict $ Lazy.lines fdOutput
+    let results = map Lazy.toStrict fdOutput
     let things = map sourcePathToThing results
-    return things
+    -- atomicModifyIORef' undefined
+    return (coerce results :: [SourcePath])
 
   getAllPosts <- newCache \() -> do
     sources <- getSources (Fd "posts" ["md"])
@@ -158,7 +161,7 @@ buildSite options@Options{..} =
       liftIO $ copyFileWithMetadata source target
   -}
 
-  let mkTarget t = Bytes.unpack (outputDirectory </> contentSubDir </> t)
+  let mkTarget t = outputDirectory </> contentSubDir </> t
 
   mkTarget "styles.css" %> \target -> do
     let source = inputDirectory </> dropDirectory1 target -<.> ".scss"
@@ -175,8 +178,8 @@ buildSite options@Options{..} =
     writeHtml target $ Templates.archive allPosts
 
   (outputDirectory </> uploadedStateSubDir </> "*" <.> "uploaded") %> \target -> do
-    let
-      realTarget = (dropExtension . dropDirectory1 . dropDirectory1) target
+    let realTarget =
+          (dropExtension . dropDirectory1 . dropDirectory1) target
     need [realTarget]
 
 
