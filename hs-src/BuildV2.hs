@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DerivingStrategies, DeriveGeneric, DeriveAnyClass #-}
-{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE MultiWayIf, TupleSections, LambdaCase #-}
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module BuildV2 ( buildSite, Options(..) ) where
 
@@ -14,6 +14,7 @@ import qualified Data.ByteString.Lazy.Char8 as Lazy
 import Data.Coerce
 import qualified Data.HashMap.Strict as Map
 import qualified Data.HashSet as Set
+import Data.IORef
 import Data.Text.Encoding ( decodeUtf8 )
 import Development.Shake
 import Development.Shake.Classes
@@ -77,6 +78,12 @@ sourcePathToThing path =
   where
     url = URL . decodeUtf8 . ("/" <>)
 
+data Path
+  = Source !SourcePath
+  | Target !TargetPath
+  deriving stock ( Generic, Eq )
+  deriving anyclass ( Hashable )
+
 buildSite :: Options -> IO ()
 -- TODO: Automate the updating of the 'shakeVersion'.
 buildSite options@Options{..} =
@@ -86,7 +93,7 @@ buildSite options@Options{..} =
         , shakeVerbosity = verbosity }
   in shake shakeOptions'' do
 
-  -- thingsDatabase <- newIORef Map.empty
+  thingsDatabase <- liftIO $ newIORef Map.empty
 
   addOracle \InputDir -> return inputDirectory
 
@@ -106,33 +113,44 @@ buildSite options@Options{..} =
   let assetExts = Set.fromList @FilePath ["js", "jpg", "jpeg", "png", "woff", "woff2"]
       staticTargets = ["index.html", "posts/index.html", "styles.css"]
       realSourcePath =
-        (inputDirectory </>) . Bytes.unpack . fromSourcePath . thingSourcePath
+        (inputDirectory </>) . Bytes.unpack . fromSourcePath
       realTargetPath =
-        (outputDirectory </>) . (contentSubDir </>) .
-        fromTargetPath . thingTargetPath
+        (outputDirectory </>) . (contentSubDir </>) . fromTargetPath
+      realPath = \case
+        Source sp -> realSourcePath sp
+        Target tp -> realTargetPath tp
 
   let
-    lookupThing targetPath =
-      liftIO $ error "whoops!"
+    lookupThing targetPath = do
+      mbThing <- Map.lookup targetPath <$> liftIO (readIORef thingsDatabase)
+      case mbThing of
+        Just thing -> return thing
+        Nothing -> liftIO $ throwIO $ Post.ThingNotFound (realPath targetPath)
+
+    registerThings things db =
+      foldl' (\db' thing ->
+        Map.insert ((Target . thingTargetPath) thing) thing .
+        Map.insert ((Source . thingSourcePath) thing) thing $ db')
+      db things
 
   -- Make sure we parse each markdown file only once – each file is needed
   -- both for its own page and for the home page.
   getMarkdown <- newCache \targetPath -> do
     thing <- lookupThing targetPath
     needBS [fromSourcePath (thingSourcePath thing)]
-    contents <- liftIO $ Text.readFile (realSourcePath thing)
+    contents <- liftIO $ Text.readFile (realSourcePath (thingSourcePath thing))
     either (liftIO . throwIO) return $! Post.parse thing contents
 
   getSources <- newCache \fd@Fd{..} -> do
     fdOutput <- askOracle fd
     let results = map Lazy.toStrict fdOutput
     let things = map sourcePathToThing results
-    -- atomicModifyIORef' undefined
+    liftIO $ atomicModifyIORef' thingsDatabase ((,()) . registerThings things)
     return (coerce results :: [SourcePath])
 
   getAllPosts <- newCache \() -> do
     sources <- getSources (Fd "posts" ["md"])
-    allPosts <- forP sources getMarkdown
+    allPosts <- forP sources (getMarkdown . Source)
     shouldIncludeDrafts <- askOracle IncludeDrafts
     let filterOutDrafts =
           if shouldIncludeDrafts then id else filter (not . Post.isDraft)
@@ -170,7 +188,7 @@ buildSite options@Options{..} =
 
   mkTarget "index.html" %> \target -> do
     allPosts <- getAllPosts ()
-    hi <- getMarkdown "hi.md"
+    hi <- getMarkdown (Source "hi.md")
     writeHtml target $ Templates.home hi (take 5 allPosts)
 
   mkTarget "posts/index.html" %> \target -> do

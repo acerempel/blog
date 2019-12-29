@@ -6,7 +6,6 @@ module Thing
 import Data.ByteString
 import Data.String ( IsString )
 import Development.Shake.Classes
-import GHC.Generics ( Generic )
 
 import Introit
 

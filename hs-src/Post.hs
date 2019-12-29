@@ -35,6 +35,7 @@ data Problem
   = MissingField { what :: !URL, field :: !Text }
   | MarkdownParseError !String
   | YamlParseError !String
+  | ThingNotFound !FilePath
   deriving Show
 
 instance Exception Problem where
@@ -44,6 +45,8 @@ instance Exception Problem where
     message
   displayException (YamlParseError message) =
     message
+  displayException (ThingNotFound path) =
+    "Unknown thing: " <> path
 
 type Post = PostG Html
 
