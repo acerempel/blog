@@ -9,6 +9,7 @@ import Introit
 import qualified Text
 
 import Control.Exception ( throwIO )
+import Data.ByteString.Builder ( hPutBuilder, intDec )
 import qualified Data.ByteString.Char8 as Bytes
 import qualified Data.ByteString.Lazy.Char8 as Lazy
 import Data.Coerce
@@ -21,14 +22,15 @@ import Development.Shake.Classes
 import Development.Shake.FilePath
 import GHC.Conc ( atomically )
 import GHC.Generics ( Generic )
+import Lucid ( execHtmlT )
 import System.Directory ( copyFileWithMetadata )
+import System.IO ( withBinaryFile, IOMode(..) )
 import System.Process.Typed
 
 import Thing
 import Options
 import qualified Post
 import qualified Templates
-import Write
 
 version = "50"
 
@@ -89,7 +91,7 @@ buildSite :: Options -> IO ()
 buildSite options@Options{..} =
   let shakeOptions'' =
         shakeOptions'
-        { shakeRebuild = [ (RebuildNow, outputDirectory </> pattern) | pattern <- rebuildPatterns ]
+        { shakeRebuild = [ (RebuildNow, outputDirectory </> contentSubDir </> pattern) | pattern <- rebuildPatterns ]
         , shakeVerbosity = verbosity }
   in shake shakeOptions'' do
 
@@ -119,6 +121,11 @@ buildSite options@Options{..} =
       realPath = \case
         Source sp -> sourceToInputPath sp
         Target tp -> tp
+      targetToUploadedPath (TargetPath tp) =
+        outputDirectory </> uploadedStateSubDir </> tp <.> "uploaded"
+      uploadedToTargetPath =
+        TargetPath . dropExtension . fromJust .
+        stripPrefix (outputDirectory </> uploadedStateSubDir)
 
   let
     lookupThing targetPath = do
@@ -209,10 +216,14 @@ buildSite options@Options{..} =
     allPosts <- getAllPosts ()
     writeHtml targetPath $ Templates.archive allPosts
 
-  -- (outputDirectory </> uploadedStateSubDir </> "*" <.> "uploaded") %> \target -> do
-  --   let realTarget =
-  --         (dropExtension . dropDirectory1 . dropDirectory1) target
-  --   need [realTarget]
+  targetToUploadedPath (TargetPath "*") %> \uploadedPath -> do
+    let targetPath = uploadedToTargetPath uploadedPath
+    need [targetToOutputPath targetPath]
+    doUpload options targetPath
+    liftIO do
+      targetContents <- Lazy.readFile (targetToOutputPath targetPath)
+      let targetHash = intDec (hash targetContents)
+      withBinaryFile uploadedPath WriteMode \handle -> hPutBuilder handle targetHash
 
 
 doProcess = doProcessWith (\_ -> return ())
@@ -224,18 +235,20 @@ doProcessWith act options processConfig = liftIO do
         hPutStrLn stderr (show process)
       act process
 
-doUpload :: Options -> [TargetPath] -> Action ()
-doUpload options changed = do
-  if null changed then
-    putNormal "Nothing to upload!"
-  else do
-    for_ (Map.toList changedGroupedByDir) \(directory, paths) ->
-      doProcess options (uploadCommand directory paths)
-  where
-    uploadCommand directory paths =
-      setWorkingDir (outputDirectory options) $
-      let args = "upload" : if directory == "." then paths else ["-d", directory] ++ paths
-      in proc "neocities" args
-    changedGroupedByDir =
-      Map.fromListWith (<>)
-        [ (takeDirectory path, [path]) | path <- coerce changed ]
+doUpload :: Options -> TargetPath -> Action ()
+doUpload options (TargetPath path) = do
+  doProcess options $
+    setWorkingDir (outputDirectory options </> uploadedStateSubDir) $
+    let directory = takeDirectory path
+        args = "upload" : path : if directory /= "." then ["-d", directory] else []
+    in proc "neocities" args
+
+writeHtml :: FilePath -> Templates.PageContent -> Action ()
+writeHtml outPath content = do
+  let htmlOrProblem = execHtmlT (Templates.page False content)
+  case htmlOrProblem of
+    Left problem ->
+      liftIO $ throwIO problem
+    Right html -> do
+      putNormal $ "Writing HTML to " <> outPath
+      liftIO $ withBinaryFile outPath WriteMode \handle -> hPutBuilder handle html

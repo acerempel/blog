@@ -22,7 +22,6 @@ executable blog
                      , Post
                      , Introit
                      , Text
-                     , Write
   default-extensions:  OverloadedStrings
                      , NamedFieldPuns
                      , RecordWildCards
