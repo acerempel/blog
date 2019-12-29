@@ -112,12 +112,12 @@ buildSite options@Options{..} =
     output <- doProcessWith (atomically . getStdout) options fdConfig
     return (Lazy.lines output)
 
-  let realSourcePath =
+  let sourceToInputPath =
         (inputDirectory </>) . Bytes.unpack . fromSourcePath
-      realTargetPath =
+      targetToOutputPath =
         (outputDirectory </>) . (contentSubDir </>) . fromTargetPath
       realPath = \case
-        Source sp -> realSourcePath sp
+        Source sp -> sourceToInputPath sp
         Target tp -> tp
 
   let
@@ -129,13 +129,13 @@ buildSite options@Options{..} =
 
     registerThings things db =
       foldl' (\db' thing ->
-        Map.insert ((Target . realTargetPath . thingTargetPath) thing) thing .
+        Map.insert ((Target . targetToOutputPath . thingTargetPath) thing) thing .
         Map.insert ((Source . thingSourcePath) thing) thing $ db')
       db things
 
   getMarkdownThing <- newCache \thing -> do
-    need [realSourcePath (thingSourcePath thing)]
-    contents <- liftIO $ Text.readFile (realSourcePath (thingSourcePath thing))
+    need [sourceToInputPath (thingSourcePath thing)]
+    contents <- liftIO $ Text.readFile (sourceToInputPath (thingSourcePath thing))
     either (liftIO . throwIO) return $! Post.parse thing contents
 
   -- Make sure we parse each markdown file only once – each file is needed
@@ -157,8 +157,17 @@ buildSite options@Options{..} =
     liftIO $ atomicModifyIORef' thingsDatabase ((,()) . registerThings things)
     return things
 
+  let target = targetToOutputPath . TargetPath
+      source = sourceToInputPath . SourcePath
+
+      assetPatterns =
+        [ Fd "scripts" ["js"], Fd "fonts" ["woff", "woff2"]
+        , Fd "images" ["jpg", "jpeg", "png"] ]
+      assetExtensions = foldMap extensions assetPatterns
+      postPattern = Fd "posts" ["md"]
+
   getAllPosts <- newCache \() -> do
-    sources <- getThings (Fd "posts" ["md"])
+    sources <- getThings postPattern
     allPosts <- forP sources getMarkdownThing
     shouldIncludeDrafts <- askOracle IncludeDrafts
     let filterOutDrafts =
@@ -167,21 +176,12 @@ buildSite options@Options{..} =
       sortBy (compare `on` (Down . Post.published)) $
       filterOutDrafts allPosts
 
-  let target = realTargetPath . TargetPath
-      source = realSourcePath . SourcePath
-
-      assetPatterns =
-        [ Fd "scripts" ["js"], Fd "fonts" ["woff", "woff2"]
-        , Fd "images" ["jpg", "jpeg", "png"] ]
-      assetExtensions = foldMap extensions assetPatterns
-
   action do
-    let sourcePatterns =
-          Fd "posts" ["md"] : assetPatterns
+    let sourcePatterns = postPattern : assetPatterns
         staticTargets = map target
           [ "index.html", "introduction/index.html", "posts/index.html", "styles.css" ]
     things <- forP sourcePatterns getThings
-    need (map (realTargetPath . thingTargetPath) (concat things) ++ staticTargets)
+    need (map (targetToOutputPath . thingTargetPath) (concat things) ++ staticTargets)
 
   target "posts/*/index.html" %> \targetPath -> do
     page <- Templates.post <$> getMarkdown (Target targetPath)
@@ -192,7 +192,7 @@ buildSite options@Options{..} =
     writeHtml targetPath page
 
   map (target . ("**/*" <.>)) assetExtensions |%> \targetPath -> do
-    sourcePath <- (realSourcePath . thingSourcePath) <$> lookupThing (Target targetPath)
+    sourcePath <- (sourceToInputPath . thingSourcePath) <$> lookupThing (Target targetPath)
     liftIO $ copyFileWithMetadata sourcePath targetPath
 
   target "styles.css" %> \targetPath -> do
