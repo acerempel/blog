@@ -1,3 +1,6 @@
 cradle:
   cabal:
-    component: "exe:blog"
+    - path: "./hs-src"
+      component: "blog:exe:blog"
+    - path: "./mmark"
+      component: "mmark:libs"
