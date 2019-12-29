@@ -124,7 +124,7 @@ buildSite options@Options{..} =
       targetToUploadedPath (TargetPath tp) =
         outputDirectory </> uploadedStateSubDir </> tp <.> "uploaded"
       uploadedToTargetPath =
-        TargetPath . dropExtension . fromJust .
+        TargetPath . dropExtension . tail . fromJust .
         stripPrefix (outputDirectory </> uploadedStateSubDir)
 
   let
@@ -185,10 +185,13 @@ buildSite options@Options{..} =
 
   action do
     let sourcePatterns = postPattern : assetPatterns
-        staticTargets = map target
+        staticTargets = map TargetPath
           [ "index.html", "introduction/index.html", "posts/index.html", "styles.css" ]
     things <- forP sourcePatterns getThings
-    need (map (targetToOutputPath . thingTargetPath) (concat things) ++ staticTargets)
+    let allTargets = map thingTargetPath (concat things) <> staticTargets
+    if upload
+      then need (map targetToUploadedPath allTargets)
+      else need (map targetToOutputPath allTargets)
 
   target "posts/*/index.html" %> \targetPath -> do
     page <- Templates.post <$> getMarkdown (Target targetPath)
@@ -216,7 +219,7 @@ buildSite options@Options{..} =
     allPosts <- getAllPosts ()
     writeHtml targetPath $ Templates.archive allPosts
 
-  targetToUploadedPath (TargetPath "*") %> \uploadedPath -> do
+  targetToUploadedPath (TargetPath "**/*") %> \uploadedPath -> do
     let targetPath = uploadedToTargetPath uploadedPath
     need [targetToOutputPath targetPath]
     doUpload options targetPath
@@ -238,9 +241,9 @@ doProcessWith act options processConfig = liftIO do
 doUpload :: Options -> TargetPath -> Action ()
 doUpload options (TargetPath path) = do
   doProcess options $
-    setWorkingDir (outputDirectory options </> uploadedStateSubDir) $
+    setWorkingDir (outputDirectory options </> contentSubDir) $
     let directory = takeDirectory path
-        args = "upload" : path : if directory /= "." then ["-d", directory] else []
+        args = "upload" : if directory /= "." then ["-d", directory, path] else [path]
     in proc "neocities" args
 
 writeHtml :: FilePath -> Templates.PageContent -> Action ()
